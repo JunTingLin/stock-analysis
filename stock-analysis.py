@@ -28,11 +28,10 @@ buy_condition = (
 report = backtest.sim(buy_condition, resample='D', name="吳Peter策略選股")
 
 
-# 顯示回測報告
-# report.display()
+if __name__ == "__main__":
+    # 保存報告和交易記錄
+    from report_saver import save_report_html, save_trades_excel
 
-html_content = report.display().data
-with open("report.html", "w") as f:
-    f.write(html_content)
+    save_report_html(report)
+    save_trades_excel(report)
 
-# 然後手動在您的網頁瀏覽器中打開 "report.html"

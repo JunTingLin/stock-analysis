@@ -36,9 +36,12 @@ def get_data_from_finlab(dataset_name, use_cache=False, cache_dir='cache_data'):
             
         return df
 
-# 使用示例
 
-close = get_data_from_finlab("price:收盤價", use_cache=True)
-market_value = get_data_from_finlab("etl:market_value", use_cache=True)
 
+if __name__ == "__main__":
+    # 測試函數
+    close = get_data_from_finlab("price:收盤價", use_cache=True)
+    market_value = get_data_from_finlab("etl:market_value", use_cache=True)
+    print(close.head())
+    print(market_value.head())
 

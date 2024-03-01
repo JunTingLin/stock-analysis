@@ -42,18 +42,18 @@ for i in range(len(close.index)-1):
         position.loc[next_day] = position.loc[today]  # 首先將今天的持倉狀態複製到下一天
     
     # 處理買入訊號，對下一個交易日的持倉進行調整
-    if today in buy_condition.index and buy_condition.loc[today]:
+    if today in buy_condition.index and buy_condition.loc[today].any():
         buy_signals = buy_condition.loc[today]
         position.loc[next_day, buy_signals] = 1  # 在下一個交易日買入
 
     # 處理賣出訊號，對下一個交易日的持倉進行調整
     # 跌破季線且五日內未能站回，賣出 1/3
-    if today in not_recover_in_5_days.index and not_recover_in_5_days.loc[today]:
+    if today in not_recover_in_5_days.index and not_recover_in_5_days.loc[today].any():
         sell_1_3 = not_recover_in_5_days.loc[today] & (position.loc[today] > 0)
         position.loc[next_day, sell_1_3] *= 2/3
     
     # 如果季線開始下彎，全部賣出
-    if today in ma60_falling.index and ma60_falling.loc[today]:
+    if today in ma60_falling.index and ma60_falling.loc[today].any():
         sell_all = ma60_falling.loc[today] & (position.loc[today] > 0)
         position.loc[next_day, sell_all] = 0
 

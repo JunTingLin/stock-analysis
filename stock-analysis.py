@@ -1,9 +1,14 @@
 import pandas as pd
+from finlab import data
 from finlab import backtest
 from get_data import get_data_from_finlab
 
 close = get_data_from_finlab("price:收盤價", use_cache=True)
 market_value = get_data_from_finlab("etl:market_value", use_cache=True)
+
+# with data.universe(market='TSE_OTC'):
+#     close = data.get('price:收盤價')
+#     market_value = data.get('etl:market_value')
 
 # 計算季線（60日移動平均）並判斷季線是否上升
 ma60 = close.average(60)

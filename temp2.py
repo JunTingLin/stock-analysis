@@ -32,31 +32,29 @@ ma60_falling = ma60 < ma60.shift(1)
 # 初始化持倉狀態DataFrame
 position = pd.DataFrame(data=0, index=close.index, columns=close.columns)  # 將NaN改為初始為0表示無持有
 
-# 遍歷每一天，除了最後一天（因為最後一天無法執行買賣）
-for i in range(len(close.index)-1):
-    today = close.index[i]
-    next_day = close.index[i + 1]  # 獲取下一個交易日
-    
-    # 繼承昨天的持倉到今天
+# 遍歷每一天
+for today in close.index:
+    # 繼承昨天的持倉
     if today > position.index[0]:
-        position.loc[next_day] = position.loc[today]  # 首先將今天的持倉狀態複製到下一天
+        yesterday = position.index[position.index.get_loc(today) - 1]
+        position.loc[today] = position.loc[yesterday]  # 首先將昨天的持倉狀態複製到今天
     
-    # 處理買入訊號，對下一個交易日的持倉進行調整
-    if today in buy_condition.index and buy_condition.loc[today].any():
+    # 處理買入訊號
+    if today in buy_condition.index:
+        # 買入條件滿足的股票設為1
         buy_signals = buy_condition.loc[today]
-        position.loc[next_day, buy_signals] = 1  # 在下一個交易日買入
+        position.loc[today, buy_signals] = 1  # 更新買入訊號對應的股票持倉為 1
 
-    # 處理賣出訊號，對下一個交易日的持倉進行調整
+    # 處理賣出訊號
     # 跌破季線且五日內未能站回，賣出 1/3
-    if today in not_recover_in_5_days.index and not_recover_in_5_days.loc[today].any():
+    if today in not_recover_in_5_days.index:
         sell_1_3 = not_recover_in_5_days.loc[today] & (position.loc[today] > 0)
-        position.loc[next_day, sell_1_3] *= 2/3
+        position.loc[today, sell_1_3] *= 2/3  # 僅對已持有的股票進行操作
     
     # 如果季線開始下彎，全部賣出
-    if today in ma60_falling.index and ma60_falling.loc[today].any():
+    if today in ma60_falling.index:
         sell_all = ma60_falling.loc[today] & (position.loc[today] > 0)
-        position.loc[next_day, sell_all] = 0
-
+        position.loc[today, sell_all] = 0  # 將符合條件的股票持倉設為 0
 
 # 進行回測，不指定重採樣參數
 report = sim(position, resample=None)

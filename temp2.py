@@ -28,6 +28,10 @@ buy_condition = above_ma60 & ma60_rising & price_break_high_3m
 below_ma60 = close < ma60
 not_recover_in_5_days = below_ma60.sustain(5)
 ma60_falling = ma60 < ma60.shift(1)
+# 計算每天股票價格相比前一天收盤價的變動百分比
+price_change_percent = close.pct_change()
+# 設定停板條件，即價格跌幅小於或等於-10%
+hit_drop_limit = price_change_percent <= -0.10
 
 # 初始化持倉狀態DataFrame
 position = pd.DataFrame(data=0, index=close.index, columns=close.columns)  # 將NaN改為初始為0表示無持有
@@ -51,9 +55,9 @@ for today in close.index:
         sell_1_3 = not_recover_in_5_days.loc[today] & (position.loc[today] > 0)
         position.loc[today, sell_1_3] *= 2/3  # 僅對已持有的股票進行操作
     
-    # 如果季線開始下彎，全部賣出
-    if today in ma60_falling.index:
-        sell_all = ma60_falling.loc[today] & (position.loc[today] > 0)
+    # 如果季線開始下彎或觸及跌停板，全部賣出
+    if today in ma60_falling.index and today in hit_drop_limit.index:
+        sell_all = (ma60_falling.loc[today] | hit_drop_limit.loc[today]) & (position.loc[today] > 0)
         position.loc[today, sell_all] = 0  # 將符合條件的股票持倉設為 0
 
 # 進行回測，不指定重採樣參數

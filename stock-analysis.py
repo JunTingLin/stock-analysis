@@ -5,7 +5,6 @@ from get_data import get_data_from_finlab
 
 close = get_data_from_finlab("price:收盤價", use_cache=True, market='TSE_OTC')
 market_value = get_data_from_finlab("etl:market_value", use_cache=True, market='TSE_OTC')
-market_value = market_value[:'2020-12-31 00:00:00']
 eps = get_data_from_finlab('financial_statement:每股盈餘', use_cache=True, market='TSE_OTC')
 
 # with data.universe(market='TSE_OTC'):
@@ -20,8 +19,18 @@ above_ma60 = close > ma60
 # 股價突破三個月高點
 high_3m = close.rolling(60).max()
 price_break_high_3m = close >= high_3m
-# 總市值在150億台幣以上
-market_value_condition = market_value > 15000000000  # 150億台幣
+
+# 僅提取最後一天的市值數據
+market_value_on_last_day = market_value.iloc[-1]
+# 判斷最後一天的市值是否超過150億新台幣
+market_value_condition = market_value_on_last_day > 15000000000
+# 現在market_value_condition是一個Series，它表示的是最後一天每個股票是否滿足市值條件
+# 為了在買入條件中使用，我們需要將這個條件擴展成與close相同形狀的DataFrame
+# 首先創建一個空的DataFrame，索引與close一致，全部填充False
+market_value_condition_expanded = pd.DataFrame(False, index=close.index, columns=close.columns)
+# 然後將市值條件應用於所有日期，對於滿足條件的股票，在所有日期上設置為True
+market_value_condition_expanded.loc[:, market_value_condition[market_value_condition].index] = True
+
 # 過去四個季度的盈餘總和大於2元，且連續兩年都滿足這個條件
 cumulative_eps_last_year = eps.rolling(4).sum() > 2
 cumulative_eps_year_before_last = eps.shift(4).rolling(4).sum() > 2
@@ -33,9 +42,11 @@ buy_condition = (
     above_ma60 &
     ma60_rising &
     price_break_high_3m &
-    market_value_condition &
+    market_value_condition_expanded &
     eps_condition
 )
+# 刪除最後一row
+buy_condition = buy_condition[:-1]
 
 below_ma60 = close < ma60
 not_recover_in_5_days = below_ma60.sustain(5)

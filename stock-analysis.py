@@ -2,6 +2,7 @@ import pandas as pd
 from finlab import data
 from finlab import backtest
 from get_data import get_data_from_finlab
+from utils import calculate_rolling_slope
 
 close = get_data_from_finlab("price:收盤價", use_cache=True, market='TSE_OTC')
 market_value = get_data_from_finlab("etl:market_value", use_cache=True, market='TSE_OTC')
@@ -13,7 +14,10 @@ eps = get_data_from_finlab('financial_statement:每股盈餘', use_cache=True, m
 
 # 計算季線（60日移動平均）並判斷季線是否上升
 ma60 = close.average(60)
-ma60_rising = ma60 > ma60.shift(1)
+window = 60
+ma60_slope = close.apply(lambda x: calculate_rolling_slope(x, window), axis=0)
+ma60_rising = ma60_slope > 0
+
 # # 股價是否大於季線
 above_ma60 = close > ma60
 # 股價突破三個月高點

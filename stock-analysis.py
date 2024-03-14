@@ -7,22 +7,12 @@ market_value = get_data_from_finlab("etl:market_value", use_cache=True, market='
 close = get_data_from_finlab("price:收盤價", use_cache=True, market='TSE_OTC')
 eps = get_data_from_finlab('financial_statement:每股盈餘', use_cache=True, market='TSE_OTC')
 revenue_growth_yoy = get_data_from_finlab('monthly_revenue:去年同月增減(%)', use_cache=True, market='TSE_OTC')
-total_assets = get_data_from_finlab('financial_statement:資產總額', use_cache=True, market='TSE_OTC')
-total_liabilities = get_data_from_finlab('financial_statement:負債總額', use_cache=True, market='TSE_OTC')
-shareholder_equity = get_data_from_finlab('financial_statement:股東權益總額')
-
 
 market_value_condition = market_value.iloc[-1] > 15000000000
-asset_condition = total_assets.iloc[-1] > 50000000
-liabilities_condition = total_liabilities.iloc[-1] < 1000000000
-equity_condition = shareholder_equity.iloc[-1] > 10000000
 
 # 將各個DataFrame的欄位（股票代號）轉換為集合
 sets_of_stocks = [
     set(market_value.columns[market_value_condition]),
-    set(total_assets.columns[asset_condition]),
-    set(total_liabilities.columns[liabilities_condition]),
-    set(shareholder_equity.columns[equity_condition]),
     set(close.columns),
     set(eps.columns),
     set(revenue_growth_yoy.columns)
@@ -59,9 +49,11 @@ revenue_growth_condition = revenue_growth_yoy > 30
 
 # 買入條件
 buy_condition = (
+    # 技術面
     above_ma60 &
     ma60_rising &
     price_break_high_3m &
+    # 基本面
     eps_condition &
     revenue_growth_condition
 )

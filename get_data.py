@@ -16,7 +16,9 @@ def get_data_from_finlab(dataset_name, use_cache=False, cache_dir='cache_data', 
     Returns:
         pd.DataFrame: 獲取的數據。
     """
-    cache_path = os.path.join(cache_dir, f'{dataset_name}.pkl')
+    # 用下劃線替換冒號
+    safe_dataset_name = dataset_name.replace(":", "_")
+    cache_path = os.path.join(cache_dir, f'{safe_dataset_name}.pkl')
     
     # 檢查是否使用本地緩存
     if use_cache and os.path.exists(cache_path):

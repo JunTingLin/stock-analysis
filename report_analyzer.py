@@ -15,11 +15,13 @@ class ReportAnalyzer:
         # 賣出股票的情況
         sells = trades_df[trades_df['exit_date'] == analysis_date]['stock_id'].tolist()
     
-        # 持有股票的情況，即在分析日期之後買入且在分析日期之前賣出
-        holds = trades_df[(trades_df['entry_date'] < analysis_date) & (trades_df['exit_date'] > analysis_date)]['stock_id'].tolist()
+        still_holds = trades_df[
+            (trades_df['entry_date'] < analysis_date) & 
+            ((trades_df['exit_date'] > analysis_date) | (trades_df['exit_date'].isna()))
+        ]['stock_id'].tolist()
     
         return {
             'buys': buys,
             'sells': sells,
-            'holds': holds
+            'still_holds': still_holds
         }

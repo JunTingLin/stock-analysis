@@ -2,7 +2,7 @@ from finlab import data
 from finlab import backtest
 
 with data.universe(market='TSE_OTC'):
-    # market_value = data.get("etl:market_value")
+    market_value = data.get("etl:market_value")
     close = data.get("price:收盤價")
     eps = data.get('financial_statement:每股盈餘')
     revenue_growth_yoy = data.get('monthly_revenue:去年同月增減(%)')
@@ -58,22 +58,23 @@ sell_condition = (
 
 buy_sell_signal = buy_condition.hold_until(sell_condition)
 
+# 現在將市值數據整合進來，每個重平衡周期選出市值前10大的股票
+buy_sell_signal = market_value[buy_sell_signal].is_largest(10)
+
 # 使用 sim 函數進行模擬
-report = backtest.sim(buy_sell_signal, resample=None, name="吳Peter策略選股", upload="False")
+report = backtest.sim(buy_sell_signal, resample='M', name="吳Peter策略選股", upload="False")
 
 
 from signal_analyzer import SignalAnalyzer
 # 處理信號
 analyzer = SignalAnalyzer(buy_sell_signal)
-changes = analyzer.get_daily_changes('2022-05-02 00:00:00')
-print(changes)
 clean_signals = analyzer.remove_never_bought_stocks()
 print(clean_signals)
 
 from report_analyzer import ReportAnalyzer
 # 分析報告
 analyzer = ReportAnalyzer(report)
-analysis_result = analyzer.analyze_trades_for_date('2022-05-01')
+analysis_result = analyzer.analyze_trades_for_date('2024-03-01')
 print(analysis_result)
 
 from report_saver import ReportSaver

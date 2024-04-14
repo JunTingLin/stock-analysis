@@ -79,17 +79,9 @@ position = buy_condition.hold_until(sell_condition)
 # 使用 sim 函數進行模擬
 report = backtest.sim(position, resample=None, name="吳Peter策略選股")
 
-# from finlab.online.order_executor import Position
-# position_today = Position.from_report(report, 1000000, odd_lot=True) # 策略操作金額一百萬
 
-# order_executor = OrderExecutor(position_today, account=acc)
-# # 新增委託單
-# order_executor.create_orders()
-
-if __name__ == "__main__":
-    # 保存報告和交易記錄
-    from report_saver import save_report_html, save_trades_excel
-
-    save_report_html(report)
-    save_trades_excel(report)
-
+from report_saver import ReportSaver
+# 保存報告和交易記錄
+saver = ReportSaver(report)
+saver.save_report_html()
+saver.save_trades_excel()

@@ -1,14 +1,10 @@
-import pandas as pd
 from finlab import data
 from finlab import backtest
-from get_data import get_data_from_finlab
 
-use_cache = True
-
-market_value = get_data_from_finlab("etl:market_value", use_cache=use_cache, market='TSE_OTC')
-close = get_data_from_finlab("price:收盤價", use_cache=use_cache, market='TSE_OTC')
-eps = get_data_from_finlab('financial_statement:每股盈餘', use_cache=use_cache, market='TSE_OTC')
-revenue_growth_yoy = get_data_from_finlab('monthly_revenue:去年同月增減(%)', use_cache=use_cache, market='TSE_OTC')
+market_value = data.get("etl:market_value")
+close = data.get("price:收盤價")
+eps = data.get('financial_statement:每股盈餘')
+revenue_growth_yoy = data.get('monthly_revenue:去年同月增減(%)')
 
 market_value_condition = market_value.iloc[-1] > 15000000000
 
@@ -82,7 +78,7 @@ position = buy_condition.hold_until(sell_condition)
 
 # 使用 sim 函數進行模擬
 report = backtest.sim(position, resample=None, name="吳Peter策略選股")
-y;4
+
 # from finlab.online.order_executor import Position
 # position_today = Position.from_report(report, 1000000, odd_lot=True) # 策略操作金額一百萬
 

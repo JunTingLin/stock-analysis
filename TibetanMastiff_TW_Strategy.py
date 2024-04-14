@@ -33,4 +33,23 @@ buy = vol_ma*buy
 buy = buy[buy>0]
 buy = buy.is_smallest(5)
 
-report = sim(buy , resample="M", upload=True, position_limit=1/3, fee_ratio=1.425/1000/3, stop_loss=0.08,  trade_at_price='open',name='藏獒', live_performance_start='2022-05-01')
+report = sim(buy , resample="M", upload=False, position_limit=1/3, fee_ratio=1.425/1000/3, stop_loss=0.08,  trade_at_price='open',name='藏獒', live_performance_start='2022-05-01')
+
+
+from report_analyzer import ReportAnalyzer
+# 分析報告
+analyzer = ReportAnalyzer(report)
+analysis_result = analyzer.analyze_trades_for_date('2024-03-01')
+print(analysis_result)
+
+from report_saver import ReportSaver
+# 保存報告和交易記錄
+saver = ReportSaver(report)
+saver.save_report_html()
+saver.save_trades_excel()
+
+from report_analyzer import ReportAnalyzer
+# 分析報告
+analyzer = ReportAnalyzer(report)
+analysis_result = analyzer.analyze_trades_for_date('2024-03-01')
+print(analysis_result)

@@ -62,6 +62,14 @@ buy_sell_signal = buy_condition.hold_until(sell_condition)
 report = backtest.sim(buy_sell_signal, resample=None, name="吳Peter策略選股", upload="False")
 
 
+from signal_analyzer import SignalAnalyzer
+# 處理信號
+analyzer = SignalAnalyzer(buy_sell_signal)
+changes = analyzer.get_daily_changes('2022-05-02 00:00:00')
+print(changes)
+clean_signals = analyzer.remove_never_bought_stocks()
+print(clean_signals)
+
 from report_analyzer import ReportAnalyzer
 # 分析報告
 analyzer = ReportAnalyzer(report)

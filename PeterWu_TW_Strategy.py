@@ -1,27 +1,11 @@
 from finlab import data
 from finlab import backtest
 
-market_value = data.get("etl:market_value")
-close = data.get("price:收盤價")
-eps = data.get('financial_statement:每股盈餘')
-revenue_growth_yoy = data.get('monthly_revenue:去年同月增減(%)')
-
-market_value_condition = market_value.iloc[-1] > 15000000000
-
-# 將各個DataFrame的欄位（股票代號）轉換為集合
-sets_of_stocks = [
-    set(market_value.columns[market_value_condition]),
-    set(close.columns),
-    set(eps.columns),
-    set(revenue_growth_yoy.columns)
-]
-
-# 使用集合的交集找到操作所有資料集中共享的股票代號
-valid_stocks = list(set.intersection(*sets_of_stocks))
-
-close = close[valid_stocks]
-eps = eps[valid_stocks]
-revenue_growth_yoy = revenue_growth_yoy[valid_stocks]
+with data.universe(market='TSE_OTC'):
+    # market_value = data.get("etl:market_value")
+    close = data.get("price:收盤價")
+    eps = data.get('financial_statement:每股盈餘')
+    revenue_growth_yoy = data.get('monthly_revenue:去年同月增減(%)')
 
 
 # 計算季線（60日移動平均）並判斷季線是否上升
@@ -55,8 +39,6 @@ buy_condition = (
     eps_condition &
     revenue_growth_condition
 )
-# 刪除最後一row
-buy_condition = buy_condition[:-1]
 
 below_ma60 = close < ma60
 not_recover_in_5_days = below_ma60.sustain(5)
@@ -74,11 +56,17 @@ sell_condition = (
     hit_drop_limit 
 )
 
-position = buy_condition.hold_until(sell_condition)
+buy_sell_signal = buy_condition.hold_until(sell_condition)
 
 # 使用 sim 函數進行模擬
-report = backtest.sim(position, resample=None, name="吳Peter策略選股")
+report = backtest.sim(buy_sell_signal, resample=None, name="吳Peter策略選股", upload="False")
 
+
+from report_analyzer import ReportAnalyzer
+# 分析報告
+analyzer = ReportAnalyzer(report)
+analysis_result = analyzer.analyze_trades_for_date('2022-05-01')
+print(analysis_result)
 
 from report_saver import ReportSaver
 # 保存報告和交易記錄

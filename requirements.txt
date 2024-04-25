@@ -1,2 +1,3 @@
 finlab
 openpyxl
+fugle-trade # 玉山 Fugle

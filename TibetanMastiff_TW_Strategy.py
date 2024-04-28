@@ -35,6 +35,38 @@ buy = buy.is_smallest(5)
 
 report = sim(buy , resample="M", upload=False, position_limit=1/3, fee_ratio=1.425/1000/3, stop_loss=0.08,  trade_at_price='open',name='藏獒', live_performance_start='2022-05-01')
 
+# ------- 交易下單 -------
+
+from finlab.online.fugle_account import FugleAccount
+import os
+import configparser
+config = configparser.ConfigParser()
+config_file_name = 'config.simulation.ini'
+config.read(config_file_name)
+
+os.environ['FUGLE_CONFIG_PATH'] = config_file_name
+os.environ['FUGLE_MARKET_API_KEY'] = config['FUGLE_MARKET']['FUGLE_MARKET_API_KEY']
+acc = FugleAccount()
+
+from finlab.online.order_executor import Position
+# total fund
+fund = 10000
+position_today = Position.from_report(report, fund, odd_lot=True)
+print(position_today)
+
+from finlab.online.order_executor import OrderExecutor
+order_executor = OrderExecutor(position_today, account=acc)
+# 新增委託單
+order_executor.create_orders()
+
+# 刪除委託單
+order_executor.cancel_orders()
+
+# 拿到當前帳戶的股票部位
+acc.get_position()
+
+
+# ----------------------------------------------------------------
 
 from report_analyzer import ReportAnalyzer
 # 分析報告
@@ -47,9 +79,3 @@ from report_saver import ReportSaver
 saver = ReportSaver(report)
 saver.save_report_html()
 saver.save_trades_excel()
-
-from report_analyzer import ReportAnalyzer
-# 分析報告
-analyzer = ReportAnalyzer(report)
-analysis_result = analyzer.analyze_trades_for_date('2024-03-01')
-print(analysis_result)

@@ -3,3 +3,6 @@ output
 *.zip
 *.ini
 *.P12
+config.simulation.ini.example
+config.ini.example
+cache_data/*.xlsx

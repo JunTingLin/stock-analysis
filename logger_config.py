@@ -19,3 +19,10 @@ def setup_logging():
                         level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s',
                         encoding='utf-8')
+
+def send_log_contents():
+    # 設置完成後，讀取日誌並發送到 LINE
+    with open(logging.root.handlers[0].baseFilename, 'r', encoding='utf-8') as log_file:
+        log_contents = log_file.read()
+    from line_bot_notifier import send_line_notification
+    send_line_notification(f"日誌內容：\n{log_contents}")

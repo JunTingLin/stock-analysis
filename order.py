@@ -8,6 +8,7 @@ from decimal import Decimal
 import logger_config
 import logging
 
+
 # 設置日誌
 logger_config.setup_logging()
 
@@ -27,10 +28,10 @@ acc = FugleAccount()
 
 # 執行交易邏輯
 fund = 100000 * 0.8  # 設置資金為現金的80%
-print(f"當前帳戶現金為{acc.get_cash()}")
+logging.info(f"當前帳戶現金為{acc.get_cash()}")
 
 acc_position = acc.get_position()
-print(f"當前帳戶目前持倉為{acc_position.position}")
+logging.info(f"當前帳戶目前持倉為{acc_position.position}")
 current_ids = set(p['stock_id'] for p in acc_position.position)
 
 # 獲取由report物件生成的今日持倉狀態
@@ -81,6 +82,9 @@ if not month_trading_days.empty:
 
 else:
     logging.info(f"今天{today}是休市")
+
+# 發送日誌內容到LINE
+logger_config.send_log_contents()
 
 
     

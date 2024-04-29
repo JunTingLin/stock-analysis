@@ -8,12 +8,13 @@ class TibetanMastiffTWStrategy:
         self.close = None
     
     def run_strategy(self):
-        self.close = self.data.get("price:收盤價")
-        vol = self.data.get("price:成交股數")
-        vol_ma = vol.average(10)
-        rev = self.data.get('monthly_revenue:當月營收')
-        rev_year_growth = self.data.get('monthly_revenue:去年同月增減(%)')
-        rev_month_growth = self.data.get('monthly_revenue:上月比較增減(%)')
+        with data.universe(market='TSE_OTC'):
+            self.close = self.data.get("price:收盤價")
+            vol = self.data.get("price:成交股數")
+            vol_ma = vol.average(10)
+            rev = self.data.get('monthly_revenue:當月營收')
+            rev_year_growth = self.data.get('monthly_revenue:去年同月增減(%)')
+            rev_month_growth = self.data.get('monthly_revenue:上月比較增減(%)')
 
         # Define conditions
         # 股價創年新高

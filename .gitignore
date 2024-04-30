@@ -1,6 +1,7 @@
 __pycache__
 output
 log
+config
 *.zip
 *.ini
 *.P12

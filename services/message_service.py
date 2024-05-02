@@ -15,7 +15,8 @@ if __name__ == '__main__':
         'cash': 100000,
         'position_acc': [{'stock_id': '2330', 'stock_name': '台積電', 'quantity': 100, 'price': 600}],
         'position_next': [{'stock_id': '2317', 'stock_name': '鴻海', 'quantity': 200, 'price': 100}],
-        'msg': '測試消息'
+        'message': '測試消息',
+        'error': ''
     }
 
     msg_service = MessageService()

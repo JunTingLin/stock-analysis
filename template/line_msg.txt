@@ -1,6 +1,7 @@
-{{ data.today }}執行報告:
+{{ data.today }} 執行報告:
 
 1. 當前帳戶目前資金為: NT$ {{ data.cash }}
+
 2. 當前帳戶目前持倉為:
 {% if data.position_acc %}
     {% for position in data.position_acc %}
@@ -9,8 +10,10 @@
 {% else %}
     - 無持倉資訊
 {% endif %}
-3. msg:
-{{ data.msg }}
+
+3. 訊息:
+{{ data.message }}
+
 4. 將於下一個交易調整持倉為:
 {% if data.position_next %}
     {% for position in data.position_next %}
@@ -18,4 +21,9 @@
     {% endfor %}
 {% else %}
     - 無即將調整的持倉資訊
+{% endif %}
+
+{% if data.error %}
+5. 錯誤:
+{{ data.error }}
 {% endif %}

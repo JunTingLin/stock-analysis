@@ -8,3 +8,4 @@ config
 config.simulation.ini.example
 config.ini.example
 cache_data/*.xlsx
+user_ids.json

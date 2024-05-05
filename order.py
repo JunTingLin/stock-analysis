@@ -41,18 +41,18 @@ try:
     today = pd.Timestamp.now().normalize()
     line_msg.set_date(today.date())
 
+    # 執行交易邏輯
+    fund = acc.get_cash() * 0.8
+    logging.info(f"當前帳戶目前資金為: NT${acc.get_cash()}")
+    line_msg.set_cash(acc.get_cash())
+
+    # 帳戶持倉
+    position_acc = acc.get_position()
+    logging.info(f"當前帳戶目前持倉為: {position_acc.position}")
+    line_msg.set_positions_acc(position_acc.position)
+    current_ids = set(p['stock_id'] for p in position_acc.position)
+
     if today == close.index[-1]:
-        # 執行交易邏輯
-        fund = acc.get_cash() * 0.8
-        logging.info(f"當前帳戶目前資金為: NT${acc.get_cash()}")
-        line_msg.set_cash(acc.get_cash())
-
-        # 帳戶持倉
-        position_acc = acc.get_position()
-        logging.info(f"當前帳戶目前持倉為: {position_acc.position}")
-        line_msg.set_positions_acc(position_acc.position)
-        current_ids = set(p['stock_id'] for p in position_acc.position)
-
         # 獲取由report物件生成的今日持倉
         position_today = Position.from_report(report, fund, odd_lot=True)
         new_ids = set(p['stock_id'] for p in position_today.position)
@@ -130,4 +130,4 @@ formatted_message = message_service.render_message(line_msg.to_dict())
 print(formatted_message)
 
 notification_service = NotificationService()
-notification_service.send_notification(formatted_message)
+notification_service.send_notification_to_all_users(formatted_message)

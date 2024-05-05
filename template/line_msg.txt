@@ -14,13 +14,11 @@
 3. 訊息:
 {{ data.message }}
 
-4. 將於下一個交易調整持倉為:
 {% if data.position_next %}
+4. 將於下一個交易調整持倉為:
     {% for position in data.position_next %}
        - {{ position['stock_id'] }} : {{ position['quantity'] }} 張
     {% endfor %}
-{% else %}
-    - 無即將調整的持倉資訊
 {% endif %}
 
 {% if data.error %}

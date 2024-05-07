@@ -130,4 +130,7 @@ formatted_message = message_service.render_message(line_msg.to_dict())
 print(formatted_message)
 
 notification_service = NotificationService()
-notification_service.send_notification_to_all_users(formatted_message)
+if config_file_name == 'config.ini':
+    notification_service.send_notification_to_all_users(formatted_message)
+else:
+    notification_service.send_notification_to_developer(formatted_message)

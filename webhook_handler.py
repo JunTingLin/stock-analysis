@@ -20,6 +20,10 @@ line_bot_api = LineBotApi(channel_access_token)
 
 notification_service = NotificationService()
 
+@app.route("/")
+def hello():
+    return "This is the webhook handler for the Line Bot!"
+
 @app.route("/callback", methods=['POST'])
 def callback():
     # 獲取請求頭的X-Line-Signature

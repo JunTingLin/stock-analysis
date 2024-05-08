@@ -22,7 +22,7 @@ echo "Running Python script 'order.py'..."
 expect -c "
 spawn python order.py
 expect \"Please enter password for encrypted keyring:\"
-send \"${KEYRING_PASSWORD}\r\"
+send "your_password\r"
 interact
 "
 

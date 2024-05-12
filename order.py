@@ -71,47 +71,37 @@ try:
                 line_msg.append_error(f"初始化持倉失敗: {e}")
 
         else:
-            # 檢查今天是否為月初第一天，月初第一天確定換股調整
-            month_start = today.replace(day=1)
-            month_trading_days = close.loc[month_start:today]
-
-            first_trading_day = month_trading_days.index[0]
-            last_trading_day = month_trading_days.index[-1]
-            if today == first_trading_day:
-                # 如果今天是該月實際的第一個交易日，則執行換股調整
-                position_today = Position.from_report(report, fund, odd_lot=True)
+            add_ids = new_ids - current_ids
+            remove_ids = current_ids - new_ids
+            if add_ids != set():
                 try:
                     order_executor = OrderExecutor(position_today, account=acc)
                     order_executor.create_orders()  # 調整到這個持倉
-                    logging.info(f"為該月實際的第一個交易日，將執行換股調整")
-                    line_msg.append_message(f"為該月實際的第一個交易日，將執行換股調整")
-                    logging.info(f"將於下一個交易調整持倉為{position_today.position}")
+                    logging.info(f"持倉有變化，將於下一個交易調整持倉")
+                    line_msg.append_message(f"持倉有變化，將於下一個交易調整持倉")
+                    logging.info(f"將於下一個交易調整持倉為: {position_today.position}")
                     line_msg.set_positions_next(position_today.position)
                 except Exception as e:
-                    logging.error(f"換股調整失敗: {e}")
-                    line_msg.append_error(f"換股調整失敗: {e}")
-
-            elif today == last_trading_day:
-                # 如果今天和close的最後一個交易日相同，則判斷帳戶股票部位是否有要提前出售的(跌8%)
-                remove_ids = current_ids - new_ids
-                if remove_ids:
-                    # 為需要移除的股票設置數量為0，其它幾檔的數量維持不變
-                    for position in position_acc.position:
-                        if position['stock_id'] in remove_ids:
-                            position['quantity'] = Decimal('0')
-                    try:
-                        order_executor = OrderExecutor(position_acc, account=acc)
-                        order_executor.create_orders()
-                        logging.info(f"需要移除的股票有{remove_ids}，將於下一個交易日出售")
-                        line_msg.append_message(f"需要移除的股票有{remove_ids}，將於下一個交易日出售")
-                        logging.info(f"將於下一個交易調整持倉為{position_acc.position}")
-                        line_msg.set_positions_next(position_acc.position)
-                    except Exception as e:
-                        logging.error(f"提前出售失敗: {e}")
-                        line_msg.append_error(f"提前出售失敗: {e}")
-                else:
-                    logging.info(f"沒有跌停的股票需要出售，不需要調整持倉")
-                    line_msg.append_message(f"沒有跌停的股票需要出售，不需要調整持倉")
+                    logging.error(f"調整持倉失敗: {e}")
+                    line_msg.append_error(f"調整持倉失敗: {e}")
+            elif remove_ids:
+                # 為需要移除的股票設置數量為0，其它幾檔的數量維持不變
+                for position in position_acc.position:
+                    if position['stock_id'] in remove_ids:
+                        position['quantity'] = Decimal('0')
+                try:
+                    order_executor = OrderExecutor(position_acc, account=acc)
+                    order_executor.create_orders()
+                    logging.info(f"需要移除的股票有{remove_ids}，將於下一個交易日出售")
+                    line_msg.append_message(f"需要移除的股票有{remove_ids}，將於下一個交易日出售")
+                    logging.info(f"將於下一個交易調整持倉為{position_acc.position}")
+                    line_msg.set_positions_next(position_acc.position)
+                except Exception as e:
+                    logging.error(f"提前出售失敗: {e}")
+                    line_msg.append_error(f"提前出售失敗: {e}")
+            else:
+                logging.info(f"不需要調整持倉")
+                line_msg.append_message(f"不需要調整持倉")
 
     else:
         logging.info(f"今天是休市日喔")

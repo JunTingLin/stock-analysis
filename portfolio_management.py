@@ -10,7 +10,7 @@ def calculate_portfolio_value(positions, close_prices):
             total_value += stock_value
             portfolio_details.append({
                 'stock_id': stock_id,
-                'quantity': quantity,
+                'quantity': float(quantity),
                 'close_price': close_price,
                 'stock_value': stock_value
             })

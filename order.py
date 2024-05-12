@@ -3,6 +3,7 @@ import logging
 import os
 import pandas as pd
 from decimal import Decimal
+import requests
 
 from authentication import login_all
 from model.trading_info import TradingInfo
@@ -43,7 +44,7 @@ fund = total_cash * 0.8
 trading_info.set_attribute('fund', fund)
 
 today = pd.Timestamp.now().normalize()
-trading_info.set_attribute('today', today)
+trading_info.set_attribute('today', str(today.date()))
 
 # 判斷今日是否為交易日
 if today != close.index[-1]:
@@ -64,8 +65,9 @@ else:
         try:
             order_executor = OrderExecutor(position_today, account=acc)
             order_executor.create_orders()  # 調整到這個持倉
-            trading_info.set_attribute('positions_next', position_today.position)
-            logging.info(f"將於下一個交易調整持倉為: {position_today.position}")
+            _, portfolio_details = calculate_portfolio_value(position_today.position, close)
+            trading_info.set_attribute('positions_next', portfolio_details)
+            logging.info(f"將於下一個交易調整持倉為: {portfolio_details}")
         except Exception as e:
             logging.error(f"調整持倉失敗: {e}")
 
@@ -77,11 +79,24 @@ else:
         try:
             order_executor = OrderExecutor(position_acc, account=acc)
             order_executor.create_orders()
-            trading_info.set_attribute('positions_next', position_acc.position)
+            _, portfolio_details = calculate_portfolio_value(position_acc.position, close)
+            trading_info.set_attribute('positions_next', portfolio_details)
             logging.info(f"需要移除的股票有{remove_ids}，將於下一個交易日出售")
-            logging.info(f"將於下一個交易調整持倉為{position_acc.position}")
+            logging.info(f"將於下一個交易調整持倉為{portfolio_details}")
         except Exception as e:
             logging.error(f"提前出售失敗: {e}")
 
     else:
         logging.info("持倉無需變化")
+
+
+# 通知使用者
+url = 'http://127.0.0.1:5000/notify_dev'
+payload = { 'message': trading_info.data }
+respinse = requests.post(url, json=payload)
+if respinse.status_code == 200:
+    logging.info("通知使用者成功")
+else:
+    logging.error("通知使用者失敗")
+    logging.error(f"回應碼: {respinse.status_code}")
+    logging.error(f"回應訊息: {respinse.text}")

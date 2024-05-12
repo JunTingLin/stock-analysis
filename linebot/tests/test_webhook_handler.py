@@ -7,7 +7,7 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from webhook_handler import handle_follow
+from linebot.app import handle_follow
 
 class TestWebhookHandler(unittest.TestCase):
     def test_handle_follow(self):

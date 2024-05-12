@@ -5,7 +5,7 @@ import json
 import os
 
 class NotificationService:
-    def __init__(self, config_path='config/config.simulation.ini'):
+    def __init__(self, config_path='linebot/config.ini'):
         # 讀取配置文件
         config = configparser.ConfigParser()
         config.read(config_path)

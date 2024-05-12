@@ -1,27 +1,31 @@
 {{ data.today }} 執行報告:
 
-1. 當前帳戶目前資金為: NT$ {{ data.cash }}
+是否為模擬單: {{ data.is_simulation }}
 
-2. 當前帳戶目前持倉為:
-{% if data.position_acc %}
-    {% for position in data.position_acc %}
-       - {{ position['stock_id'] }} : {{ position['quantity'] }} 張
+當前帳戶餘額: NT$ {{ data.bank_cash_acc }}
+
+當前帳戶目前持倉為:
+{% if data.positions_acc %}
+    {% for position in data.positions_acc %}
+       {{ position['stock_id'] }}：持有 {{ position['quantity'] }} 張，收盤價：{{ position['close_price'] }}，市值：{{ position['stock_value'] }}
     {% endfor %}
 {% else %}
     - 無持倉資訊
 {% endif %}
 
-3. 訊息:
-{{ data.message }}
+當前帳戶持倉市值: NT$ {{ data.positions_cash_acc }}
 
-{% if data.position_next %}
-4. 將於下一個交易調整持倉為:
-    {% for position in data.position_next %}
-       - {{ position['stock_id'] }} : {{ position['quantity'] }} 張
+當前帳戶總市值: NT$ {{ data.total_cash }}
+
+{% if data.positions_next %}
+策略金額: NT$ {{ data.fund }}
+
+將於下一個交易日調整持倉為:
+    {% for position in data.positions_next %}
+       - {{ position['stock_id'] }}：預計持有 {{ position['quantity'] }} 張，預估收盤價：{{ position['close_price'] }}，預估市值：{{ position['stock_value'] }}
     {% endfor %}
+{% else %}
+    - 無預定調整持倉資訊
 {% endif %}
 
-{% if data.error %}
-5. 錯誤:
-{{ data.error }}
-{% endif %}
+

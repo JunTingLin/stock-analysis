@@ -12,6 +12,7 @@ import logging
 from models.line_message import LineMessage
 from services.message_service import MessageService
 from services.notification_service import NotificationService
+from portfolio_management import calculate_portfolio_value
 
 # 設置日誌
 logger_config.setup_logging()
@@ -51,6 +52,8 @@ try:
     logging.info(f"當前帳戶目前持倉為: {position_acc.position}")
     line_msg.set_positions_acc(position_acc.position)
     current_ids = set(p['stock_id'] for p in position_acc.position)
+    total_value, details = calculate_portfolio_value(position_acc.position, close)
+    logging.info(f"當前帳戶目前持倉總價值為: NT${total_value}")
 
     if today == close.index[-1]:
         # 獲取由report物件生成的今日持倉

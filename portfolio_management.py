@@ -1,6 +1,3 @@
-import logging
-from decimal import Decimal
-
 def calculate_portfolio_value(positions, close_prices):
     total_value = 0
     portfolio_details = []

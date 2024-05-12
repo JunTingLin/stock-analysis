@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 
 def setup_logging():
-# 日誌文件夾的路徑
+    # 日誌文件夾的路徑
     log_directory = 'log'
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)  # 如果目錄不存在，則創建它
@@ -13,16 +13,29 @@ def setup_logging():
     log_filename = f'{current_time}.log'
     log_filepath = os.path.join(log_directory, log_filename)
 
-    # 設置日誌記錄配置
-    logging.basicConfig(filename=log_filepath,
-                        filemode='w',
-                        level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s',
-                        encoding='utf-8')
+    # logging.basicConfig(filename=log_filepath,
+    #                     filemode='w',
+    #                     level=logging.INFO,
+    #                     format='%(asctime)s - %(levelname)s - %(message)s',
+    #                     encoding='utf-8')
 
-def send_log_contents():
-    # 設置完成後，讀取日誌並發送到 LINE
-    with open(logging.root.handlers[0].baseFilename, 'r', encoding='utf-8') as log_file:
-        log_contents = log_file.read()
-    from line_bot_notifier import send_line_notification
-    send_line_notification(f"日誌內容：\n{log_contents}")
+    # 創建一個 logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    # 創建文件 file_handler ，用於寫入日誌文件
+    file_handler = logging.FileHandler(log_filepath, mode='w', encoding='utf-8')
+    file_handler.setLevel(logging.INFO)
+    file_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(file_format)
+
+    # 創建 stream_handler ，用於輸出到控制台
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+    stream_handler.setFormatter(file_format)
+
+    # 添加 handlers 到 logger
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+    
+

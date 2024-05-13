@@ -89,6 +89,21 @@ def notify_dev():
     except Exception as e:
         logging.error(f"Exception in notify_dev: {str(e)}")
         return jsonify({"error": "Notification failed"}), 500
+    
+@app.route('/notify_all', methods=['POST'])
+def notify_all():
+    data = request.get_json()
+    message = data.get('message')
+    if not message:
+        return jsonify({"error": "Missing message"}), 400
+
+    try:
+        rendered_message = message_service.render_message(message)
+        notification_service.send_notification_to_all_users(rendered_message)
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        logging.error(f"Exception in notify_all: {str(e)}")
+        return jsonify({"error": "Notification failed"}), 500
 
 
 

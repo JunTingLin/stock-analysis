@@ -91,7 +91,11 @@ else:
 
 
 # 通知使用者
-url = 'http://127.0.0.1:5000/notify_dev'
+if config_file_name == 'config.simulation.ini':
+    url = 'http://127.0.0.1:5000/notify_dev'
+else:
+    url = 'http://127.0.0.1:5000/notify_all'
+
 payload = { 'message': trading_info.data }
 respinse = requests.post(url, json=payload)
 if respinse.status_code == 200:

@@ -14,7 +14,7 @@ class NotificationService:
         self.user_id = config['LineBot']['UserId']
         # 初始化LINE Bot API
         self.line_bot_api = LineBotApi(self.channel_access_token)
-        self.user_ids_file = 'user_ids.json' 
+        self.user_ids_file = 'linebot/user_ids.json' 
 
     def send_notification_to_user(self, user_id, message):
         self.line_bot_api.push_message(user_id, TextSendMessage(text=message))
@@ -37,5 +37,6 @@ class NotificationService:
 # 使用示例
 if __name__ == '__main__':
     notification_service = NotificationService()
-    notification_service.send_notification_to_developer('Hello, developer!')
+    # notification_service.send_notification_to_developer('Hello, developer!')
+    notification_service.send_notification_to_all_users('Hello, all users!')
     

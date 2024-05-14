@@ -18,8 +18,11 @@ config = configparser.ConfigParser()
 config.read(config_path)
 
 app = Flask(__name__)
-handler = WebhookHandler(config["LineBot"]['ChannelSecret'])
+
+channel_secret = config["LineBot"]['ChannelSecret']
 channel_access_token = config["LineBot"]['ChannelAccessToken']
+
+handler = WebhookHandler(channel_secret)
 line_bot_api = LineBotApi(channel_access_token)
 
 notification_service = NotificationService()

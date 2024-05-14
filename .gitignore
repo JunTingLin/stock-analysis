@@ -2,11 +2,6 @@ __pycache__
 output
 log
 config
-*.zip
-*.ini
-*.P12
-config.simulation.ini.example
-config.ini.example
-cache_data/*.xlsx
 user_ids.json
-*.sh
+*.ini
+env_setup.py

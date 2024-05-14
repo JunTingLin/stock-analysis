@@ -15,12 +15,9 @@ from finlab.online.order_executor import Position, OrderExecutor
 # 設置日誌
 logger_config.setup_logging()
 
-# 讀取設定檔
-config_file_name = 'config.simulation.ini'
-config_file_path = os.path.join('config', config_file_name)
-
 # 登入FinLab和Fugle
-acc = login_all(config_file_path)
+acc = login_all()
+config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
 
 # 初始化交易資訊物件
 trading_info = TradingInfo()

@@ -1,7 +1,7 @@
 from jinja2 import Environment, FileSystemLoader
 
 class MessageService:
-    def __init__(self, template_path='linebot/template', template_file='line_msg.txt'):
+    def __init__(self, template_path='template', template_file='line_msg.txt'):
         env = Environment(loader=FileSystemLoader(template_path))
         self.template = env.get_template(template_file)
 

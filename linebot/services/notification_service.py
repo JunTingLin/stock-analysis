@@ -5,7 +5,7 @@ import json
 import os
 
 class NotificationService:
-    def __init__(self, config_path='linebot/config.ini'):
+    def __init__(self, config_path='config.ini'):
         # 讀取配置文件
         config = configparser.ConfigParser()
         config.read(config_path)
@@ -14,7 +14,7 @@ class NotificationService:
         self.user_id = config['LineBot']['UserId']
         # 初始化LINE Bot API
         self.line_bot_api = LineBotApi(self.channel_access_token)
-        self.user_ids_file = 'linebot/user_ids.json' 
+        self.user_ids_file = 'user_ids.json' 
 
     def send_notification_to_user(self, user_id, message):
         self.line_bot_api.push_message(user_id, TextSendMessage(text=message))

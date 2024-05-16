@@ -13,7 +13,7 @@ from services.notification_service import NotificationService
 from services.message_service import MessageService
 import user_storage
 
-config_path = 'linebot/config.ini'
+config_path = 'config.ini'
 config = configparser.ConfigParser()
 config.read(config_path)
 

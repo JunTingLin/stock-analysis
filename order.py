@@ -3,10 +3,10 @@ import logging
 import os
 import pandas as pd
 from decimal import Decimal
-import requests
 
 from authentication import login_all
 from model.trading_info import TradingInfo
+from notifier import notify_users
 from portfolio_management import calculate_portfolio_value
 from tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy
 from finlab.online.order_executor import Position, OrderExecutor
@@ -86,18 +86,8 @@ else:
     else:
         logging.info("持倉無需變化")
 
+    logging.info(trading_info.data)
 
-# 通知使用者
-if config_file_name == 'config.simulation.ini':
-    url = 'http://127.0.0.1:5000/notify_dev'
-else:
-    url = 'http://127.0.0.1:5000/notify_all'
 
-payload = { 'message': trading_info.data }
-respinse = requests.post(url, json=payload)
-if respinse.status_code == 200:
-    logging.info("通知使用者成功")
-else:
-    logging.error("通知使用者失敗")
-    logging.error(f"回應碼: {respinse.status_code}")
-    logging.error(f"回應訊息: {respinse.text}")
+# 使用 notify_users 函數
+notify_users(config_file_name, trading_info)

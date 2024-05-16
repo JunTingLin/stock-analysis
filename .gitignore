@@ -1,7 +1,19 @@
-__pycache__
-output
-log
-config
-user_ids.json
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Output directories
+output/
+log/
+
+# Configuration files
+config/
 *.ini
+
+# User-specific files
+user_ids.json
+
+# Environment and setup files
 env_setup.py
+run.sh

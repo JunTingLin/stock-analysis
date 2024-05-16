@@ -1,5 +1,7 @@
 import os
 import logging
+import traceback
+
 import keyring
 import finlab
 from finlab.online.fugle_account import FugleAccount
@@ -13,7 +15,8 @@ def login_finlab():
     logging.info("Logged into FinLab.")
 
 def login_fugle():
-    setup_keyring('os.environ["FUGLE_ACCOUNT"]')
+    # ~/.local/share/python_keyring/cryptfile_pass.cfg
+    setup_keyring(os.environ["FUGLE_ACCOUNT"])
     keyring.set_password("fugle_trade_sdk:account", os.environ["FUGLE_ACCOUNT"], os.environ["FUGLE_ACCOUNT_PASSWORD"])
     keyring.set_password("fugle_trade_sdk:cert", os.environ["FUGLE_ACCOUNT"], os.environ["FUGLE_CERT_PASSWORD"])
 
@@ -27,3 +30,11 @@ def login_all():
     login_finlab()
     acc = login_fugle()
     return acc
+
+if __name__ == "__main__":
+    try:
+        acc = login_all()
+        print(acc)
+    except Exception as e:
+        print(e)
+        traceback.print_exc()

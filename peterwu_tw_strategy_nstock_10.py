@@ -7,23 +7,6 @@ with data.universe(market='TSE_OTC'):
     eps = data.get('financial_statement:每股盈餘')
     revenue_growth_yoy = data.get('monthly_revenue:去年同月增減(%)')
 
-market_value_condition = market_value.iloc[-1] > 15000000000
-
-# 將各個DataFrame的欄位（股票代號）轉換為集合
-sets_of_stocks = [
-    set(market_value.columns[market_value_condition]),
-    set(close.columns),
-    set(eps.columns),
-    set(revenue_growth_yoy.columns)
-]
-
-# 使用集合的交集找到操作所有資料集中共享的股票代號
-valid_stocks = list(set.intersection(*sets_of_stocks))
-
-close = close[valid_stocks]
-eps = eps[valid_stocks]
-revenue_growth_yoy = revenue_growth_yoy[valid_stocks]
-
 
 # 計算季線（60日移動平均）並判斷季線是否上升
 ma60 = close.average(60)
@@ -73,26 +56,10 @@ sell_condition = (
     hit_drop_limit 
 )
 
-position = buy_condition.hold_until(sell_condition)
+buy_sell_signal = buy_condition.hold_until(sell_condition)
+
+# 現在將市值數據整合進來，每個重平衡周期選出市值前10大的股票
+buy_sell_signal = market_value[buy_sell_signal].is_largest(10)
 
 # 使用 sim 函數進行模擬
-report = backtest.sim(position, resample=None, name="吳Peter策略選股", upload="False")
-
-
-from signal_analyzer import SignalAnalyzer
-# 處理信號
-analyzer = SignalAnalyzer(position)
-clean_signals = analyzer.remove_never_bought_stocks()
-print(clean_signals)
-
-from report_analyzer import ReportAnalyzer
-# 分析報告
-analyzer = ReportAnalyzer(report)
-analysis_result = analyzer.analyze_trades_for_date('2024-03-01')
-print(analysis_result)
-
-from report_saver import ReportSaver
-# 保存報告和交易記錄
-saver = ReportSaver(report)
-saver.save_report_html()
-saver.save_trades_excel()
+report = backtest.sim(buy_sell_signal, resample='M', name="吳Peter策略選股_10檔", upload="False")

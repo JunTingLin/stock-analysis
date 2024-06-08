@@ -6,7 +6,7 @@ with data.universe(market='TSE_OTC'):
     close = data.get("price:收盤價")
     eps = data.get('financial_statement:每股盈餘')
     revenue_growth_yoy = data.get('monthly_revenue:去年同月增減(%)')
-
+    
 market_value_condition = market_value.iloc[-1] > 15000000000
 
 # 將各個DataFrame的欄位（股票代號）轉換為集合
@@ -74,6 +74,10 @@ sell_condition = (
 )
 
 position = buy_condition.hold_until(sell_condition)
+
+# 設定起始日期
+start_date = '2016-01-01'
+position = position.loc[start_date:]
 
 # 使用 sim 函數進行模擬
 report = backtest.sim(position, resample=None, name="吳Peter策略選股", upload="False")

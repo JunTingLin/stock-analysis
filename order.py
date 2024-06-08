@@ -12,6 +12,8 @@ from tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy
 from finlab.online.order_executor import Position, OrderExecutor
 
 
+FUND = 80000
+
 # 設置日誌
 logger_config.setup_logging()
 
@@ -37,8 +39,7 @@ trading_info.set_attribute('positions_cash_acc', stock_value)
 total_cash = cash + stock_value
 trading_info.set_attribute('total_cash', total_cash)
 
-fund = total_cash * 0.8
-trading_info.set_attribute('fund', fund)
+trading_info.set_attribute('fund', FUND)
 
 today = pd.Timestamp.now().normalize()
 trading_info.set_attribute('today', str(today.date()))
@@ -52,7 +53,7 @@ else:
     logging.info(f"今天{today}為交易日")
 
     # 執行交易邏輯
-    position_today = Position.from_report(report, fund, odd_lot=True)
+    position_today = Position.from_report(report, FUND, odd_lot=True)
     new_ids = set(p['stock_id'] for p in position_today.position)
     current_ids = set(p['stock_id'] for p in position_acc.position)
     add_ids = new_ids - current_ids

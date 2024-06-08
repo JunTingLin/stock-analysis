@@ -29,17 +29,13 @@ cond6 = vol_ma > 200 * 1000
 buy = cond1 & cond2 & cond3 & cond4 & cond5 & cond6
 buy = vol_ma * buy
 buy = buy[buy > 0]
-# buy = buy.is_smallest(5)
+buy = buy.is_smallest(5)
 
-ma60 = close.average(60)
-below_ma60 = close < ma60
-colse_isna = close.isna() # 下市賣出
-sell = below_ma60 & colse_isna
+# 設定起始日期
+start_date = '2015-12-31'
+buy = buy.loc[start_date:]
 
-# 根據 buy 的值進行排序，但排序的優先級是從小到大
-position = buy.hold_until(exit=sell, stop_loss=0.08, nstocks_limit=5, trade_at='open', rank=-buy)
-
-report = sim(position, resample="M", upload=False, position_limit=1/3, fee_ratio=1.425/1000/3, trade_at_price='open', name='藏獒_5檔')
+report = sim(buy, resample="M", upload=False, position_limit=1/3, fee_ratio=1.425/1000/3, stop_loss=0.08, trade_at_price='open', name='藏獒', live_performance_start='2024-05-08')
 
 from report_saver import ReportSaver
 # 保存報告和交易記錄

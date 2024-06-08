@@ -56,10 +56,14 @@ sell_condition = (
     hit_drop_limit 
 )
 
-buy_sell_signal = buy_condition.hold_until(sell_condition)
+position = buy_condition.hold_until(sell_condition)
+
+# 設定起始日期
+start_date = '2015-12-31'
+position = position.loc[start_date:]
 
 # 現在將市值數據整合進來，每個重平衡周期選出市值前10大的股票
-buy_sell_signal = market_value[buy_sell_signal].is_largest(10)
+position = market_value[position].is_largest(10)
 
 # 使用 sim 函數進行模擬
-report = backtest.sim(buy_sell_signal, resample='M', name="吳Peter策略選股_10檔", upload="False")
+report = backtest.sim(position, resample='M', name="吳Peter策略選股_10檔", upload="False")

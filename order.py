@@ -28,12 +28,13 @@ trading_info = TradingInfo()
 strategy = TibetanMastiffTWStrategy()
 report = strategy.run_strategy()
 close = strategy.get_close_prices()
+company_basic_info = strategy.get_company_basic_info()
 
 trading_info.set_attribute('is_simulation', True if config_file_name == 'config.simulation.ini' else False)
 cash = acc.get_cash()
 trading_info.set_attribute('bank_cash_acc', cash)
 position_acc = acc.get_position()
-stock_value, portfolio_details = calculate_portfolio_value(position_acc.position, close)
+stock_value, portfolio_details = calculate_portfolio_value(position_acc.position, close, company_basic_info)
 trading_info.set_attribute('positions_acc', portfolio_details)
 trading_info.set_attribute('positions_cash_acc', stock_value)
 total_cash = cash + stock_value
@@ -63,7 +64,7 @@ else:
         try:
             order_executor = OrderExecutor(position_today, account=acc)
             order_executor.create_orders()  # 調整到這個持倉
-            _, portfolio_details = calculate_portfolio_value(position_today.position, close)
+            _, portfolio_details = calculate_portfolio_value(position_today.position, close, company_basic_info)
             trading_info.set_attribute('positions_next', portfolio_details)
             logging.info(f"將於下一個交易調整持倉為: {portfolio_details}")
         except Exception as e:
@@ -77,7 +78,7 @@ else:
         try:
             order_executor = OrderExecutor(position_acc, account=acc)
             order_executor.create_orders()
-            _, portfolio_details = calculate_portfolio_value(position_acc.position, close)
+            _, portfolio_details = calculate_portfolio_value(position_acc.position, close, company_basic_info)
             trading_info.set_attribute('positions_next', portfolio_details)
             logging.info(f"需要移除的股票有{remove_ids}，將於下一個交易日出售")
             logging.info(f"將於下一個交易調整持倉為{portfolio_details}")

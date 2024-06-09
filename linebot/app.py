@@ -87,6 +87,7 @@ def notify_dev():
 
     try:
         rendered_message = message_service.render_message(message)
+        # print(rendered_message)
         notification_service.send_notification_to_developer(rendered_message)
         return jsonify({"success": True}), 200
     except Exception as e:

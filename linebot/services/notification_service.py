@@ -38,5 +38,5 @@ class NotificationService:
 if __name__ == '__main__':
     notification_service = NotificationService()
     # notification_service.send_notification_to_developer('Hello, developer!')
-    notification_service.send_notification_to_all_users('Hello, all users!')
+    # notification_service.send_notification_to_all_users('Hello, all users!')
     

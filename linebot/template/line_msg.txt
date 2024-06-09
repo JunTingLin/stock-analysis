@@ -7,7 +7,7 @@
 當前帳戶目前持倉為:
 {% if data.positions_acc %}
     {% for position in data.positions_acc %}
-       {{ position['stock_id'] }}：持有 {{ position['quantity'] }} 張，收盤價：{{ position['close_price'] }}，市值：{{ position['stock_value'] }}
+       {{ position['stock_id'] }}({{ position['stock_name'] }})：持有 {{ position['quantity'] }} 張，收盤價：{{ position['close_price'] }}，市值：{{ position['stock_value'] }}
     {% endfor %}
 {% else %}
     - 無持倉資訊
@@ -22,7 +22,7 @@
 
 將於下一個交易日調整持倉為:
     {% for position in data.positions_next %}
-       - {{ position['stock_id'] }}：預計持有 {{ position['quantity'] }} 張，預估收盤價：{{ position['close_price'] }}，預估市值：{{ position['stock_value'] }}
+       - {{ position['stock_id'] }}({{ position['stock_name'] }})：預計持有 {{ position['quantity'] }} 張，預估收盤價：{{ position['close_price'] }}，預估市值：{{ position['stock_value'] }}
     {% endfor %}
 {% else %}
     - 無預定調整持倉資訊

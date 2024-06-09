@@ -8,11 +8,9 @@ from authentication import login_all
 from model.trading_info import TradingInfo
 from notifier import notify_users
 from portfolio_management import calculate_portfolio_value
-from tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy
+from strategy_class.tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy
 from finlab.online.order_executor import Position, OrderExecutor
 
-
-FUND = 80000
 
 # 設置日誌
 logger_config.setup_logging()
@@ -24,8 +22,22 @@ config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
 # 初始化交易資訊物件
 trading_info = TradingInfo()
 
+# 從環境變量中獲取 FUND 和策略
+FUND = int(os.getenv('FUND'))
+STRATEGY_CLASS = os.getenv('STRATEGY_CLASS')
+
+# 根據 STRATEGY_CLASS 動態導入策略類
+if STRATEGY_CLASS == 'TibetanMastiffTWStrategy':
+    from strategy_class.tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy as strategy_class
+elif STRATEGY_CLASS == 'PeterWuStrategy':
+    from strategy_class.peterwu_tw_strategy import PeterWuStrategy as strategy_class
+elif STRATEGY_CLASS == 'PeterWuTWStrategyNStock10':
+    from strategy_class.peterwu_tw_strategy_nstock_10 import PeterWuTWStrategyNStock10 as strategy_class
+else:
+    raise ValueError(f"Unknown strategy class: {STRATEGY_CLASS}")
+
 # 初始化策略
-strategy = TibetanMastiffTWStrategy()
+strategy = strategy_class()
 report = strategy.run_strategy()
 close = strategy.get_close_prices()
 company_basic_info = strategy.get_company_basic_info()

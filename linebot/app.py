@@ -1,5 +1,5 @@
 # 標準庫導入
-import configparser
+import json
 import logging
 
 # 第三方庫導入
@@ -13,9 +13,9 @@ from services.notification_service import NotificationService
 from services.message_service import MessageService
 import user_storage
 
-config_path = 'config.ini'
-config = configparser.ConfigParser()
-config.read(config_path)
+config_path = 'config.json'
+with open(config_path, 'r') as file:
+    config = json.load(file)
 
 app = Flask(__name__)
 
@@ -88,7 +88,7 @@ def notify_dev():
     try:
         rendered_message = message_service.render_message(message)
         # print(rendered_message)
-        notification_service.send_notification_to_developer(rendered_message)
+        notification_service.send_notification_to_developers(rendered_message)
         return jsonify({"success": True}), 200
     except Exception as e:
         logging.error(f"Exception in notify_dev: {str(e)}")

@@ -42,5 +42,5 @@ if __name__ == "__main__":
         acc = login_all()
         print(acc)
     except Exception as e:
-        print(e)
+        # print(e)
         traceback.print_exc()

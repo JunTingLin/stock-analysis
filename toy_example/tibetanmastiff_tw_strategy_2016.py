@@ -36,17 +36,3 @@ start_date = '2015-12-31'
 buy = buy.loc[start_date:]
 
 report = sim(buy, resample="M", upload=False, position_limit=1/3, fee_ratio=1.425/1000/3, stop_loss=0.08, trade_at_price='open', name='藏獒', live_performance_start='2024-05-08')
-
-from report_saver import ReportSaver
-# 保存報告和交易記錄
-saver = ReportSaver(report)
-saver.save_report_html()
-saver.save_trades_excel()
-
-
-from report_analyzer import ReportAnalyzer
-# 分析報告
-analyzer = ReportAnalyzer(report)
-analysis_result = analyzer.analyze_trades_for_date('2022-05-02')
-print(analysis_result)
-

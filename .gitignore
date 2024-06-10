@@ -8,8 +8,8 @@ output/
 log/
 
 # Configuration files
-config/
-config.*
+config.json
+*.p12
 *.ini
 *.env
 

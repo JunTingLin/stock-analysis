@@ -7,7 +7,6 @@ import keyring
 import finlab
 from finlab.online.fugle_account import FugleAccount
 from fugle_trade.util import setup_keyring
-from config.env_setup import env_setup_for_windows
 
 
 
@@ -29,6 +28,7 @@ def login_all():
     # 判斷作業系統
     if platform.system() == "Windows":
         # 設置 Windows 環境變數
+        from config.env_setup import env_setup_for_windows
         env_setup_for_windows()
     else:
         # Linux 下可以直接使用環境變量，什麼都不用做

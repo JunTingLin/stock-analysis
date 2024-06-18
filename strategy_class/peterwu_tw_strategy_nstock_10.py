@@ -14,7 +14,7 @@ class PeterWuTWStrategyNStock10:
     def load_data(self):
         with self.data.universe(market='TSE_OTC'):
             self.market_value = self.data.get("etl:market_value")
-            self.close = self.data.get("price:收盤價")
+            self.close = self.data.get('etl:adj_close')
             self.eps = self.data.get('financial_statement:每股盈餘')
             self.revenue_growth_yoy = self.data.get('monthly_revenue:去年同月增減(%)')
             self.company_basic_info = self.data.get('company_basic_info')

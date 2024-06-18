@@ -3,21 +3,21 @@ from finlab import backtest
 
 with data.universe(market='TSE_OTC'):
     market_value = data.get("etl:market_value")
-    close = data.get("price:收盤價")
+    adj_close = data.get('etl:adj_close')
     eps = data.get('financial_statement:每股盈餘')
     revenue_growth_yoy = data.get('monthly_revenue:去年同月增減(%)')
 
 
 # 計算季線（60日移動平均）並判斷季線是否上升
-ma60 = close.average(60)
+ma60 = adj_close.average(60)
 # 使用rise函數檢查ma60是否在過去nwindow天連續上升
 ma60_rising = ma60.rise(1)
 
 # 股價是否大於季線
-above_ma60 = close > ma60
+above_ma60 = adj_close > ma60
 # 股價突破三個月高點
-high_3m = close.rolling(60).max()
-price_break_high_3m = close >= high_3m
+high_3m = adj_close.rolling(60).max()
+price_break_high_3m = adj_close >= high_3m
 
 
 # 過去四個季度的盈餘總和大於2元，且連續兩年都滿足這個條件
@@ -40,11 +40,11 @@ buy_condition = (
     revenue_growth_condition
 )
 
-below_ma60 = close < ma60
+below_ma60 = adj_close < ma60
 not_recover_in_5_days = below_ma60.sustain(5)
 ma60_falling = ma60 < ma60.shift(1)
 # 計算每天股票價格相比前一天收盤價的變動百分比
-price_change_percent = close.pct_change()
+price_change_percent = adj_close.pct_change()
 # 設定停板條件，即價格跌幅小於或等於-10%
 hit_drop_limit = price_change_percent <= -0.10
 

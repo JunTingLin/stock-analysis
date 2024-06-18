@@ -35,4 +35,4 @@ buy = buy.is_smallest(5)
 start_date = '2015-12-31'
 buy = buy.loc[start_date:]
 
-report = sim(buy, resample="M", upload=False, position_limit=1/3, fee_ratio=1.425/1000/3, stop_loss=0.08, trade_at_price='open', name='藏獒', live_performance_start='2024-05-08')
+report = sim(buy, resample="M", upload=False, position_limit=1/3, fee_ratio=1.425/1000/3, stop_loss=0.08, trade_at_price='open', name='藏獒_2016', live_performance_start='2024-05-08')

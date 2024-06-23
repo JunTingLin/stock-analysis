@@ -8,7 +8,6 @@ from authentication import login_all
 from model.trading_info import TradingInfo
 from notifier import notify_users
 from portfolio_management import calculate_portfolio_value
-from strategy_class.tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy
 from finlab.online.order_executor import Position, OrderExecutor
 
 

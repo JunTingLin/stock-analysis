@@ -63,7 +63,7 @@ ma60_falling = ma60 < ma60.shift(1)
 # 計算每天股票價格相比前一天收盤價的變動百分比
 price_change_percent = adj_close.pct_change()
 # 設定停板條件，即價格跌幅小於或等於-10%
-hit_drop_limit = price_change_percent <= -0.10
+hit_drop_limit = price_change_percent <= -0.095
 
 
 # 賣出條件

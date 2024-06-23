@@ -54,7 +54,7 @@ class PeterWuTWStrategyNStock10:
         not_recover_in_5_days = below_ma60.sustain(5)
         ma60_falling = ma60 < ma60.shift(1)
         price_change_percent = self.close.pct_change()
-        hit_drop_limit = price_change_percent <= -0.10
+        hit_drop_limit = price_change_percent <= -0.095
 
         # 賣出條件
         sell_condition = (

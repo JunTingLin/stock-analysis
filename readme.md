@@ -18,3 +18,6 @@
 - `line-bot-sdk`：Line Bot SDK，用於與 Line Messaging API 交互
 - `flask`：輕量級的 web 框架，用於構建 API 伺服器
 - `gunicorn`：WSGI HTTP 伺服器，用於生產環境
+
+## 布署
+[股票自動交易手冊](https://hackmd.io/@RPTu-Li-R66a9lr4Fb9qEg/BJpNu1QSC/%2FSy7PQ0BB0)

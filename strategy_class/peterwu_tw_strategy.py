@@ -24,8 +24,27 @@ class PeterWuStrategy:
         if self.close is None:
             self.load_data()
 
+        market_value_condition = self.market_value.iloc[-1] > 15000000000
+
+        # 將各個DataFrame的欄位（股票代號）轉換為集合
+        sets_of_stocks = [
+            set(self.market_value.columns[market_value_condition]),
+            set(self.close.columns),
+            set(self.eps.columns),
+            set(self.revenue_growth_yoy.columns)
+        ]
+
+        # 使用集合的交集找到操作所有資料集中共享的股票代號
+        valid_stocks = list(set.intersection(*sets_of_stocks))
+
+        self.close = self.close[valid_stocks]
+        self.eps = self.eps[valid_stocks]
+        self.revenue_growth_yoy = self.revenue_growth_yoy[valid_stocks]
+
+
         # 計算季線（60日移動平均）並判斷季線是否上升
         ma60 = self.close.average(60)
+        # 使用rise函數檢查ma60是否在過去nwindow天連續上升
         ma60_rising = ma60.rise(1)
 
         # 股價是否大於季線
@@ -33,6 +52,7 @@ class PeterWuStrategy:
         # 股價突破三個月高點
         high_3m = self.close.rolling(60).max()
         price_break_high_3m = self.close >= high_3m
+
 
         # 過去四個季度的盈餘總和大於2元，且連續兩年都滿足這個條件
         cumulative_eps_last_year = self.eps.rolling(4).sum() > 2
@@ -42,11 +62,14 @@ class PeterWuStrategy:
         # 設定營業額成長的條件
         revenue_growth_condition = self.revenue_growth_yoy > 30
 
+
         # 買入條件
         buy_condition = (
+            # 技術面
             above_ma60 &
             ma60_rising &
             price_break_high_3m &
+            # 基本面
             eps_condition &
             revenue_growth_condition
         )
@@ -54,27 +77,27 @@ class PeterWuStrategy:
         below_ma60 = self.close < ma60
         not_recover_in_5_days = below_ma60.sustain(5)
         ma60_falling = ma60 < ma60.shift(1)
+        # 計算每天股票價格相比前一天收盤價的變動百分比
         price_change_percent = self.close.pct_change()
+        # 設定停板條件，即價格跌幅小於或等於-10%
         hit_drop_limit = price_change_percent <= -0.095
 
+
         # 賣出條件
-        sell_condition = (
+        sell_condition = ( 
             not_recover_in_5_days |
             ma60_falling |
-            hit_drop_limit
+            hit_drop_limit 
         )
 
         self.position = buy_condition.hold_until(sell_condition)
 
         # 設定起始日期
-        start_date = '2015-12-31'
+        start_date = '2016-01-01'
         self.position = self.position.loc[start_date:]
 
-        # 現在將市值數據整合進來，每個重平衡周期選出市值前10大的股票
-        self.position = self.market_value[self.position].is_largest(10)
-
         # 使用 sim 函數進行模擬
-        self.report = backtest.sim(self.position, resample='M', name="吳Peter策略選股_10檔", upload="False")
+        self.report = backtest.sim(self.position, resample=None, name="吳Peter策略選股", upload="False")
         return self.report
 
     def get_report(self):
@@ -82,11 +105,11 @@ class PeterWuStrategy:
 
     def get_close_prices(self):
         return self.close if self.close is not None else "收盤價數據未加載，請先運行策略"
-
-    def get_company_basic_info(self):
-        return self.company_basic_info if self.company_basic_info is not None else "公司基本信息未加載，請先運行策略"    
     
-
-strategy = PeterWuStrategy()
-strategy.run_strategy()
-print(strategy.get_report())
+    def get_company_basic_info(self):
+        return self.company_basic_info if self.company_basic_info is not None else "公司基本信息未加載，請先運行策略"
+    
+if __name__ == '__main__':
+    strategy = PeterWuStrategy()
+    strategy.run_strategy()
+    print(strategy.get_report())

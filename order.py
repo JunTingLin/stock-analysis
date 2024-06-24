@@ -56,8 +56,10 @@ trading_info.set_attribute('fund', FUND)
 today = pd.Timestamp.now().normalize()
 trading_info.set_attribute('today', str(today.date()))
 
+force_trading_day = False  # 是否強制今天為交易日，用於debug
+
 # 判斷今日是否為交易日
-if today != close.index[-1]:
+if today != close.index[-1] and not force_trading_day:
     trading_info.set_attribute('is_trading_day', False)
     logging.info(f"今天{today}不為交易日")
 else:

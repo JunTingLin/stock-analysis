@@ -2,6 +2,10 @@ import json
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
 
+import json
+from linebot import LineBotApi
+from linebot.models import TextSendMessage
+
 class NotificationService:
     def __init__(self, config_path='config.json'):
         self.config_path = config_path
@@ -16,17 +20,29 @@ class NotificationService:
         self.line_bot_api = LineBotApi(self.channel_access_token)
 
     def send_notification_to_user(self, user_id, message):
-        self.line_bot_api.push_message(user_id, TextSendMessage(text=message))
+        self._send_message_in_chunks(user_id, message)
 
     def send_notification_to_developers(self, message):
         self._load_config()
         for user_id in self.dev_user_ids:
-            self.line_bot_api.push_message(user_id, TextSendMessage(text=message))
+            self._send_message_in_chunks(user_id, message)
 
     def send_notification_to_all_users(self, message):
         self._load_config()
         for user_id in self.all_user_ids:
-            self.line_bot_api.push_message(user_id, TextSendMessage(text=message))
+            self._send_message_in_chunks(user_id, message)
+
+    def _send_message_in_chunks(self, user_id, message):
+        if len(message) > 5000:
+            first_part = message.split('將於下一個交易日調整持倉為:', 1)[0]
+            second_part = '將於下一個交易日調整持倉為:' + message.split('將於下一個交易日調整持倉為:', 1)[1]
+            message_chunks = [first_part, second_part]
+        else:
+            message_chunks = [message]
+
+        for chunk in message_chunks:
+            self.line_bot_api.push_message(user_id, TextSendMessage(text=chunk))
+
 
 # 使用示例
 if __name__ == '__main__':

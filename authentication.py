@@ -25,14 +25,25 @@ def login_fugle():
     return acc
 
 def login_all():
-    # 判斷作業系統
-    if platform.system() == "Windows":
-        # 設置 Windows 環境變數
-        from config.env_setup import env_setup_for_windows
-        env_setup_for_windows()
-    else:
-        # Linux 下可以直接使用環境變量，什麼都不用做
-        pass
+    # 檢查環境變數是否已經設置
+    required_vars = [
+        'FINLAB_API_TOKEN', 'FUGLE_CONFIG_PATH', 'FUGLE_MARKET_API_KEY',
+        'FUGLE_ACCOUNT', 'FUGLE_ACCOUNT_PASSWORD', 'FUGLE_CERT_PASSWORD',
+        'PYTHON_KEYRING_BACKEND', 'FUND', 'STRATEGY_CLASS', 'FLASK_SERVER_PORT'
+    ]
+    
+    env_vars_set = all(var in os.environ for var in required_vars)
+
+    if not env_vars_set:
+        logging.info("Environment variables not set. Setting up...")
+        # 判斷作業系統並設置環境變數
+        if platform.system() == "Windows":
+            from config.env_setup import env_setup_for_windows
+            env_setup_for_windows()
+        else:
+            from config.env_setup import env_setup_for_linux
+            env_setup_for_linux()
+    
     login_finlab()
     acc = login_fugle()
     return acc

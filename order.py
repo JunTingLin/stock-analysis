@@ -4,7 +4,7 @@ import os
 import pandas as pd
 from decimal import Decimal
 
-from authentication import login_all
+from authentication import check_env_vars, login_finlab, login_fugle
 from model.trading_info import TradingInfo
 from notifier import notify_users
 from portfolio_management import calculate_portfolio_value
@@ -14,12 +14,11 @@ from finlab.online.order_executor import Position, OrderExecutor
 # 設置日誌
 logger_config.setup_logging()
 
-# 登入FinLab和Fugle
-acc = login_all()
-config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
+# 檢查環境變數
+check_env_vars()
 
-# 初始化交易資訊物件
-trading_info = TradingInfo()
+# 登入FinLab
+login_finlab()
 
 # 從環境變量中獲取 FUND 和策略
 FUND = int(os.getenv('FUND'))
@@ -41,6 +40,12 @@ report = strategy.run_strategy()
 close = strategy.get_close_prices()
 company_basic_info = strategy.get_company_basic_info()
 
+# 初始化交易資訊物件
+trading_info = TradingInfo()
+
+# 登入Fugle
+acc = login_fugle()
+config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
 trading_info.set_attribute('is_simulation', True if config_file_name == 'config.simulation.ini' else False)
 cash = acc.get_cash()
 trading_info.set_attribute('bank_cash_acc', cash)

@@ -5,6 +5,7 @@ class PeterWuTWStrategyNStock10:
         self.data = data
         self.market_value = None
         self.close = None
+        self.adj_close = None
         self.eps = None
         self.revenue_growth_yoy = None
         self.report = None
@@ -14,24 +15,25 @@ class PeterWuTWStrategyNStock10:
     def load_data(self):
         with self.data.universe(market='TSE_OTC'):
             self.market_value = self.data.get("etl:market_value")
-            self.close = self.data.get('etl:adj_close')
+            self.close = self.data.get('price:收盤價')
+            self.adj_close = self.data.get('etl:adj_close')
             self.eps = self.data.get('financial_statement:每股盈餘')
             self.revenue_growth_yoy = self.data.get('monthly_revenue:去年同月增減(%)')
             self.company_basic_info = self.data.get('company_basic_info')
 
     def run_strategy(self):
-        if self.close is None:
+        if self.adj_close is None:
             self.load_data()
 
         # 計算季線（60日移動平均）並判斷季線是否上升
-        ma60 = self.close.average(60)
+        ma60 = self.adj_close.average(60)
         ma60_rising = ma60.rise(1)
 
         # 股價是否大於季線
-        above_ma60 = self.close > ma60
+        above_ma60 = self.adj_close > ma60
         # 股價突破三個月高點
-        high_3m = self.close.rolling(60).max()
-        price_break_high_3m = self.close >= high_3m
+        high_3m = self.adj_close.rolling(60).max()
+        price_break_high_3m = self.adj_close >= high_3m
 
         # 過去四個季度的盈餘總和大於2元，且連續兩年都滿足這個條件
         cumulative_eps_last_year = self.eps.rolling(4).sum() > 2
@@ -50,10 +52,10 @@ class PeterWuTWStrategyNStock10:
             revenue_growth_condition
         )
 
-        below_ma60 = self.close < ma60
+        below_ma60 = self.adj_close < ma60
         not_recover_in_5_days = below_ma60.sustain(5)
         ma60_falling = ma60 < ma60.shift(1)
-        price_change_percent = self.close.pct_change()
+        price_change_percent = self.adj_close.pct_change()
         hit_drop_limit = price_change_percent <= -0.095
 
         # 賣出條件
@@ -85,7 +87,7 @@ class PeterWuTWStrategyNStock10:
     def get_company_basic_info(self):
         return self.company_basic_info if self.company_basic_info is not None else "公司基本信息未加載，請先運行策略"
 
-
-strategy = PeterWuTWStrategyNStock10()
-strategy.run_strategy()
-print(strategy.get_report())
+if __name__ == "__main__":
+    strategy = PeterWuTWStrategyNStock10()
+    strategy.run_strategy()
+    print(strategy.get_report())

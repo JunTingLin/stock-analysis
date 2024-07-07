@@ -40,7 +40,7 @@ class TibetanMastiffTWStrategy:
         buy = buy.is_smallest(5)
 
         # Execute simulation
-        self.report = sim(buy, resample="M", upload=False, position_limit=1/3,
+        self.report = sim(buy, resample="M", upload=True, position_limit=1/3,
                           fee_ratio=1.425/1000/3, stop_loss=0.08, trade_at_price='open',
                           name='藏獒', live_performance_start='2024-05-08')
         return self.report

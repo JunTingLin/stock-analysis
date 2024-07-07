@@ -1,4 +1,10 @@
-from finlab import data, backtest
+from finlab import data
+from finlab import backtest
+from finlab.market_info import TWMarketInfo
+
+class AdjustTWMarketInfo(TWMarketInfo):
+    def get_trading_price(self, name, adj=True):
+        return self.get_price(name, adj=adj).shift(1)
 
 class PeterWuStrategy:
     def __init__(self):
@@ -75,6 +81,9 @@ class PeterWuStrategy:
             eps_condition &
             revenue_growth_condition
         )
+        # 設定起始買入日期
+        start_buy_date = '2024-06-25'
+        buy_condition = buy_condition.loc[start_buy_date:]
 
         below_ma60 = self.adj_close < ma60
         not_recover_in_5_days = below_ma60.sustain(5)
@@ -94,12 +103,8 @@ class PeterWuStrategy:
 
         self.position = buy_condition.hold_until(sell_condition)
 
-        # 設定起始日期
-        start_date = '2016-01-01'
-        self.position = self.position.loc[start_date:]
-
         # 使用 sim 函數進行模擬
-        self.report = backtest.sim(self.position, resample=None, name="吳Peter策略選股", upload="False")
+        self.report = backtest.sim(self.position, resample=None, market=AdjustTWMarketInfo(), name="吳Peter策略選股_實戰", upload=True)
         return self.report
 
     def get_report(self):

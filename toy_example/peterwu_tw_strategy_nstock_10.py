@@ -66,4 +66,4 @@ position = position.loc[start_date:]
 position = market_value[position].is_largest(10)
 
 # 使用 sim 函數進行模擬
-report = backtest.sim(position, resample='M', name="吳Peter策略選股_10檔", upload="False")
+report = backtest.sim(position, resample='M', name="吳Peter策略選股_10檔", upload=False)

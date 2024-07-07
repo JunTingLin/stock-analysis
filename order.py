@@ -29,8 +29,6 @@ if STRATEGY_CLASS == 'TibetanMastiffTWStrategy':
     from strategy_class.tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy as strategy_class
 elif STRATEGY_CLASS == 'PeterWuStrategy':
     from strategy_class.peterwu_tw_strategy import PeterWuStrategy as strategy_class
-elif STRATEGY_CLASS == 'PeterWuTWStrategyNStock10':
-    from strategy_class.peterwu_tw_strategy_nstock_10 import PeterWuTWStrategyNStock10 as strategy_class
 else:
     raise ValueError(f"Unknown strategy class: {STRATEGY_CLASS}")
 

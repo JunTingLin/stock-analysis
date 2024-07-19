@@ -2,11 +2,8 @@ import logging
 import requests
 import os
 
-def notify_users(config_file_name, trading_info):
+def notify_users(flask_server_port, config_file_name, trading_info):
     try:
-        # 讀取環境變數中的 Flask 伺服器端口號
-        flask_server_port = os.getenv('FLASK_SERVER_PORT')
-
         # 根據配置文件名設置通知 URL
         if config_file_name == 'config.simulation.ini':
             url = f'http://127.0.0.1:{flask_server_port}/notify_dev'

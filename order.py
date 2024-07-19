@@ -1,7 +1,7 @@
+import argparse
 import logger_config
 import logging
 import os
-import pandas as pd
 from decimal import Decimal
 
 from authentication import check_env_vars, login_finlab, login_fugle
@@ -9,103 +9,97 @@ from model.trading_info import TradingInfo
 from notifier import notify_users
 from portfolio_management import calculate_portfolio_value
 from finlab.online.order_executor import Position, OrderExecutor
+from utils import get_current_formatted_datetime
 
+def load_strategy(strategy_class_name):
+    if strategy_class_name == 'TibetanMastiffTWStrategy':
+        from strategy_class.tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy as strategy_class
+    elif strategy_class_name == 'PeterWuStrategy':
+        from strategy_class.peterwu_tw_strategy import PeterWuStrategy as strategy_class
+    else:
+        raise ValueError(f"Unknown strategy class: {strategy_class_name}")
+    return strategy_class()
 
-# 設置日誌
-logger_config.setup_logging()
+def set_trading_info(trading_info, attr_dict):
+    for key, value in attr_dict.items():
+        trading_info.set_attribute(key, value)
 
-# 檢查環境變數
-check_env_vars()
-
-# 登入FinLab
-login_finlab()
-
-# 從環境變量中獲取 FUND 和策略
-FUND = int(os.getenv('FUND'))
-STRATEGY_CLASS = os.getenv('STRATEGY_CLASS')
-
-# 根據 STRATEGY_CLASS 動態導入策略類
-if STRATEGY_CLASS == 'TibetanMastiffTWStrategy':
-    from strategy_class.tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy as strategy_class
-elif STRATEGY_CLASS == 'PeterWuStrategy':
-    from strategy_class.peterwu_tw_strategy import PeterWuStrategy as strategy_class
-else:
-    raise ValueError(f"Unknown strategy class: {STRATEGY_CLASS}")
-
-# 初始化策略
-strategy = strategy_class()
-report = strategy.run_strategy()
-close = strategy.get_close_prices()
-company_basic_info = strategy.get_company_basic_info()
-
-# 初始化交易資訊物件
-trading_info = TradingInfo()
-
-# 登入Fugle
-acc = login_fugle()
-config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
-trading_info.set_attribute('is_simulation', True if config_file_name == 'config.simulation.ini' else False)
-cash = acc.get_cash()
-trading_info.set_attribute('bank_cash_acc', cash)
-position_acc = acc.get_position()
-stock_value, portfolio_details = calculate_portfolio_value(position_acc.position, close, company_basic_info)
-trading_info.set_attribute('positions_acc', portfolio_details)
-trading_info.set_attribute('positions_cash_acc', stock_value)
-total_cash = cash + stock_value
-trading_info.set_attribute('total_cash', total_cash)
-
-trading_info.set_attribute('fund', FUND)
-
-today = pd.Timestamp.now().normalize()
-trading_info.set_attribute('today', str(today.date()))
-
-force_trading_day = False  # 是否強制今天為交易日，用於debug
-
-# 判斷今日是否為交易日
-if today != close.index[-1] and not force_trading_day:
-    trading_info.set_attribute('is_trading_day', False)
-    logging.info(f"今天{today}不為交易日")
-else:
-    trading_info.set_attribute('is_trading_day', True)
-    logging.info(f"今天{today}為交易日")
-
-    # 執行交易邏輯
-    position_today = Position.from_report(report, FUND, odd_lot=True)
+def execute_trades(position_today, acc, extra_bid_pct, trading_info, close, company_basic_info):
     new_ids = set(p['stock_id'] for p in position_today.position)
-    current_ids = set(p['stock_id'] for p in position_acc.position)
+    current_ids = set(p['stock_id'] for p in acc.get_position().position)
     add_ids = new_ids - current_ids
     remove_ids = current_ids - new_ids
 
-    if add_ids != set():
+    if add_ids:
         try:
             order_executor = OrderExecutor(position_today, account=acc)
-            order_executor.create_orders()  # 調整到這個持倉
+            order_executor.create_orders(extra_bid_pct=extra_bid_pct)
             _, portfolio_details = calculate_portfolio_value(position_today.position, close, company_basic_info)
-            trading_info.set_attribute('positions_next', portfolio_details)
+            set_trading_info(trading_info, {'positions_next': portfolio_details})
             logging.info(f"將於下一個交易調整持倉為: {portfolio_details}")
         except Exception as e:
             logging.error(f"調整持倉失敗: {e}")
 
-    elif remove_ids != set():
-        for position in position_acc.position:
+    elif remove_ids:
+        for position in acc.get_position().position:
             if position['stock_id'] in remove_ids:
                 position['quantity'] = Decimal('0')
-
         try:
-            order_executor = OrderExecutor(position_acc, account=acc)
-            order_executor.create_orders()
-            _, portfolio_details = calculate_portfolio_value(position_acc.position, close, company_basic_info)
-            trading_info.set_attribute('positions_next', portfolio_details)
+            order_executor = OrderExecutor(acc.get_position(), account=acc)
+            order_executor.create_orders(extra_bid_pct=extra_bid_pct)
+            _, portfolio_details = calculate_portfolio_value(acc.get_position().position, close, company_basic_info)
+            set_trading_info(trading_info, {'positions_next': portfolio_details})
             logging.info(f"需要移除的股票有{remove_ids}，將於下一個交易日出售")
             logging.info(f"將於下一個交易調整持倉為{portfolio_details}")
         except Exception as e:
             logging.error(f"提前出售失敗: {e}")
-
     else:
         logging.info("持倉無需變化")
 
+def main(fund, strategy_class_name, flask_server_port, extra_bid_pct):
+    logger_config.setup_logging()
+    check_env_vars()
+    login_finlab()
+
+    strategy = load_strategy(strategy_class_name)
+    report = strategy.run_strategy()
+    close = strategy.get_close_prices()
+    company_basic_info = strategy.get_company_basic_info()
+
+    trading_info = TradingInfo()
+    acc = login_fugle()
+    config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
+
+    position_acc = acc.get_position()
+    stock_value, portfolio_details = calculate_portfolio_value(position_acc.position, close, company_basic_info)
+    set_trading_info(trading_info, {
+        'is_simulation': True if config_file_name == 'config.simulation.ini' else False,
+        'bank_cash_acc': acc.get_cash(),
+        'positions_acc': portfolio_details,
+        'positions_cash_acc': stock_value,
+        'total_cash': acc.get_cash() + stock_value,
+        'fund': fund,
+        'today': get_current_formatted_datetime()
+    })
+
+    position_today = Position.from_report(report, fund, odd_lot=True)
+    execute_trades(position_today, acc, extra_bid_pct, trading_info, close, company_basic_info)
+
     logging.info(trading_info.data)
 
+    notify_users(flask_server_port, config_file_name, trading_info)
 
-# 使用 notify_users 函數
-notify_users(config_file_name, trading_info)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Process parameters for order execution.')
+    parser.add_argument('--fund', type=int, required=True, help='Fund amount')
+    parser.add_argument('--strategy_class', type=str, required=True, help='Strategy class name')
+    parser.add_argument('--flask_server_port', type=int, required=True, help='Flask server port')
+    parser.add_argument('--extra_bid_pct', type=float, default=0, help='Extra bid percentage for order execution')
+    # args = parser.parse_args()
+
+    # main(args.fund, args.strategy_class, args.flask_server_port, args.extra_bid_pct)
+    main(fund = 80000,
+        strategy_class_name = 'TibetanMastiffTWStrategy',
+        flask_server_port = 5000,
+        extra_bid_pct = 0
+    )

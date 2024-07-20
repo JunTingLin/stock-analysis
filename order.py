@@ -9,8 +9,7 @@ from model.trading_info import TradingInfo
 from notifier import notify_users
 from portfolio_management import get_current_portfolio_info, get_next_portfolio_info,  get_order_execution_info
 from finlab.online.order_executor import Position, OrderExecutor
-from utils import get_current_formatted_datetime, read_warnings_from_log
-
+from utils import read_warnings_from_log, get_current_formatted_datetime, is_trading_day
 def load_strategy(strategy_class_name):
     if strategy_class_name == 'TibetanMastiffTWStrategy':
         from strategy_class.tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy as strategy_class
@@ -28,7 +27,6 @@ def execute_trades(position_today, acc, extra_bid_pct, trading_info, company_bas
     def update_trading_info_and_log():
         portfolio_details = get_next_portfolio_info(position_today.position, company_basic_info)
         set_trading_info(trading_info, {'positions_next': portfolio_details})
-        logging.info(f"將於下一個交易調整持倉為: {portfolio_details}")
         warning_logs = read_warnings_from_log(log_filepath)
         order_details = get_order_execution_info(warning_logs, company_basic_info)
         set_trading_info(trading_info, {'order_details': order_details})
@@ -80,9 +78,14 @@ def main(fund, strategy_class_name, flask_server_port, extra_bid_pct):
         'fund': fund,
         'today': get_current_formatted_datetime()
     })
-
-    position_today = Position.from_report(report, fund, odd_lot=True)
-    execute_trades(position_today, acc, extra_bid_pct, trading_info, company_basic_info, log_filepath)
+    print(is_trading_day(acc))
+    # 判斷今日是否為交易日
+    if is_trading_day(acc):
+        set_trading_info(trading_info, {'is_trading_day': True})
+        position_today = Position.from_report(report, fund, odd_lot=True)
+        execute_trades(position_today, acc, extra_bid_pct, trading_info, company_basic_info, log_filepath)
+    else:
+        set_trading_info(trading_info, {'is_trading_day': False})
 
     logging.info(trading_info.data)
 

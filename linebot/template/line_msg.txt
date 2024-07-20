@@ -22,7 +22,7 @@
 
 調整持倉為:
     {% for position in data.positions_next %}
-       - {{ position['stock_id'] }}({{ position['stock_name'] }})：預計持有 {{ position['quantity'] }} 張
+       - {{ position['stock_id'] }}({{ position['stock_name'] }})：持有 {{ position['quantity'] }} 張
     {% endfor %}
 {% else %}
     - 無預定調整持倉資訊

@@ -18,4 +18,4 @@ user_ids.json
 
 # Environment and setup files
 env_setup.py
-run.sh
+*.sh

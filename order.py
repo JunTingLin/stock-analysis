@@ -25,41 +25,35 @@ def set_trading_info(trading_info, attr_dict):
         trading_info.set_attribute(key, value)
 
 def execute_trades(position_today, acc, extra_bid_pct, trading_info, company_basic_info, log_filepath):
+    def update_trading_info_and_log():
+        portfolio_details = get_next_portfolio_info(position_today.position, company_basic_info)
+        set_trading_info(trading_info, {'positions_next': portfolio_details})
+        logging.info(f"將於下一個交易調整持倉為: {portfolio_details}")
+        warning_logs = read_warnings_from_log(log_filepath)
+        order_details = get_order_execution_info(warning_logs, company_basic_info)
+        set_trading_info(trading_info, {'order_details': order_details})
+
     new_ids = set(p['stock_id'] for p in position_today.position)
     current_ids = set(p['stock_id'] for p in acc.get_position().position)
     add_ids = new_ids - current_ids
     remove_ids = current_ids - new_ids
 
-    if add_ids:
-        try:
+    try:
+        if add_ids:
             order_executor = OrderExecutor(position_today, account=acc)
             order_executor.create_orders(extra_bid_pct=extra_bid_pct)
-            portfolio_details = get_next_portfolio_info(position_today.position, company_basic_info)
-            set_trading_info(trading_info, {'positions_next': portfolio_details})
-            logging.info(f"將於下一個交易調整持倉為: {portfolio_details}")
-            warning_logs = read_warnings_from_log(log_filepath)
-            order_details = get_order_execution_info(warning_logs, company_basic_info)
-            set_trading_info(trading_info, {'order_details': order_details})
-        except Exception as e:
-            logging.error(f"調整持倉失敗: {e}")
-
-    elif remove_ids:
-        for position in acc.get_position().position:
-            if position['stock_id'] in remove_ids:
-                position['quantity'] = Decimal('0')
-        try:
+            update_trading_info_and_log()
+        elif remove_ids:
+            for position in acc.get_position().position:
+                if position['stock_id'] in remove_ids:
+                    position['quantity'] = Decimal('0')
             order_executor = OrderExecutor(acc.get_position(), account=acc)
             order_executor.create_orders(extra_bid_pct=extra_bid_pct)
-            portfolio_details = get_next_portfolio_info(position_today.position, company_basic_info)
-            set_trading_info(trading_info, {'positions_next': portfolio_details})
-            logging.info(f"將於下一個交易調整持倉為{portfolio_details}")
-            warning_logs = read_warnings_from_log(log_filepath)
-            order_details = get_order_execution_info(warning_logs, company_basic_info)
-            set_trading_info(trading_info, {'order_details': order_details})
-        except Exception as e:
-            logging.error(f"調整持倉失敗: {e}")
-    else:
-        logging.info("持倉無需變化")
+            update_trading_info_and_log()
+        else:
+            logging.info("持倉無需變化")
+    except Exception as e:
+        logging.error(f"調整持倉失敗: {e}")
 
 def main(fund, strategy_class_name, flask_server_port, extra_bid_pct):
     log_filepath = setup_logging()
@@ -100,11 +94,12 @@ if __name__ == "__main__":
     parser.add_argument('--strategy_class', type=str, required=True, help='Strategy class name')
     parser.add_argument('--flask_server_port', type=int, required=True, help='Flask server port')
     parser.add_argument('--extra_bid_pct', type=float, default=0, help='Extra bid percentage for order execution')
-    # args = parser.parse_args()
 
-    # main(args.fund, args.strategy_class, args.flask_server_port, args.extra_bid_pct)
-    main(fund = 80000,
-        strategy_class_name = 'TibetanMastiffTWStrategy',
-        flask_server_port = 5000,
-        extra_bid_pct = 0
-    )
+    args = parser.parse_args()
+    main(args.fund, args.strategy_class, args.flask_server_port, args.extra_bid_pct)
+    
+    # main(fund = 80000,
+    #     strategy_class_name = 'TibetanMastiffTWStrategy',
+    #     flask_server_port = 5000,
+    #     extra_bid_pct = 0
+    # )

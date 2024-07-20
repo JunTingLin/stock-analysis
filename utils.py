@@ -1,4 +1,6 @@
 import pandas as pd
+import io
+import contextlib
 
 def get_current_formatted_datetime():
     now = pd.Timestamp.now()
@@ -16,6 +18,13 @@ def get_current_formatted_datetime():
     formatted_time = now.strftime('%Y-%m-%d') + f"({days[now.strftime('%A')]}) " + now.strftime('%H:%M:%S')
     return formatted_time
 
+def read_warnings_from_log(log_filepath):
+    warnings = []
+    with open(log_filepath, 'r', encoding='utf-8') as log_file:
+        for line in log_file:
+            if ' - WARNING - ' in line:
+                warnings.append(line.strip())
+    return warnings
 
 if __name__ == '__main__':
     print(get_current_formatted_datetime())

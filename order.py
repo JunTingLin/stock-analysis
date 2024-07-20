@@ -1,5 +1,5 @@
 import argparse
-import logger_config
+from logger_config import setup_logging
 import logging
 import os
 from decimal import Decimal
@@ -7,9 +7,9 @@ from decimal import Decimal
 from authentication import check_env_vars, login_finlab, login_fugle
 from model.trading_info import TradingInfo
 from notifier import notify_users
-from portfolio_management import calculate_portfolio_value
+from portfolio_management import get_current_portfolio_info, get_next_portfolio_info,  get_order_execution_info
 from finlab.online.order_executor import Position, OrderExecutor
-from utils import get_current_formatted_datetime
+from utils import get_current_formatted_datetime, read_warnings_from_log
 
 def load_strategy(strategy_class_name):
     if strategy_class_name == 'TibetanMastiffTWStrategy':
@@ -24,7 +24,7 @@ def set_trading_info(trading_info, attr_dict):
     for key, value in attr_dict.items():
         trading_info.set_attribute(key, value)
 
-def execute_trades(position_today, acc, extra_bid_pct, trading_info, close, company_basic_info):
+def execute_trades(position_today, acc, extra_bid_pct, trading_info, company_basic_info, log_filepath):
     new_ids = set(p['stock_id'] for p in position_today.position)
     current_ids = set(p['stock_id'] for p in acc.get_position().position)
     add_ids = new_ids - current_ids
@@ -34,9 +34,12 @@ def execute_trades(position_today, acc, extra_bid_pct, trading_info, close, comp
         try:
             order_executor = OrderExecutor(position_today, account=acc)
             order_executor.create_orders(extra_bid_pct=extra_bid_pct)
-            _, portfolio_details = calculate_portfolio_value(position_today.position, close, company_basic_info)
+            portfolio_details = get_next_portfolio_info(position_today.position, company_basic_info)
             set_trading_info(trading_info, {'positions_next': portfolio_details})
             logging.info(f"將於下一個交易調整持倉為: {portfolio_details}")
+            warning_logs = read_warnings_from_log(log_filepath)
+            order_details = get_order_execution_info(warning_logs, company_basic_info)
+            set_trading_info(trading_info, {'order_details': order_details})
         except Exception as e:
             logging.error(f"調整持倉失敗: {e}")
 
@@ -47,17 +50,19 @@ def execute_trades(position_today, acc, extra_bid_pct, trading_info, close, comp
         try:
             order_executor = OrderExecutor(acc.get_position(), account=acc)
             order_executor.create_orders(extra_bid_pct=extra_bid_pct)
-            _, portfolio_details = calculate_portfolio_value(acc.get_position().position, close, company_basic_info)
+            portfolio_details = get_next_portfolio_info(position_today.position, company_basic_info)
             set_trading_info(trading_info, {'positions_next': portfolio_details})
-            logging.info(f"需要移除的股票有{remove_ids}，將於下一個交易日出售")
             logging.info(f"將於下一個交易調整持倉為{portfolio_details}")
+            warning_logs = read_warnings_from_log(log_filepath)
+            order_details = get_order_execution_info(warning_logs, company_basic_info)
+            set_trading_info(trading_info, {'order_details': order_details})
         except Exception as e:
-            logging.error(f"提前出售失敗: {e}")
+            logging.error(f"調整持倉失敗: {e}")
     else:
         logging.info("持倉無需變化")
 
 def main(fund, strategy_class_name, flask_server_port, extra_bid_pct):
-    logger_config.setup_logging()
+    log_filepath = setup_logging()
     check_env_vars()
     login_finlab()
 
@@ -71,7 +76,7 @@ def main(fund, strategy_class_name, flask_server_port, extra_bid_pct):
     config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
 
     position_acc = acc.get_position()
-    stock_value, portfolio_details = calculate_portfolio_value(position_acc.position, close, company_basic_info)
+    stock_value, portfolio_details = get_current_portfolio_info(position_acc.position, close, company_basic_info)
     set_trading_info(trading_info, {
         'is_simulation': True if config_file_name == 'config.simulation.ini' else False,
         'bank_cash_acc': acc.get_cash(),
@@ -83,7 +88,7 @@ def main(fund, strategy_class_name, flask_server_port, extra_bid_pct):
     })
 
     position_today = Position.from_report(report, fund, odd_lot=True)
-    execute_trades(position_today, acc, extra_bid_pct, trading_info, close, company_basic_info)
+    execute_trades(position_today, acc, extra_bid_pct, trading_info, company_basic_info, log_filepath)
 
     logging.info(trading_info.data)
 

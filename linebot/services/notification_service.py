@@ -34,9 +34,23 @@ class NotificationService:
 
     def _send_message_in_chunks(self, user_id, message):
         if len(message) > 5000:
-            first_part = message.split('將於下一個交易日調整持倉為:', 1)[0]
-            second_part = '將於下一個交易日調整持倉為:' + message.split('將於下一個交易日調整持倉為:', 1)[1]
-            message_chunks = [first_part, second_part]
+            parts = message.split('調整持倉為:', 1)
+            first_part = parts[0]
+            
+            if len(parts) > 1:
+                second_part_and_third_part = '調整持倉為:' + parts[1]
+                parts = second_part_and_third_part.split('委託下單:', 1)
+                second_part = parts[0]
+                
+                if len(parts) > 1:
+                    third_part = '委託下單:' + parts[1]
+                else:
+                    third_part = ''
+            else:
+                second_part = ''
+                third_part = ''
+            
+            message_chunks = [first_part, second_part, third_part]
         else:
             message_chunks = [message]
 
@@ -48,4 +62,4 @@ class NotificationService:
 if __name__ == '__main__':
     notification_service = NotificationService()
     # notification_service.send_notification_to_developers('Hello, developer!')
-    # notification_service.send_notification_to_all_users('Hello, all users!')
+    # notification_service.send_notification_to_all_users('Hello, all users!'))

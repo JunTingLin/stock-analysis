@@ -8,6 +8,7 @@ class TradingInfo:
             "total_cash": 0,
             "fund": 0,
             "positions_next": [],
+            "order_details": [],
             "today": None,
             "is_trading_day": True
         }

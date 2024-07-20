@@ -21,11 +21,14 @@ if __name__ == '__main__':
             'total_cash': 78307.0, 
             'fund': 42374.4, 
             'positions_next': [
-                {'stock_id': '1101', 'stock_name':'台泥', 'quantity': 0.06, 'close_price': 140.5, 'stock_value': 8430.0},
+                {'stock_id': '1101', 'stock_name':'台泥', 'quantity': 0.05, 'close_price': 140.5, 'stock_value': 8430.0},
                 {'stock_id': '1108', 'stock_name':'幸福', 'quantity': 0.059, 'close_price': 143.0, 'stock_value': 8437.0},
-                {'stock_id': '8298', 'stock_name':'威睿', 'quantity': 0.048, 'close_price': 176.5, 'stock_value': 8472.0}
+                {'stock_id': '8298', 'stock_name':'威睿', 'quantity': 1, 'close_price': 176.5, 'stock_value': 8472.0}
             ],
-            'positions_cash_next': None,
+            'order_details': [
+                {'stock_id': '1101', 'stock_name':'台泥', 'quantity': -0.01, 'limit_price': 140.5},
+                {'stock_id': '8298', 'stock_name':'威睿', 'quantity': 0.952, 'limit_price': 176.5}
+            ],
             'today': '2024-05-12',
             'is_trading_day': False}
     

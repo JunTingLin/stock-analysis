@@ -13,7 +13,7 @@ def check_env_vars():
     required_vars = [
         'FINLAB_API_TOKEN', 'FUGLE_CONFIG_PATH', 'FUGLE_MARKET_API_KEY',
         'FUGLE_ACCOUNT', 'FUGLE_ACCOUNT_PASSWORD', 'FUGLE_CERT_PASSWORD',
-        'PYTHON_KEYRING_BACKEND', 'FUND', 'STRATEGY_CLASS', 'FLASK_SERVER_PORT'
+        'PYTHON_KEYRING_BACKEND'
     ]
     
     env_vars_set = all(var in os.environ for var in required_vars)

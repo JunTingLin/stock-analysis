@@ -2,9 +2,6 @@
 
 FLASK_SERVER_PORT=$1
 
-# 切換目錄到 linebot
-cd /home/junting/stock-analysis/linebot
-
 # 檢查 Flask 服務器是否正在運行，如果沒有則啟動
 if ! pgrep -f "gunicorn -w 4 -b localhost:$FLASK_SERVER_PORT app:app" > /dev/null; then
     echo "Flask server not running, starting now..."

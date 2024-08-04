@@ -44,6 +44,7 @@ cd ..
 
 # 獲取當前時間
 current_time=$(date +"%H%M")
+echo "Current time: $current_time"
 # 設置 extra_bid_pct 參數
 if [ "$current_time" -eq "0930" ]; then
     EXTRA_BID_PCT=0

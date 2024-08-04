@@ -68,6 +68,13 @@ sell_condition = (
 )
 
 position = buy_condition.hold_until(sell_condition)
+# 排除創新版股票
+stocks_to_exclude = [
+    '2254', '2258', '2432', '3150', '6423', '6534', '6645', 
+    '6757', '6771', '6794', '6854', '6873', '6902', '6949', 
+    '6951', '8162', '8487'
+]
+position[stocks_to_exclude] = False
 
 # 使用 sim 函數進行模擬
-report = backtest.sim(position, resample=None, market=AdjustTWMarketInfo(), name="吳Peter策略選股_實戰", upload=True)
+report = backtest.sim(position, resample=None, market=AdjustTWMarketInfo(), name="吳Peter策略選股_實戰", upload=False)

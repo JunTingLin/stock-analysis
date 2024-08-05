@@ -42,10 +42,11 @@ def execute_trades(position_today, acc, extra_bid_pct, trading_info, company_bas
             order_executor.create_orders(extra_bid_pct=extra_bid_pct)
             update_trading_info_and_log()
         elif remove_ids:
-            for position in acc.get_position().position:
+            position_today.position = acc.get_position().position
+            for position in position_today.position:
                 if position['stock_id'] in remove_ids:
                     position['quantity'] = Decimal('0')
-            order_executor = OrderExecutor(acc.get_position(), account=acc)
+            order_executor = OrderExecutor(position_today, account=acc)
             order_executor.create_orders(extra_bid_pct=extra_bid_pct)
             update_trading_info_and_log()
         else:

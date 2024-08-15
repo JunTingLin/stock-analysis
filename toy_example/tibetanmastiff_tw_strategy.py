@@ -1,5 +1,11 @@
 from finlab import data
 from finlab.backtest import sim
+from finlab.market_info import TWMarketInfo
+
+class AdjustTWMarketInfo(TWMarketInfo):
+    def get_trading_price(self, name, adj=True):
+        return self.get_price(name, adj=adj).shift(1)
+
 
 with data.universe(market='TSE_OTC'):
     close = data.get("price:收盤價")
@@ -32,7 +38,7 @@ buy = buy[buy > 0]
 buy = buy.is_smallest(5)
 
 # 設定起始日期
-start_date = '2015-12-31'
-buy = buy.loc[start_date:]
+# start_date = '2015-12-31'
+# buy = buy.loc[start_date:]
 
-report = sim(buy, resample="M", upload=False, position_limit=1/3, fee_ratio=1.425/1000/3, stop_loss=0.08, trade_at_price='open', name='藏獒_2016', live_performance_start='2024-05-08')
+report = sim(buy, resample="M", upload=False, position_limit=1/3, fee_ratio=1.425/1000/3, stop_loss=0.08, trade_at_price='open')

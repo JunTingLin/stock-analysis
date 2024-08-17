@@ -1,19 +1,8 @@
-import pandas as pd
-
-def read_warnings_from_log(log_filepath):
-    warnings = []
-    with open(log_filepath, 'r', encoding='utf-8') as log_file:
-        for line in log_file:
-            if ' - WARNING - ' in line:
-                warnings.append(line.strip())
-    return warnings
 
 def is_trading_day(acc):
     return acc.sdk.get_market_status()['is_trading_day']
 
-def get_current_formatted_datetime():
-    now = pd.Timestamp.now()
-
+def format_datetime_with_chinese_weekday(datetime):
     days = {
         "Monday": "一",
         "Tuesday": "二",
@@ -24,9 +13,6 @@ def get_current_formatted_datetime():
         "Sunday": "日"
     }
 
-    formatted_time = now.strftime('%Y-%m-%d') + f"({days[now.strftime('%A')]}) " + now.strftime('%H:%M:%S')
+    formatted_time = datetime.strftime('%Y-%m-%d') + f"({days[datetime.strftime('%A')]}) " + datetime.strftime('%H:%M:%S')
     return formatted_time
 
-if __name__ == '__main__':
-    print(get_current_formatted_datetime())
-    print(type(get_current_formatted_datetime()))

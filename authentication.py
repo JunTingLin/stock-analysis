@@ -34,6 +34,7 @@ def login_finlab():
 
 def login_fugle():
     # ~/.local/share/python_keyring/cryptfile_pass.cfg
+    # C:\Users\<YourUsername>\AppData\Local\Python Keyring\cryptfile_pass.cfg
     setup_keyring(os.environ["FUGLE_ACCOUNT"])
     keyring.set_password("fugle_trade_sdk:account", os.environ["FUGLE_ACCOUNT"], os.environ["FUGLE_ACCOUNT_PASSWORD"])
     keyring.set_password("fugle_trade_sdk:cert", os.environ["FUGLE_ACCOUNT"], os.environ["FUGLE_CERT_PASSWORD"])

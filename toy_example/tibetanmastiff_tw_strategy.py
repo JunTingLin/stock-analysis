@@ -1,6 +1,7 @@
 from finlab import data
 from finlab.backtest import sim
 from finlab.market_info import TWMarketInfo
+from finlab.online.order_executor import Position
 
 class AdjustTWMarketInfo(TWMarketInfo):
     def get_trading_price(self, name, adj=True):
@@ -42,3 +43,5 @@ buy = buy.is_smallest(5)
 # buy = buy.loc[start_date:]
 
 report = sim(buy, resample="M", upload=False, position_limit=1/3, fee_ratio=1.425/1000/3, stop_loss=0.08, trade_at_price='open')
+
+position_today = Position.from_report(report, fund=80000, odd_lot=True)

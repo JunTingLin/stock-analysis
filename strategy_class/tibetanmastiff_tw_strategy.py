@@ -11,7 +11,6 @@ class TibetanMastiffTWStrategy:
     def run_strategy(self):
         with data.universe(market='TSE_OTC'):
             self.close = self.data.get("price:收盤價")
-            self.company_basic_info = self.data.get('company_basic_info')
             vol = self.data.get("price:成交股數")
             vol_ma = vol.average(10)
             rev = self.data.get('monthly_revenue:當月營收')
@@ -47,13 +46,6 @@ class TibetanMastiffTWStrategy:
 
     def get_report(self):
         return self.report if self.report else "report物件為空，請先運行策略"
-    
-    def get_close_prices(self):
-        return self.close if self.close is not None else "收盤價數據未加載，請先運行策略"
-    
-    def get_company_basic_info(self):
-        return self.company_basic_info if self.company_basic_info is not None else "公司基本信息未加載，請先運行策略"
-    
     
     
 

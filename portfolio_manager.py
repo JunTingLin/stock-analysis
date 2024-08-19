@@ -1,5 +1,5 @@
 from data_persistence_manager import DataPersistenceManager
-from utils import is_trading_day
+from data_processor import DataProcessor
 from finlab.online.order_executor import Position, OrderExecutor
 import logging
 from decimal import Decimal
@@ -14,7 +14,11 @@ class PortfolioManager:
         self.datetime = datetime
         self.extra_bid_pct = extra_bid_pct
         self.data_dict = {}
-        self.data_manager = DataPersistenceManager()
+        self.data_processor = DataProcessor()
+        self.data_persistence_manager = DataPersistenceManager()
+        self.report = None
+        self.position_acc = None
+        self.position_today = None
 
     def load_strategy(self, strategy_class_name):
         if strategy_class_name == 'TibetanMastiffTWStrategy':
@@ -26,18 +30,14 @@ class PortfolioManager:
         return strategy_class()
     
     def execute_order(self):
-        report = self.strategy.run_strategy()
-        position_acc = self.acc.get_position()
-        position_today = Position.from_report(report, self.fund, odd_lot=True)
-        position_today = self.rebalance_portfolio(position_today, position_acc)
+        self.report = self.strategy.run_strategy()
+        self.position_acc = self.acc.get_position()
+        self.position_today = Position.from_report(self.report, self.fund, odd_lot=True)
+        self.position_today = self.rebalance_portfolio(self.position_today, self.position_acc)
 
-        if position_today is not None:
-            order_executor = OrderExecutor(position_today, account=self.acc)
+        if self.position_today is not None:
+            order_executor = OrderExecutor(self.position_today, account=self.acc)
             # order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
-
-        self.update_data_dict(position_today, position_acc)
-
-        return self.data_dict
 
         
     def rebalance_portfolio(self, position_today, position_acc):
@@ -74,22 +74,23 @@ class PortfolioManager:
             logging.error(f"調整持倉失敗: {e}")
             return None
         
-    def update_data_dict(self, position_today, position_acc):
-
+    def update_data_dict(self, pkl_paths):
         self.data_dict['datetime'] = self.datetime
 
         config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
-        self.data_dict['is_simulation'] = True if config_file_name == 'config.simulation.ini' else False
+        self.data_dict['is_simulation'] = config_file_name == 'config.simulation.ini'
 
-        current_portfolio = self.data_manager.update_current_portfolio_info_with_datetime(position_acc, self.datetime, 'current_portfolio.pkl')
-        self.data_dict['current_portfolio_all'] = current_portfolio
+        # 更新 current_portfolio_today
+        current_portfolio = self.data_processor.process_current_portfolio(self.position_acc, self.datetime)
+        self.data_dict['current_portfolio_today'] = current_portfolio
 
-        next_portfolio = self.data_manager.update_next_portfolio_info_with_datetime(position_today, self.datetime, 'next_portfolio.pkl')
-        self.data_dict['next_portfolio_all'] = next_portfolio
+        # 更新 next_portfolio_today
+        next_portfolio = self.data_processor.process_next_portfolio(self.position_today, self.datetime)
+        self.data_dict['next_portfolio_today'] = next_portfolio
 
-        financial_summary = self.data_manager.update_financial_summary_with_datetime(self.acc, self.datetime, 'financial_summary.pkl')
-        self.data_dict['financial_summary_all'] = financial_summary
-
+        # 更新 financial_summary 並保存所有數據
+        financial_summary = self.data_processor.process_financial_summary(self.acc, self.datetime)
+        self.data_dict['financial_summary_all'] = self.data_persistence_manager.save_to_pkl(financial_summary, pkl_paths['financial_summary'])
 
         return self.data_dict
 

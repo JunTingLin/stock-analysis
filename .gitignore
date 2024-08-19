@@ -5,13 +5,15 @@ __pycache__/
 
 # Output directories
 output/
-log/
+logs/
+data/
 
 # Configuration files
 config.json
 *.p12
 *.ini
 *.env
+*.yaml
 
 # User-specific files
 user_ids.json

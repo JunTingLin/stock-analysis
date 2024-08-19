@@ -37,7 +37,7 @@ class PortfolioManager:
 
         if self.position_today is not None:
             order_executor = OrderExecutor(self.position_today, account=self.acc)
-            # order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
+            order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
 
         
     def rebalance_portfolio(self, position_today, position_acc):

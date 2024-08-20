@@ -26,3 +26,9 @@ class DataPersistenceManager:
             return pd.read_pickle(pkl_path)
         else:
             return pd.DataFrame()
+        
+    def save_finlab_report(self, report, report_save_path):
+        dir_name = os.path.dirname(report_save_path)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+        report.display(save_report_path=report_save_path)

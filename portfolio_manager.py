@@ -37,7 +37,7 @@ class PortfolioManager:
 
         if self.position_today is not None:
             order_executor = OrderExecutor(self.position_today, account=self.acc)
-            order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
+            # order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
 
         
     def rebalance_portfolio(self, position_today, position_acc):
@@ -74,11 +74,17 @@ class PortfolioManager:
             logging.error(f"調整持倉失敗: {e}")
             return None
         
-    def update_data_dict(self, pkl_paths):
+    def update_data_dict(self, pkl_paths, report_directory):
         self.data_dict['datetime'] = self.datetime
 
         config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
         self.data_dict['is_simulation'] = config_file_name == 'config.simulation.ini'
+
+        # 保存 finlab 報告
+        report_filename = f'{self.datetime.strftime("%Y-%m-%d_%H-%M-%S")}.html'
+        report_save_path = os.path.join(report_directory, report_filename)
+        self.data_persistence_manager.save_finlab_report(self.report, report_save_path)
+        self.data_dict['finlab_report_path'] = report_save_path
 
         # 更新 current_portfolio_today
         current_portfolio = self.data_processor.process_current_portfolio(self.position_acc, self.datetime)

@@ -37,7 +37,9 @@ def execute_trading(config_loader, acc, current_datetime):
         pkl_paths = {
             'financial_summary': config_loader.get_path('financial_summary')
         }
-        data_dict = portfolio_manager.update_data_dict(pkl_paths)
+        report_finlab_directory = config_loader.get_path('report_finlab_directory')
+
+        data_dict = portfolio_manager.update_data_dict(pkl_paths, report_finlab_directory)
         print(data_dict)
     else:
         logging.info("今天不是交易日，無需執行下單操作。")

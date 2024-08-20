@@ -5,6 +5,7 @@ from authentication import Authenticator
 from config_loader import ConfigLoader
 from portfolio_manager import PortfolioManager
 from logger_config import LoggerConfig
+from report_manager import ReportManager
 from utils import is_trading_day
 
 def initialize_environment(args):
@@ -35,12 +36,16 @@ def execute_trading(config_loader, acc, current_datetime):
         portfolio_manager.execute_order()
 
         pkl_paths = {
-            'financial_summary': config_loader.get_path('financial_summary')
+            'financial_summary_path': config_loader.get_path('financial_summary_path')
         }
         report_finlab_directory = config_loader.get_path('report_finlab_directory')
+        report_final_directory = config_loader.get_path('report_final_directory')
+        report_template_path = config_loader.get_path('report_template_path')
 
         data_dict = portfolio_manager.update_data_dict(pkl_paths, report_finlab_directory)
-        print(data_dict)
+        report_manager = ReportManager(data_dict, report_finlab_directory, report_final_directory, current_datetime, report_template_path)
+        final_report_path = report_manager.save_final_report()
+        
     else:
         logging.info("今天不是交易日，無需執行下單操作。")
 

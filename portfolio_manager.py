@@ -96,7 +96,7 @@ class PortfolioManager:
 
         # 更新 financial_summary 並保存所有數據
         financial_summary = self.data_processor.process_financial_summary(self.acc, self.datetime)
-        self.data_dict['financial_summary_all'] = self.data_persistence_manager.save_to_pkl(financial_summary, pkl_paths['financial_summary'])
+        self.data_dict['financial_summary_all'] = self.data_persistence_manager.save_to_pkl(financial_summary, pkl_paths['financial_summary_path'])
 
         return self.data_dict
 

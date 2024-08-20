@@ -8,6 +8,7 @@ output/
 logs/
 data/
 flask/static/report_finlab
+flask/static/report_final
 
 # Configuration files
 config.json

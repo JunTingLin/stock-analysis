@@ -36,7 +36,7 @@ if __name__ == "__main__":
     strategy_class_name = config_loader.get("strategy_class_name")
     flask_server_port = config_loader.get("flask_server_port")
 
-    financial_summary = config_loader.get_path("financial_summary")
+    financial_summary_path = config_loader.get_path("financial_summary_path")
 
-    print(fund, strategy_class_name, flask_server_port, financial_summary)
+    print(fund, strategy_class_name, flask_server_port, financial_summary_path)
 

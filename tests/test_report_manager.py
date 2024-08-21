@@ -10,24 +10,26 @@ from report_manager import ReportManager
 # 建立假資料
 def generate_fake_data():
     current_portfolio_today = pd.DataFrame({
+        "日期時間": datetime(2024, 8, 18, 0, 42, 22),
         "股票代號": ["2330", "2317", "6505"],
         "股票名稱": ["台積電", "鴻海", "台塑化"],
-        "持倉股數": [100, 200, 300],
-        "持倉市值": [500000, 300000, 200000]
+        "持倉張數": [100, 200, 300]
     })
 
     next_portfolio_today = pd.DataFrame({
+        "日期時間": datetime(2024, 8, 18, 0, 42, 22),
         "股票代號": ["2330", "2317", "6505"],
         "股票名稱": ["台積電", "鴻海", "台塑化"],
-        "調整後股數": [110, 190, 310]
+        "調整後張數": [110, 190, 310]
     })
 
     financial_summary_all = pd.DataFrame({
         "日期時間": [
-            datetime(2024, 8, 20, 0, 42, 22),
-            datetime(2024, 8, 21, 0, 42, 22),
-            datetime(2024, 8, 22, 0, 42, 22)
+            datetime(2024, 8, 18, 0, 42, 22),
+            datetime(2024, 8, 19, 0, 42, 22),
+            datetime(2024, 8, 20, 0, 42, 22)
         ],
+        "銀行餘額": [50000, 60000, 70000],
         "銀行餘額(計入交割款)": [100000, 150000, 200000],
         "現股總市值": [1000000, 1100000, 1200000],
         "資產總值": [1100000, 1250000, 1400000]
@@ -50,7 +52,7 @@ def test_report_manager():
         data_dict=data_dict,
         report_finlab_directory="output/report_finlab",
         report_final_directory="output/report_final",
-        datetime=datetime(2024, 8, 22, 0, 42, 22),
+        datetime=datetime(2024, 8, 18, 0, 42, 22),
         template_path="templates/report_template.html"
     )
 

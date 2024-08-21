@@ -42,16 +42,12 @@ class ReportManager:
         # 加載模板
         template = self.env.get_template(os.path.basename(self.template_path))
 
-        # 格式化 datetime
-        formatted_datetime = self.datetime.strftime("%Y-%m-%d %H:%M:%S")
-
         # 檢查 report_finlab_path 是否存在
         if not os.path.exists(self.report_finlab_path):
             logging.warning(f"Finlab report not found at {self.report_finlab_path}. Skipping iframe embedding.")
             self.report_finlab_path = None
         else:
-            self.report_finlab_path = f'/output/report_finlab/{os.path.basename(self.report_finlab_path)}'
-            print(self.report_finlab_path)
+            relative_finlab_path  = f'/report_finlab/{os.path.basename(self.report_finlab_path)}'
             logging.info(f"Finlab report found at {self.report_finlab_path}")
 
 
@@ -61,8 +57,8 @@ class ReportManager:
             df2_html=df2_html,
             summary_today_html=summary_today_html,
             plot_html=plot_html,
-            finlab_report_url=self.report_finlab_path,
-            formatted_datetime=formatted_datetime
+            finlab_report_url=relative_finlab_path,
+            formatted_datetime=self.datetime.strftime("%Y-%m-%d %H:%M:%S")
         )
 
         # 嘗試創建目標目錄

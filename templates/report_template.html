@@ -14,7 +14,7 @@
         <!-- Nav tabs -->
         <ul class="nav nav-tabs" id="reportTabs" role="tablist">
             <li class="nav-item">
-                <a class="nav-link active" id="portfolio-tab" data-toggle="tab" href="#portfolio" role="tab" aria-controls="portfolio" aria-selected="true">Current Portfolio</a>
+                <a class="nav-link active" id="portfolio-tab" data-toggle="tab" href="#portfolio" role="tab" aria-controls="portfolio" aria-selected="true">Portfolio</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" id="summary-tab" data-toggle="tab" href="#summary" role="tab" aria-controls="summary" aria-selected="false">Financial Summary</a>
@@ -28,8 +28,9 @@
         <div class="tab-content">
             <!-- 第一個頁籤 -->
             <div class="tab-pane fade show active" id="portfolio" role="tabpanel" aria-labelledby="portfolio-tab">
-                <h2>Current Portfolio</h2>
+                <h3>Current Portfolio</h3>
                 {{ df1_html|safe }}
+                <h3>Next Portfolio</h3>
                 {{ df2_html|safe }}
                 <h3>Today's Financial Summary</h3>
                 {{ summary_today_html|safe }}
@@ -46,7 +47,7 @@
             <!-- 第三個頁籤 -->
             <div class="tab-pane fade" id="finlab" role="tabpanel" aria-labelledby="finlab-tab">
                 <h2>FinLab Backtest Report</h2>
-                <iframe src="{{ finlab_report_url }}" width="100%" height="600px"></iframe>
+                <iframe src="{{ finlab_report_url }}" width="100%" height="2600px"></iframe>
             </div>
         </div>
     </div>

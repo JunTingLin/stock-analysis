@@ -15,10 +15,10 @@ class DataProcessor:
             stock_id = position['stock_id']
             stock_name = self.company_info.loc[self.company_info['stock_id'] == stock_id, '公司簡稱'].values[0]
             row = {
-                "日期時間": datetime,
+                "日期時間": datetime.strftime("%Y-%m-%d %H:%M:%S"),
                 "股票代號": stock_id,
                 "股票名稱": stock_name,
-                "持倉股數": float(position['quantity'])
+                "持倉張數": float(position['quantity'])
             }
             data_list.append(row)
         
@@ -33,10 +33,10 @@ class DataProcessor:
             stock_id = position['stock_id']
             stock_name = self.company_info.loc[self.company_info['stock_id'] == stock_id, '公司簡稱'].values[0]
             row = {
-                "日期時間": datetime,
+                "日期時間": datetime.strftime("%Y-%m-%d %H:%M:%S"),
                 "股票代號": stock_id,
                 "股票名稱": stock_name,
-                "調整成股數": float(position['quantity'])
+                "調整成張數": float(position['quantity'])
             }
             data_list.append(row)
         
@@ -51,7 +51,7 @@ class DataProcessor:
         total_market_value = total_assets - adjusted_bank_balance
 
         new_data = {
-            "日期時間": datetime,
+            "日期時間": datetime.strftime("%Y-%m-%d %H:%M:%S"),
             "銀行餘額": bank_balance,
             "交割款加總": total_settlement_amount,
             "銀行餘額(計入交割款)": adjusted_bank_balance,

@@ -32,3 +32,9 @@ class DataPersistenceManager:
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
         report.display(save_report_path=report_save_path)
+
+if __name__ == "__main__":
+    dpm = DataPersistenceManager()
+    df = dpm.load_from_pkl("data/financial_summary.pkl")
+    print(df)
+

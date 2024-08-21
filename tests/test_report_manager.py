@@ -48,10 +48,10 @@ def test_report_manager():
     # 創建 ReportManager 的實例
     report_manager = ReportManager(
         data_dict=data_dict,
-        report_finlab_directory="flask/static/report_finlab",
-        report_final_directory="flask/static/report_final",
+        report_finlab_directory="output/report_finlab",
+        report_final_directory="output/report_final",
         datetime=datetime(2024, 8, 22, 0, 42, 22),
-        template_path="flask/templates/report_template.html"
+        template_path="templates/report_template.html"
     )
 
     # 生成最終報表

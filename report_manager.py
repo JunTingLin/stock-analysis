@@ -49,6 +49,10 @@ class ReportManager:
         if not os.path.exists(self.report_finlab_path):
             logging.warning(f"Finlab report not found at {self.report_finlab_path}. Skipping iframe embedding.")
             self.report_finlab_path = None
+        else:
+            self.report_finlab_path = f'/output/report_finlab/{os.path.basename(self.report_finlab_path)}'
+            print(self.report_finlab_path)
+            logging.info(f"Finlab report found at {self.report_finlab_path}")
 
 
         # 渲染模板
@@ -72,10 +76,6 @@ class ReportManager:
         except FileNotFoundError as e:
             logging.error(f"Failed to save final report: {e}")
             return None
-
-        # 保存最終報表
-        with open(self.final_report_path, 'w', encoding='utf-8') as file:
-            file.write(rendered_html)
 
         return self.final_report_path
 

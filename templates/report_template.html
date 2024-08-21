@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Report</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">Final Report - {{ formatted_datetime }}</h1>
+
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs" id="reportTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="portfolio-tab" data-toggle="tab" href="#portfolio" role="tab" aria-controls="portfolio" aria-selected="true">Current Portfolio</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="summary-tab" data-toggle="tab" href="#summary" role="tab" aria-controls="summary" aria-selected="false">Financial Summary</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="finlab-tab" data-toggle="tab" href="#finlab" role="tab" aria-controls="finlab" aria-selected="false">FinLab Report</a>
+            </li>
+        </ul>
+
+        <!-- Tab panes -->
+        <div class="tab-content">
+            <!-- 第一個頁籤 -->
+            <div class="tab-pane fade show active" id="portfolio" role="tabpanel" aria-labelledby="portfolio-tab">
+                <h2>Current Portfolio</h2>
+                {{ df1_html|safe }}
+                {{ df2_html|safe }}
+                <h3>Today's Financial Summary</h3>
+                {{ summary_today_html|safe }}
+            </div>
+
+            <!-- 第二個頁籤 -->
+            <div class="tab-pane fade" id="summary" role="tabpanel" aria-labelledby="summary-tab">
+                <h2>Financial Summary</h2>
+                <div id="financialSummaryPlot">
+                    {{ plot_html|safe }}
+                </div>
+            </div>
+
+            <!-- 第三個頁籤 -->
+            <div class="tab-pane fade" id="finlab" role="tabpanel" aria-labelledby="finlab-tab">
+                <h2>FinLab Backtest Report</h2>
+                <iframe src="{{ finlab_report_url }}" width="100%" height="600px"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        // 初始化 DataTables
+        $('#df1_table').DataTable();
+        $('#df2_table').DataTable();
+
+        // 初始化 Plotly
+        var data = {{ plotly_data }};
+        var layout = {{ plotly_layout }};
+        Plotly.newPlot('financialSummaryPlot', data, layout);
+    });
+    </script>
+</body>
+</html>

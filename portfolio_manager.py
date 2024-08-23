@@ -87,7 +87,7 @@ class PortfolioManager:
         self.data_dict['finlab_report_path'] = report_save_path
 
         # 更新 current_portfolio_today
-        current_portfolio = self.data_processor.process_current_portfolio(self.position_acc, self.datetime)
+        current_portfolio = self.data_processor.process_current_portfolio(self.acc, self.position_acc, self.datetime)
         self.data_dict['current_portfolio_today'] = current_portfolio
 
         # 更新 next_portfolio_today

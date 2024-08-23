@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 class DataPersistenceManager:
-    def __init__(self, db_path='data.db'):
+    def __init__(self, db_path='data_prod.db'):
         self.db_path = db_path
         self._ensure_table_exists()
 

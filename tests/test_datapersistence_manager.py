@@ -25,19 +25,15 @@ def generate_financial_summary():
     return pd.DataFrame([data])
 
 def test_datapersistence_manager():
-    # 初始化 SQLite 数据库路径
-    db_path = "data.db"
+    
+    db_path = "data_prod.db"
 
-    # 初始化 DataPersistenceManager
     dpm = DataPersistenceManager(db_path)
 
-    # 模擬生成 financial_summary 的假数据
     financial_summary = generate_financial_summary()
 
-    # 保存到 SQLite 数据库
     dpm.save_financial_summary(financial_summary)
 
-    # 从 SQLite 数据库中读取并打印
     df = dpm.load_financial_summary()
     print(df)
 

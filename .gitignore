@@ -7,6 +7,7 @@ __pycache__/
 output/
 logs/
 data/
+*.db
 
 # Configuration files
 config.json

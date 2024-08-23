@@ -1,40 +1,38 @@
+import sqlite3
 import pandas as pd
 import os
 
 class DataPersistenceManager:
-    def save_to_pkl(self, data, pkl_path):
+    def __init__(self, db_path='data.db'):
+        self.db_path = db_path
+        self._ensure_table_exists()
 
-        # 確保目錄存在
-        dir_name = os.path.dirname(pkl_path)
-        if not os.path.exists(dir_name):
-            os.makedirs(dir_name)
+    def _ensure_table_exists(self):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS financial_summary (
+                    datetime TEXT PRIMARY KEY,
+                    bank_balance REAL,
+                    settlement_sum REAL,
+                    adjusted_bank_balance REAL,
+                    market_value REAL,
+                    total_assets REAL
+                )
+            ''')
+            conn.commit()
 
-        # 保存數據到pkl
-        if os.path.exists(pkl_path):
-            existing_df = pd.read_pickle(pkl_path)
-            updated_df = pd.concat([existing_df, data], ignore_index=True)
-            updated_df = updated_df.drop_duplicates(subset=["日期時間"], keep="last")
-            updated_df = updated_df.reset_index(drop=True)
-        else:
-            updated_df = data
+    def save_financial_summary(self, data):
+        with sqlite3.connect(self.db_path) as conn:
+            data.to_sql('financial_summary', conn, if_exists='append', index=False)
 
-        updated_df.to_pickle(pkl_path)
-        return updated_df
+    def load_financial_summary(self):
+        with sqlite3.connect(self.db_path) as conn:
+            df = pd.read_sql('SELECT * FROM financial_summary', conn)
+        return df
 
-    def load_from_pkl(self, pkl_path):
-        if os.path.exists(pkl_path):
-            return pd.read_pickle(pkl_path)
-        else:
-            return pd.DataFrame()
-        
     def save_finlab_report(self, report, report_save_path):
         dir_name = os.path.dirname(report_save_path)
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
         report.display(save_report_path=report_save_path)
-
-if __name__ == "__main__":
-    dpm = DataPersistenceManager()
-    df = dpm.load_from_pkl("data/financial_summary.pkl")
-    print(df)
 

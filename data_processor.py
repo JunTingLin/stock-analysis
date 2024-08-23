@@ -1,5 +1,4 @@
 import pandas as pd
-import os
 from finlab import data
 
 class DataProcessor:
@@ -15,10 +14,10 @@ class DataProcessor:
             stock_id = position['stock_id']
             stock_name = self.company_info.loc[self.company_info['stock_id'] == stock_id, '公司簡稱'].values[0]
             row = {
-                "日期時間": datetime.strftime("%Y-%m-%d %H:%M:%S"),
-                "股票代號": stock_id,
-                "股票名稱": stock_name,
-                "持倉張數": float(position['quantity'])
+                "datetime": datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                "stock_id": stock_id,
+                "stock_name": stock_name,
+                "quantity": float(position['quantity'])
             }
             data_list.append(row)
         
@@ -33,10 +32,10 @@ class DataProcessor:
             stock_id = position['stock_id']
             stock_name = self.company_info.loc[self.company_info['stock_id'] == stock_id, '公司簡稱'].values[0]
             row = {
-                "日期時間": datetime.strftime("%Y-%m-%d %H:%M:%S"),
-                "股票代號": stock_id,
-                "股票名稱": stock_name,
-                "調整成張數": float(position['quantity'])
+                "datetime": datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                "stock_id": stock_id,
+                "stock_name": stock_name,
+                "adjusted_quantity": float(position['quantity'])
             }
             data_list.append(row)
         
@@ -51,16 +50,15 @@ class DataProcessor:
         total_market_value = total_assets - adjusted_bank_balance
 
         new_data = {
-            "日期時間": datetime.strftime("%Y-%m-%d %H:%M:%S"),
-            "銀行餘額": bank_balance,
-            "交割款加總": total_settlement_amount,
-            "銀行餘額(計入交割款)": adjusted_bank_balance,
-            "現股總市值": total_market_value,
-            "資產總值": total_assets
+            "datetime": datetime.strftime("%Y-%m-%d %H:%M:%S"),
+            "bank_balance": bank_balance,
+            "total_settlement_amount": total_settlement_amount,
+            "adjusted_bank_balance": adjusted_bank_balance,
+            "total_market_value": total_market_value,
+            "total_assets": total_assets
         }
 
         return pd.DataFrame([new_data])
-    
 
 
 if __name__ == '__main__':

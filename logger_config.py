@@ -15,6 +15,11 @@ class LoggerConfig:
         log_filepath = os.path.join(self.log_directory, log_filename)
 
         logger = logging.getLogger()
+
+        # 清除已存在的處理程序（避免重複日誌）
+        if logger.hasHandlers():
+            logger.handlers.clear()
+
         logger.setLevel(logging.INFO)
 
         file_handler = logging.FileHandler(log_filepath, mode='w', encoding='utf-8')
@@ -28,5 +33,7 @@ class LoggerConfig:
 
         logger.addHandler(file_handler)
         logger.addHandler(stream_handler)
+
+        return log_filepath
 
 

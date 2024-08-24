@@ -7,12 +7,13 @@ import os
 
 
 class PortfolioManager:
-    def __init__(self, acc, fund, strategy_class_name, datetime, extra_bid_pct):
+    def __init__(self, acc, fund, strategy_class_name, datetime, extra_bid_pct, log_filepath):
         self.acc = acc
         self.fund = fund
         self.strategy = self.load_strategy(strategy_class_name)
         self.datetime = datetime
         self.extra_bid_pct = extra_bid_pct
+        self.log_filepath = log_filepath
         self.data_dict = {}
         self.data_processor = DataProcessor()
         self.data_persistence_manager = DataPersistenceManager()
@@ -74,7 +75,7 @@ class PortfolioManager:
             logging.error(f"調整持倉失敗: {e}")
             return None
         
-    def update_data_dict(self, pkl_paths, report_directory):
+    def update_data_dict(self, report_directory):
         self.data_dict['datetime'] = self.datetime
 
         config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
@@ -94,9 +95,14 @@ class PortfolioManager:
         next_portfolio = self.data_processor.process_next_portfolio(self.position_today, self.datetime)
         self.data_dict['next_portfolio_today'] = next_portfolio
 
+        # 解析日誌並取得下單狀況
+        order_status = self.data_processor.process_order_status(self.log_filepath)
+        self.data_dict['order_status'] = order_status
+
         # 更新 financial_summary 並保存所有數據
         financial_summary = self.data_processor.process_financial_summary(self.acc, self.datetime)
-        self.data_dict['financial_summary_all'] = self.data_persistence_manager.save_to_pkl(financial_summary, pkl_paths['financial_summary_path'])
+        self.data_persistence_manager.save_financial_summary(financial_summary)
+        self.data_dict['financial_summary_all'] = self.data_persistence_manager.load_financial_summary()
 
         return self.data_dict
 

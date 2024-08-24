@@ -13,7 +13,7 @@ class DataPersistenceManager:
                 CREATE TABLE IF NOT EXISTS financial_summary (
                     datetime TEXT PRIMARY KEY,
                     bank_balance REAL,
-                    settlement_sum REAL,
+                    settlements REAL,
                     adjusted_bank_balance REAL,
                     market_value REAL,
                     total_assets REAL

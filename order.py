@@ -22,27 +22,27 @@ def initialize_environment(args):
 def setup_logger(config_loader, current_datetime):
     log_directory = config_loader.get_path('log_directory')
     logger_config = LoggerConfig(log_directory, current_datetime)
-    logger_config.setup_logging()
+    log_filepath = logger_config.setup_logging()
 
-def execute_trading(config_loader, acc, current_datetime):
-    if is_trading_day(acc):
+    return log_filepath
+
+def execute_trading(config_loader, acc, current_datetime, log_filepath):
+    if is_trading_day(acc) or True:
         portfolio_manager = PortfolioManager(
             acc, 
             config_loader.get("fund"), 
             config_loader.get("strategy_class_name"), 
             current_datetime, 
-            config_loader.get("extra_bid_pct")
+            config_loader.get("extra_bid_pct"),
+            log_filepath
         )
         portfolio_manager.execute_order()
 
-        pkl_paths = {
-            'financial_summary_path': config_loader.get_path('financial_summary_path')
-        }
         report_finlab_directory = config_loader.get_path('report_finlab_directory')
         report_final_directory = config_loader.get_path('report_final_directory')
         report_template_path = config_loader.get_path('report_template_path')
 
-        data_dict = portfolio_manager.update_data_dict(pkl_paths, report_finlab_directory)
+        data_dict = portfolio_manager.update_data_dict(report_finlab_directory)
         report_manager = ReportManager(data_dict, report_finlab_directory, report_final_directory, current_datetime, report_template_path)
         final_report_path = report_manager.save_final_report()
         
@@ -57,8 +57,8 @@ def main():
     config_loader, acc = initialize_environment(args)
     current_datetime = datetime.datetime.now()
 
-    setup_logger(config_loader, current_datetime)
-    execute_trading(config_loader, acc, current_datetime)
+    log_filepath = setup_logger(config_loader, current_datetime)
+    execute_trading(config_loader, acc, current_datetime, log_filepath)
 
 
 

@@ -23,15 +23,15 @@ class ReportManager:
         df2_html = self.data_dict['next_portfolio_today'].to_html(classes='table table-striped', index=False, table_id="df2_table")
 
         # 提取當天的 financial_summary_all 數據
-        summary_today = self.data_dict['financial_summary_all'].loc[self.data_dict['financial_summary_all']['日期時間'] == self.datetime]
+        summary_today = self.data_dict['financial_summary_all'].loc[self.data_dict['financial_summary_all']['datetime'] == self.datetime]
         summary_today_html = summary_today.to_html(classes='table table-striped', index=False)
 
         # 使用 Plotly 生成趨勢圖表
         fig = px.line(
             self.data_dict['financial_summary_all'], 
-            x='日期時間', 
-            y=['銀行餘額(計入交割款)', '現股總市值', '資產總值'],
-            labels={"value": "金額", "variable": "指標"},
+            x='datetime', 
+            y=['adjusted_bank_balance', 'market_value', 'total_assets'],
+            labels={"value": "Amount NT$", "variable": "funding level"},
             title="Financial Summary Over Time"
         )
         plot_html = pio.to_html(fig, full_html=False)

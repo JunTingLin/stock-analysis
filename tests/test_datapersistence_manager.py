@@ -5,7 +5,6 @@ import datetime
 
 # 將專案根目錄添加到 sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from report_manager import ReportManager
 from data_persistence_manager import DataPersistenceManager
 
 
@@ -25,7 +24,7 @@ def generate_financial_summary():
     return pd.DataFrame([data])
 
 def test_datapersistence_manager():
-    
+
     db_path = "data_prod.db"
 
     dpm = DataPersistenceManager(db_path)

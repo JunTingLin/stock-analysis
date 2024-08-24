@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 from finlab import data
 
@@ -49,21 +50,61 @@ class DataProcessor:
             data_list.append(row)
         
         return pd.DataFrame(data_list)
+    
+    def process_order_status(self, log_filepath):
+        order_status_list = []
+
+        # 正規表示式匹配日誌行中的各個字段
+        pattern = re.compile(
+            r"(?P<action>BUY|SELL)\s+"
+            r"(?P<stock_id>\d+)\s+X\s+"
+            r"(?P<quantity>\d+\.\d+)\s+@\s+"
+            r"(?P<order_price>[\d\.]+)\s+"
+            r"(with extra bid (?P<extra_bid_pct>\d+\.\d+%)\s+)?"
+            r"(?P<order_condition>CASH|MARGIN_TRADING|DAY_TRADING_LONG|SHORT_SELLING|DAY_TRADING_SHORT)"
+        )
+
+        with open(log_filepath, 'r', encoding='utf-8') as log_file:
+            for line in log_file:
+                match = pattern.search(line)
+                if match:
+                    stock_id = match.group("stock_id")
+                    stock_name = self.company_info.loc[self.company_info['stock_id'] == stock_id, '公司簡稱'].values[0]
+                    
+                    order_status = {
+                        "action": match.group("action"),
+                        "stock_id": stock_id,
+                        "stock_name": stock_name,
+                        "quantity": float(match.group("quantity")),
+                        "order_price": float(match.group("order_price")),
+                        "extra_bid_pct": float(match.group("extra_bid_pct").rstrip('%')) / 100 if match.group("extra_bid_pct") else 0.0,
+                        "order_condition": match.group("order_condition")
+                    }
+                    order_status_list.append(order_status)
+
+        order_status_df = pd.DataFrame(order_status_list, columns=[
+            "action", "stock_id", "stock_name", "quantity", "order_price", "extra_bid_pct", "order_condition"
+        ])
+        order_status_df = order_status_df.sort_values(by="stock_id").reset_index(drop=True)
+
+        return order_status_df
+
+
 
     def process_financial_summary(self, acc, datetime):
         bank_balance = acc.get_cash()
-        total_settlement_amount = acc.get_settlement()
-        adjusted_bank_balance = bank_balance + total_settlement_amount
+        settlements = acc.get_settlement()
+        adjusted_bank_balance = bank_balance + settlements
 
         total_assets = acc.get_total_balance()
-        total_market_value = total_assets - adjusted_bank_balance
+        market_value = total_assets - adjusted_bank_balance
 
         new_data = {
             "datetime": datetime.strftime("%Y-%m-%d %H:%M:%S"),
             "bank_balance": bank_balance,
-            "total_settlement_amount": total_settlement_amount,
+            "settlements": settlements,
             "adjusted_bank_balance": adjusted_bank_balance,
-            "total_market_value": total_market_value,
+            "market_value": market_value,
             "total_assets": total_assets
         }
 
@@ -71,24 +112,27 @@ class DataProcessor:
 
 
 if __name__ == '__main__':
-    from config_loader import ConfigLoader
-    from authentication import Authenticator
-    config_loader = ConfigLoader()
-    config_loader.load_env_vars()
-    auth = Authenticator()
-    auth.login_finlab()
-    acc = auth.login_fugle()
+    # from config_loader import ConfigLoader
+    # from authentication import Authenticator
+    # config_loader = ConfigLoader()
+    # config_loader.load_env_vars()
+    # auth = Authenticator()
+    # auth.login_finlab()
+    # acc = auth.login_fugle()
 
     dp = DataProcessor()
 
-    import datetime
-    d = datetime.date(2020, 1, 1)
+    # import datetime
+    # d = datetime.date(2020, 1, 1)
 
-    current_portfolio = dp.process_current_portfolio(acc, acc.get_position(), d)
-    print(current_portfolio)
+    # current_portfolio = dp.process_current_portfolio(acc, acc.get_position(), d)
+    # print(current_portfolio)
 
-    next_portfolio_info = dp.process_next_portfolio(None, d)
-    print(next_portfolio_info)
+    # next_portfolio_info = dp.process_next_portfolio(None, d)
+    # print(next_portfolio_info)
 
-    financial_summary = dp.process_financial_summary(acc, d)
-    print(financial_summary)
+    # financial_summary = dp.process_financial_summary(acc, d)
+    # print(financial_summary)
+
+    order_status = dp.process_order_status('logs/2024-08-24_15-32-12.log')
+    print(order_status)

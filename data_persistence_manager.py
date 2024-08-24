@@ -29,6 +29,12 @@ class DataPersistenceManager:
         with sqlite3.connect(self.db_path) as conn:
             df = pd.read_sql('SELECT * FROM financial_summary', conn)
         return df
+    
+    def load_financial_summary_today(self, target_datetime):
+        with sqlite3.connect(self.db_path) as conn:
+            query = f"SELECT * FROM financial_summary WHERE datetime = '{target_datetime.strftime('%Y-%m-%d %H:%M:%S')}'"
+            df = pd.read_sql_query(query, conn)
+        return df
 
     def save_finlab_report(self, report, report_save_path):
         dir_name = os.path.dirname(report_save_path)

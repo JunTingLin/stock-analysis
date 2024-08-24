@@ -32,15 +32,17 @@
                 {{ df1_html|safe }}
                 <h3>Next Portfolio</h3>
                 {{ df2_html|safe }}
+                <h3>order Status</h3>
+                {{ df3_html|safe }}
                 <h3>Today's Financial Summary</h3>
-                {{ summary_today_html|safe }}
+                {{ df4_html|safe }}
             </div>
 
             <!-- 第二個頁籤 -->
             <div class="tab-pane fade" id="summary" role="tabpanel" aria-labelledby="summary-tab">
                 <h2>Financial Summary</h2>
                 <div id="financialSummaryPlot">
-                    {{ plot_html|safe }}
+                    {{ plot1_html|safe }}
                 </div>
             </div>
 

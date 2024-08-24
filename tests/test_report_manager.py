@@ -10,29 +10,32 @@ from report_manager import ReportManager
 # 建立假資料
 def generate_fake_data():
     current_portfolio_today = pd.DataFrame({
-        "日期時間": datetime(2024, 8, 18, 0, 42, 22),
-        "股票代號": ["2330", "2317", "6505"],
-        "股票名稱": ["台積電", "鴻海", "台塑化"],
-        "持倉張數": [100, 200, 300]
+        "datetime": datetime(2024, 8, 18, 0, 42, 22),
+        "stock_id": ["2330", "2317", "6505"],
+        "stock_name": ["台積電", "鴻海", "台塑化"],
+        "quantity": [100, 200, 300],
+        "close_price": [600, 100, 200],
+        "market_value": [60000, 20000, 60000]
     })
 
     next_portfolio_today = pd.DataFrame({
-        "日期時間": datetime(2024, 8, 18, 0, 42, 22),
-        "股票代號": ["2330", "2317", "6505"],
-        "股票名稱": ["台積電", "鴻海", "台塑化"],
-        "調整後張數": [110, 190, 310]
+        "datetime": datetime(2024, 8, 18, 0, 42, 22),
+        "stock_id": ["2330", "2317", "6505"],
+        "stock_name": ["台積電", "鴻海", "台塑化"],
+        "adjusted_quantity": [110, 190, 310],
     })
 
     financial_summary_all = pd.DataFrame({
-        "日期時間": [
+        "datetime": [
             datetime(2024, 8, 18, 0, 42, 22),
             datetime(2024, 8, 19, 0, 42, 22),
             datetime(2024, 8, 20, 0, 42, 22)
         ],
-        "銀行餘額": [50000, 60000, 70000],
-        "銀行餘額(計入交割款)": [100000, 150000, 200000],
-        "現股總市值": [1000000, 1100000, 1200000],
-        "資產總值": [1100000, 1250000, 1400000]
+        "bank_balance": [50000, 60000, 70000],
+        "settlements": [10000, 20000, 30000],
+        "adjusted_bank_balance": [60000, 80000, 100000],
+        "market_value": [100000, 120000, 140000],
+        "total_assets": [160000, 200000, 240000]
     })
 
     data_dict = {

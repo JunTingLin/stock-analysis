@@ -6,7 +6,6 @@ __pycache__/
 # Output directories
 output/
 logs/
-data/
 *.db
 
 # Configuration files

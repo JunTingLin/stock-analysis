@@ -16,7 +16,7 @@ def generate_financial_summary():
     data = {
         "datetime": current_datetime.strftime("%Y-%m-%d %H:%M:%S"),
         "bank_balance": 1000000,
-        "settlement_sum": 50000,
+        "settlements": 50000,
         "adjusted_bank_balance": 1050000,
         "market_value": 2000000,
         "total_assets": 3050000

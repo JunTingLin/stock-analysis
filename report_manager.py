@@ -21,24 +21,22 @@ class ReportManager:
     def render_data_dict(self):
         df1_html = self.data_dict['current_portfolio_today'].to_html(classes='table table-striped', index=False, table_id="df1_table")
         df2_html = self.data_dict['next_portfolio_today'].to_html(classes='table table-striped', index=False, table_id="df2_table")
-
-        # 提取當天的 financial_summary_all 數據
-        summary_today = self.data_dict['financial_summary_all'].loc[self.data_dict['financial_summary_all']['datetime'] == self.datetime]
-        summary_today_html = summary_today.to_html(classes='table table-striped', index=False)
+        df3_html = self.data_dict['order_status'].to_html(classes='table table-striped', index=False, table_id="df3_table")
+        df4_html = self.data_dict['financial_summary_today'].to_html(classes='table table-striped', index=False, table_id="df3_table")
 
         # 使用 Plotly 生成趨勢圖表
-        fig = px.line(
+        fig1 = px.line(
             self.data_dict['financial_summary_all'], 
             x='datetime', 
             y=['adjusted_bank_balance', 'market_value', 'total_assets'],
             labels={"value": "Amount NT$", "variable": "funding level"},
             title="Financial Summary Over Time"
         )
-        plot_html = pio.to_html(fig, full_html=False)
+        plot1_html = pio.to_html(fig1, full_html=False)
 
-        return df1_html, df2_html, summary_today_html, plot_html
+        return df1_html, df2_html, df3_html, df4_html, plot1_html
 
-    def integrate_finlab_report(self, df1_html, df2_html, summary_today_html, plot_html):
+    def integrate_finlab_report(self, df1_html, df2_html, df3_html, df4_html, plot1_html):
         # 加載模板
         template = self.env.get_template(os.path.basename(self.template_path))
 
@@ -55,8 +53,9 @@ class ReportManager:
         rendered_html = template.render(
             df1_html=df1_html,
             df2_html=df2_html,
-            summary_today_html=summary_today_html,
-            plot_html=plot_html,
+            df3_html=df3_html,
+            df4_html=df4_html,
+            plot1_html=plot1_html,
             finlab_report_url=relative_finlab_path,
             formatted_datetime=self.datetime.strftime("%Y-%m-%d %H:%M:%S")
         )
@@ -76,6 +75,6 @@ class ReportManager:
         return self.final_report_path
 
     def save_final_report(self):
-        df1_html, df2_html, summary_today_html, plot_html = self.render_data_dict()
-        final_report_path = self.integrate_finlab_report(df1_html, df2_html, summary_today_html, plot_html)
+        df1_html, df2_html, df3_html, df4_html, plot1_html = self.render_data_dict()
+        final_report_path = self.integrate_finlab_report(df1_html, df2_html, df3_html, df4_html, plot1_html)
         return final_report_path

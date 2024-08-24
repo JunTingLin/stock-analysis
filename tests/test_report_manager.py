@@ -1,7 +1,7 @@
 import os
 import sys
-import pandas as pd
 from datetime import datetime
+import pandas as pd
 
 # 將專案根目錄添加到 sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -10,7 +10,7 @@ from report_manager import ReportManager
 # 建立假資料
 def generate_fake_data():
     current_portfolio_today = pd.DataFrame({
-        "datetime": datetime(2024, 8, 18, 0, 42, 22),
+        "datetime": [datetime(2024, 8, 18, 0, 42, 22)] * 3,
         "stock_id": ["2330", "2317", "6505"],
         "stock_name": ["台積電", "鴻海", "台塑化"],
         "quantity": [100, 200, 300],
@@ -19,7 +19,7 @@ def generate_fake_data():
     })
 
     next_portfolio_today = pd.DataFrame({
-        "datetime": datetime(2024, 8, 18, 0, 42, 22),
+        "datetime": [datetime(2024, 8, 18, 0, 42, 22)] * 3,
         "stock_id": ["2330", "2317", "6505"],
         "stock_name": ["台積電", "鴻海", "台塑化"],
         "adjusted_quantity": [110, 190, 310],
@@ -27,9 +27,9 @@ def generate_fake_data():
 
     financial_summary_all = pd.DataFrame({
         "datetime": [
-            datetime(2024, 8, 18, 0, 42, 22),
-            datetime(2024, 8, 19, 0, 42, 22),
-            datetime(2024, 8, 20, 0, 42, 22)
+            datetime(2024, 8, 16, 0, 42, 22),
+            datetime(2024, 8, 17, 0, 42, 22),
+            datetime(2024, 8, 18, 0, 42, 22)
         ],
         "bank_balance": [50000, 60000, 70000],
         "settlements": [10000, 20000, 30000],
@@ -38,10 +38,31 @@ def generate_fake_data():
         "total_assets": [160000, 200000, 240000]
     })
 
+    financial_summary_today = pd.DataFrame({
+        "datetime": [datetime(2024, 8, 18, 0, 42, 22)],
+        "bank_balance": [50000],
+        "settlements": [10000],
+        "adjusted_bank_balance": [60000],
+        "market_value": [100000],
+        "total_assets": [160000]
+    })
+
+    order_status = pd.DataFrame({
+        "action": ["BUY", "SELL"],
+        "stock_id": ["2330", "2317"],
+        "stock_name": ["台積電", "鴻海"],
+        "quantity": [100, 200],
+        "order_price": [600, 100],
+        "extra_bid_pct": [0.05, 0.1],
+        "order_condition": ["CASH", "MARGIN_TRADING"]
+    })
+
     data_dict = {
         "current_portfolio_today": current_portfolio_today,
         "next_portfolio_today": next_portfolio_today,
-        "financial_summary_all": financial_summary_all
+        "financial_summary_all": financial_summary_all,
+        "financial_summary_today": financial_summary_today,
+        "order_status": order_status
     }
 
     return data_dict

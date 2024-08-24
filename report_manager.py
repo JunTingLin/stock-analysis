@@ -1,6 +1,7 @@
 import os
 import logging
 from jinja2 import Environment, FileSystemLoader
+import pandas as pd
 import plotly.express as px
 import plotly.io as pio
 
@@ -22,21 +23,44 @@ class ReportManager:
         df1_html = self.data_dict['current_portfolio_today'].to_html(classes='table table-striped', index=False, table_id="df1_table")
         df2_html = self.data_dict['next_portfolio_today'].to_html(classes='table table-striped', index=False, table_id="df2_table")
         df3_html = self.data_dict['order_status'].to_html(classes='table table-striped', index=False, table_id="df3_table")
-        df4_html = self.data_dict['financial_summary_today'].to_html(classes='table table-striped', index=False, table_id="df3_table")
+        df4_html = self.data_dict['financial_summary_today'].to_html(classes='table table-striped', index=False, table_id="df4_table")
 
-        # 使用 Plotly 生成趨勢圖表
-        fig1 = px.line(
+        plot1_html = self.generate_financial_summary_plot()
+        plot2_html = self.generate_monthly_return_plot()
+
+        return df1_html, df2_html, df3_html, df4_html, plot1_html, plot2_html
+    
+    def generate_financial_summary_plot(self):
+        fig = px.line(
             self.data_dict['financial_summary_all'], 
             x='datetime', 
             y=['adjusted_bank_balance', 'market_value', 'total_assets'],
             labels={"value": "Amount NT$", "variable": "funding level"},
             title="Financial Summary Over Time"
         )
-        plot1_html = pio.to_html(fig1, full_html=False)
+        return pio.to_html(fig, full_html=False)
 
-        return df1_html, df2_html, df3_html, df4_html, plot1_html
+    def generate_monthly_return_plot(self):
+        financial_summary_all = self.data_dict['financial_summary_all'].copy()
+        financial_summary_all['datetime'] = pd.to_datetime(financial_summary_all['datetime'])
 
-    def integrate_finlab_report(self, df1_html, df2_html, df3_html, df4_html, plot1_html):
+        monthly_returns = financial_summary_all.groupby(financial_summary_all['datetime'].dt.to_period('M')).apply(
+            lambda x: (x.iloc[-1]['total_assets'] / x.iloc[0]['total_assets'] - 1) * 100 if len(x) > 1 else None
+        ).dropna().reset_index(name='monthly_return')
+
+        # 將 Period 轉換為字符串格式
+        monthly_returns['datetime'] = monthly_returns['datetime'].astype(str)
+
+        fig = px.line(
+            monthly_returns, 
+            x='datetime', 
+            y='monthly_return',
+            labels={"monthly_return": "Monthly Return (%)", "datetime": "Month"},
+            title="Monthly Return Over Time"
+        )
+        return pio.to_html(fig, full_html=False)
+
+    def integrate_finlab_report(self, df1_html, df2_html, df3_html, df4_html, plot1_html, plot2_html):
         # 加載模板
         template = self.env.get_template(os.path.basename(self.template_path))
 
@@ -56,6 +80,7 @@ class ReportManager:
             df3_html=df3_html,
             df4_html=df4_html,
             plot1_html=plot1_html,
+            plot2_html=plot2_html,
             finlab_report_url=relative_finlab_path,
             formatted_datetime=self.datetime.strftime("%Y-%m-%d %H:%M:%S")
         )
@@ -75,6 +100,6 @@ class ReportManager:
         return self.final_report_path
 
     def save_final_report(self):
-        df1_html, df2_html, df3_html, df4_html, plot1_html = self.render_data_dict()
-        final_report_path = self.integrate_finlab_report(df1_html, df2_html, df3_html, df4_html, plot1_html)
+        df1_html, df2_html, df3_html, df4_html, plot1_html, plot2_html = self.render_data_dict()
+        final_report_path = self.integrate_finlab_report(df1_html, df2_html, df3_html, df4_html, plot1_html, plot2_html)
         return final_report_path

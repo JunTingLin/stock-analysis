@@ -1,6 +1,6 @@
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 
 # 將專案根目錄添加到 sys.path
@@ -9,6 +9,28 @@ from report_manager import ReportManager
 
 # 建立假資料
 def generate_fake_data():
+
+    # 生成X天的假資料，用於測試
+    base_date = datetime(2024, 6, 1)
+    date_range = [base_date + timedelta(days=i) for i in range(90)]
+
+    bank_balance = [50000 + i * 1000 for i in range(90)]
+    settlements = [10000 + i * 500 for i in range(90)]
+    adjusted_bank_balance = [bank_balance[i] + settlements[i] for i in range(90)]
+    market_value = [100000 + i * 1500 for i in range(90)]
+    total_assets = [adjusted_bank_balance[i] + market_value[i] for i in range(90)]
+
+
+    financial_summary_all = pd.DataFrame({
+        "datetime": date_range,
+        "bank_balance": bank_balance,
+        "settlements": settlements,
+        "adjusted_bank_balance": adjusted_bank_balance,
+        "market_value": market_value,
+        "total_assets": total_assets
+    })
+
+
     current_portfolio_today = pd.DataFrame({
         "datetime": [datetime(2024, 8, 18, 0, 42, 22)] * 3,
         "stock_id": ["2330", "2317", "6505"],
@@ -25,26 +47,14 @@ def generate_fake_data():
         "adjusted_quantity": [110, 190, 310],
     })
 
-    financial_summary_all = pd.DataFrame({
-        "datetime": [
-            datetime(2024, 8, 16, 0, 42, 22),
-            datetime(2024, 8, 17, 0, 42, 22),
-            datetime(2024, 8, 18, 0, 42, 22)
-        ],
-        "bank_balance": [50000, 60000, 70000],
-        "settlements": [10000, 20000, 30000],
-        "adjusted_bank_balance": [60000, 80000, 100000],
-        "market_value": [100000, 120000, 140000],
-        "total_assets": [160000, 200000, 240000]
-    })
-
+    
     financial_summary_today = pd.DataFrame({
         "datetime": [datetime(2024, 8, 18, 0, 42, 22)],
         "bank_balance": [50000],
         "settlements": [10000],
         "adjusted_bank_balance": [60000],
-        "market_value": [100000],
-        "total_assets": [160000]
+        "market_value": [140000],
+        "total_assets": [200000]
     })
 
     order_status = pd.DataFrame({
@@ -53,8 +63,8 @@ def generate_fake_data():
         "stock_name": ["台積電", "鴻海"],
         "quantity": [100, 200],
         "order_price": [600, 100],
-        "extra_bid_pct": [0.05, 0.1],
-        "order_condition": ["CASH", "MARGIN_TRADING"]
+        "extra_bid_pct": [0.05, 0.05],
+        "order_condition": ["CASH", "CASH"]
     })
 
     data_dict = {

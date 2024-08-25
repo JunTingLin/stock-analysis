@@ -58,6 +58,12 @@ class ReportManager:
             labels={"monthly_return": "Monthly Return (%)", "datetime": "Month"},
             title="Monthly Return Over Time"
         )
+        fig.update_layout(
+            xaxis=dict(
+                type='category',  # 將 x 軸類型設置為 category 以顯示月份
+                tickformat='%Y-%m',  # 僅顯示年份和月份
+            )
+        )
         return pio.to_html(fig, full_html=False)
 
     def integrate_finlab_report(self, df1_html, df2_html, df3_html, df4_html, plot1_html, plot2_html):

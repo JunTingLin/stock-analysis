@@ -4,7 +4,7 @@ import logging
 
 def setup_logging():
     # 日誌文件夾的路徑
-    log_directory = 'log'
+    log_directory = 'logs'
     if not os.path.exists(log_directory):
         os.makedirs(log_directory)  # 如果目錄不存在，則創建它
 

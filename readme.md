@@ -13,7 +13,8 @@
 - `finlab`：用於獲取財金資料
 - `openpyxl`：用於處理 Excel 文件
 - `fugle-trade`：玉山 Fugle 交易 API
-- `keyring`：用於管理敏感信息
+- `keyring`：用於管理敏感信息 (包在finlab套件中，通常不用再另外安裝)
+- `IPython`: Python的互動式直譯器 (Anaconda 環境中，IPython 是預裝的)
 
 - `line-bot-sdk`：Line Bot SDK，用於與 Line Messaging API 交互
 - `flask`：輕量級的 web 框架，用於構建 API 伺服器

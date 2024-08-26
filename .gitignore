@@ -5,13 +5,16 @@ __pycache__/
 
 # Output directories
 output/
-log/
+logs/
+*.db
 
 # Configuration files
 config.json
 *.p12
 *.ini
 *.env
+*.venv
+config.yaml
 
 # User-specific files
 user_ids.json
@@ -19,3 +22,4 @@ user_ids.json
 # Environment and setup files
 env_setup.py
 *.sh
+*.bat

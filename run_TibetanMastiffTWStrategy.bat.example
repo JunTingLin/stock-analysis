@@ -1,0 +1,29 @@
+
+
+chcp 65001
+REM 配置環境變量
+echo Setting environment variables...
+set FINLAB_API_TOKEN=YOUR_FINLAB_API_TOKEN
+set FUGLE_CONFIG_PATH=YOUR_FUGLE_CONFIG_PATH
+set FUGLE_MARKET_API_KEY=YOUR_FUGLE_MARKET_API_KEY
+set FUGLE_ACCOUNT=YOUR_FUGLE_ACCOUNT
+set FUGLE_ACCOUNT_PASSWORD=YOUR_FUGLE_ACCOUNT_PASSWORD
+set FUGLE_CERT_PASSWORD=YOUR_FUGLE_CERT_PASSWORD
+set PYTHON_KEYRING_BACKEND=keyrings.cryptfile.cryptfile.CryptFileKeyring
+
+set FUND=80000
+set STRATEGY_CLASS=TibetanMastiffTWStrategy
+set FLASK_SERVER_PORT=5000
+
+REM 切換到專案根目錄
+cd /d D:\PythonProject\stock-analysis
+
+echo Activating virtual environment 'stock-analysis'...
+call .\.venv\Scripts\activate.bat
+
+echo Running Python script 'order.py'...
+python order.py --fund %FUND% --strategy_class %STRATEGY_CLASS% --flask_server_port %FLASK_SERVER_PORT% --extra_bid_pct 0
+
+echo Script execution completed.
+
+pause

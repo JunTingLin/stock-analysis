@@ -12,9 +12,6 @@ class ConfigLoader:
     def get(self, key):
         value = self.config["common"].get(key)
         return self._convert_type(key, value)
-        
-    def get_path(self, key):
-        return self.config["paths"].get(key)
     
     def update_dynamic_params(self, args):
         if args.extra_bid_pct is not None:
@@ -36,7 +33,5 @@ if __name__ == "__main__":
     strategy_class_name = config_loader.get("strategy_class_name")
     flask_server_port = config_loader.get("flask_server_port")
 
-    financial_summary_path = config_loader.get_path("financial_summary_path")
-
-    print(fund, strategy_class_name, flask_server_port, financial_summary_path)
+    print(fund, strategy_class_name, flask_server_port)
 

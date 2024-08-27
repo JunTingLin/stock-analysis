@@ -19,8 +19,8 @@ def initialize_environment(args):
 
     return config_loader, acc
 
-def setup_logger(config_loader, current_datetime):
-    log_directory = config_loader.get_path('log_directory')
+def setup_logger(current_datetime):
+    log_directory = "logs"
     logger_config = LoggerConfig(log_directory, current_datetime)
     log_filepath = logger_config.setup_logging()
 
@@ -38,9 +38,9 @@ def execute_trading(config_loader, acc, current_datetime, log_filepath):
         )
         portfolio_manager.execute_order()
 
-        report_finlab_directory = config_loader.get_path('report_finlab_directory')
-        report_final_directory = config_loader.get_path('report_final_directory')
-        report_template_path = config_loader.get_path('report_template_path')
+        report_finlab_directory = "output/report_finlab"
+        report_final_directory = "output/report_final"
+        report_template_path = "templates/report_template.html"
 
         data_dict = portfolio_manager.update_data_dict(report_finlab_directory)
         report_manager = ReportManager(data_dict, report_finlab_directory, report_final_directory, current_datetime, report_template_path)

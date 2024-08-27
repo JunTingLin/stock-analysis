@@ -77,6 +77,7 @@ class PortfolioManager:
         
     def update_data_dict(self, report_directory):
         self.data_dict['datetime'] = self.datetime
+        self.data_dict['fund'] = self.fund
 
         config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
         self.data_dict['is_simulation'] = config_file_name == 'config.simulation.ini'

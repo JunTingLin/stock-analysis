@@ -68,6 +68,7 @@ def generate_fake_data():
     })
 
     data_dict = {
+        "fund": 160*1000,
         "current_portfolio_today": current_portfolio_today,
         "next_portfolio_today": next_portfolio_today,
         "financial_summary_all": financial_summary_all,

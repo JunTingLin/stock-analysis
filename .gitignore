@@ -20,3 +20,4 @@ user_ids.json
 
 # Environment and setup files
 *.sh
+.venv/

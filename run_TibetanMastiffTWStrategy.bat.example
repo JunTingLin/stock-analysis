@@ -18,8 +18,8 @@ set FLASK_SERVER_PORT=5000
 REM 切換到專案根目錄
 cd /d D:\PythonProject\stock-analysis
 
-echo Activating virtual environment 'stock-analysis'...
-call .\.venv\Scripts\activate.bat
+echo Activating conda environment 'stock-analysis'...
+call conda activate stock-analysis
 
 echo Running Python script 'order.py'...
 python order.py --fund %FUND% --strategy_class %STRATEGY_CLASS% --flask_server_port %FLASK_SERVER_PORT% --extra_bid_pct 0

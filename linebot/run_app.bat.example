@@ -1,0 +1,10 @@
+
+cd /d D:\PythonProject\stock-analysis\linebot
+
+echo Activating conda environment 'stock-analysis-2'...
+call C:\Users\junting\anaconda3\Scripts\activate.bat stock-analysis-2
+
+echo Running Python script 'app.py'...
+python app.py
+
+pause

@@ -23,6 +23,9 @@ class ConfigLoader:
         elif key == "extra_bid_pct":
             return float(value)
         return value
+    
+    def get_env_var(self, key):
+        return os.environ.get(key)
 
 
 if __name__ == "__main__":

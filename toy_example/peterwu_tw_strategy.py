@@ -1,10 +1,5 @@
 from finlab import data
 from finlab import backtest
-from finlab.market_info import TWMarketInfo
-
-class AdjustTWMarketInfo(TWMarketInfo):
-    def get_trading_price(self, name, adj=True):
-        return self.get_price(name, adj=adj).shift(1)
     
 with data.universe(market='TSE_OTC'):
     market_value = data.get("etl:market_value")
@@ -77,4 +72,4 @@ stocks_to_exclude = [
 position[stocks_to_exclude] = False
 
 # 使用 sim 函數進行模擬
-report = backtest.sim(position, resample=None, market=AdjustTWMarketInfo(), name="吳Peter策略選股_實戰", upload=False)
+report = backtest.sim(position, resample=None, trade_at_price='open', name="吳Peter策略選股_實戰", upload=False)

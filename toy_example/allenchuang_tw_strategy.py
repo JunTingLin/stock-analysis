@@ -7,7 +7,7 @@ investment_trust_net_buy = data.get('institutional_investors_trading_summary:投
 dealer_self_net_buy = data.get('institutional_investors_trading_summary:自營商買賣超股數(自行買賣)')
 dealer_hedge_net_buy = data.get('institutional_investors_trading_summary:自營商買賣超股數(避險)')
 
-# 直接使用發行股數作為總股數
+# 發行股數作為總股數
 shares_outstanding = data.get('internal_equity_changes:發行股數')
 
 # 計算法人買超佔發行量的比例
@@ -31,7 +31,7 @@ total_net_buy_5d_sum = (foreign_net_buy_ratio.rolling(5).sum() +
                         dealer_hedge_net_buy_ratio.rolling(5).sum())
 
 
-top_n = 10
+top_n = 20
 
 # 取前3天和5天累積買超比例最大的股票
 chip_3d_top_n_buy_signal = total_net_buy_3d_sum.rank(axis=1, ascending=False) <= top_n
@@ -42,23 +42,23 @@ chip_condition = chip_3d_top_n_buy_signal | chip_5d_top_n_buy_signal
 
 
 # 獲取收盤價數據
-close = data.get('price:收盤價')
+adj_close = data.get('etl:adj_close')
 
 # 計算均線
-ma5 = close.rolling(5).mean()
-ma10 = close.rolling(10).mean()
-ma20 = close.rolling(20).mean()
-ma60 = close.rolling(60).mean()
+ma5 = adj_close.rolling(5).mean()
+ma10 = adj_close.rolling(10).mean()
+ma20 = adj_close.rolling(20).mean()
+ma60 = adj_close.rolling(60).mean()
 
 # 均線上升
 ma_up_condition = (ma5 > ma5.shift(1)) & (ma10 > ma10.shift(1)) & (ma20 > ma20.shift(1)) & (ma60 > ma60.shift(1))
 
 # 價格在均線之上
-price_above_ma_condition = (close > ma5) & (close > ma10) & (close > ma20) & (close > ma60)
+price_above_ma_condition = (adj_close > ma5) & (adj_close > ma10) & (adj_close > ma20) & (adj_close > ma60)
 
 # 計算乖離率
-bias_10 = (close - ma10) / ma10
-bias_20 = (close - ma20) / ma20
+bias_10 = (adj_close - ma10) / ma10
+bias_20 = (adj_close - ma20) / ma20
 
 # 乖離率小於0.14
 bias_condition = (bias_10.abs() < 0.14) & (bias_20.abs() < 0.14)
@@ -70,8 +70,8 @@ volume = data.get('price:成交股數')
 volume_condition = volume > (volume.shift(1) * 2.5)
 
 # 計算DMI指標
-plus_di = data.indicator('PLUS_DI', timeperiod=14)
-minus_di = data.indicator('MINUS_DI', timeperiod=14)
+plus_di = data.indicator('PLUS_DI', timeperiod=14, adjust_price=True)
+minus_di = data.indicator('MINUS_DI', timeperiod=14, adjust_price=True)
 
 # DMI條件
 dmi_condition = (plus_di > 40) & (minus_di < 18)
@@ -83,10 +83,12 @@ technical_condition = ma_up_condition & price_above_ma_condition & bias_conditio
 buy_signal = chip_condition & technical_condition
 
 # 計算 MACD 指標
-macd, signal, hist = data.indicator('MACD', fastperiod=12, slowperiod=26, signalperiod=9)
+macd, signal, hist = data.indicator('MACD', fastperiod=12, slowperiod=26, signalperiod=9, adjust_price=True)
+dif = macd
+macd_9 = signal
 
-# 停損條件：MACD 和信號線（DIF）向下
-macd_down_condition = (macd < macd.shift(1)) & (signal < signal.shift(1))
+# 停損條件：DIF 和 MACD 向下
+macd_down_condition = (dif < dif.shift(1)) & (macd_9 < macd_9.shift(1))
 
 # 停損條件：+DI 小於 -DI
 dmi_down_condition = plus_di < minus_di

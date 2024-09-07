@@ -10,6 +10,9 @@ from logger_config import LoggerConfig
 from report_manager import ReportManager
 from utils import is_trading_day
 
+# 導入 monkey_patch_order_executor 以進行替換
+import monkey_patch_order_executor
+
 def initialize_environment(args):
     config_loader = ConfigLoader()
     config_loader.load_env_vars()

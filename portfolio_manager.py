@@ -105,5 +105,9 @@ class PortfolioManager:
         self.data_persistence_manager.save_financial_summary(financial_summary)
         self.data_dict['financial_summary_all'] = self.data_persistence_manager.load_financial_summary()
 
+        # 從資料庫查詢當日financial_summary
+        financial_summary_today = self.data_persistence_manager.load_financial_summary_today(self.datetime)
+        self.data_dict['financial_summary_today'] = financial_summary_today
+
         return self.data_dict
 

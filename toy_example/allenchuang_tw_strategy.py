@@ -31,18 +31,73 @@ total_net_buy_5d_sum = (foreign_net_buy_ratio.rolling(5).sum() +
                         dealer_hedge_net_buy_ratio.rolling(5).sum())
 
 
-# 設定買入條件，例如前10名
 top_n = 10
 
 # 取前3天和5天累積買超比例最大的股票
-buy_signal_3d = total_net_buy_3d_sum.rank(axis=1, ascending=False) <= top_n
-buy_signal_5d = total_net_buy_5d_sum.rank(axis=1, ascending=False) <= top_n
+chip_3d_top_n_buy_signal = total_net_buy_3d_sum.rank(axis=1, ascending=False) <= top_n
+chip_5d_top_n_buy_signal = total_net_buy_5d_sum.rank(axis=1, ascending=False) <= top_n
 
-# 最終的買入訊號，選擇3天或5天買超排行較高的股票
-buy_signal = buy_signal_3d | buy_signal_5d
+# 籌碼面
+chip_condition = chip_3d_top_n_buy_signal | chip_5d_top_n_buy_signal
+
+
+# 獲取收盤價數據
+close = data.get('price:收盤價')
+
+# 計算均線
+ma5 = close.rolling(5).mean()
+ma10 = close.rolling(10).mean()
+ma20 = close.rolling(20).mean()
+ma60 = close.rolling(60).mean()
+
+# 均線上升
+ma_up_condition = (ma5 > ma5.shift(1)) & (ma10 > ma10.shift(1)) & (ma20 > ma20.shift(1)) & (ma60 > ma60.shift(1))
+
+# 價格在均線之上
+price_above_ma_condition = (close > ma5) & (close > ma10) & (close > ma20) & (close > ma60)
+
+# 計算乖離率
+bias_10 = (close - ma10) / ma10
+bias_20 = (close - ma20) / ma20
+
+# 乖離率小於0.14
+bias_condition = (bias_10.abs() < 0.14) & (bias_20.abs() < 0.14)
+
+# 獲取成交量數據
+volume = data.get('price:成交股數')
+
+# 成交量大於昨日的2.5倍
+volume_condition = volume > (volume.shift(1) * 2.5)
+
+# 計算DMI指標
+plus_di = data.indicator('PLUS_DI', timeperiod=14)
+minus_di = data.indicator('MINUS_DI', timeperiod=14)
+
+# DMI條件
+dmi_condition = (plus_di > 40) & (minus_di < 18)
+
+# 技術面
+technical_condition = ma_up_condition & price_above_ma_condition & bias_condition & volume_condition & dmi_condition
+
+# 最終的買入訊號
+buy_signal = chip_condition & technical_condition
+
+# 計算 MACD 指標
+macd, signal, hist = data.indicator('MACD', fastperiod=12, slowperiod=26, signalperiod=9)
+
+# 停損條件：MACD 和信號線（DIF）向下
+macd_down_condition = (macd < macd.shift(1)) & (signal < signal.shift(1))
+
+# 停損條件：+DI 小於 -DI
+dmi_down_condition = plus_di < minus_di
+
+# 最終的賣出訊號
+sell_signal  = macd_down_condition & dmi_down_condition
+
+position = buy_signal.hold_until(sell_signal)
 
 # 執行回測
 from finlab.backtest import sim
 
-report = sim(buy_signal, resample='q')
+report = sim(position, resample=None, upload=False)
 report.display()

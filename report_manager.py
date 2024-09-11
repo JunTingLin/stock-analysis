@@ -47,7 +47,19 @@ class ReportManager:
 
         monthly_returns = financial_summary_all.groupby(financial_summary_all['datetime'].dt.to_period('M')).apply(
             lambda x: (x.iloc[-1]['total_assets'] - x.iloc[0]['total_assets']) / fund * 100 if len(x) > 1 else None
-        ).dropna().reset_index(name='monthly_return')
+        ).dropna()
+
+        # 檢查是否有數據
+        if monthly_returns.empty:
+            logging.warning("No data available for generating monthly returns plot.")
+            return None
+
+        # 如果 monthly_returns 是 Series，轉換為 DataFrame
+        if isinstance(monthly_returns, pd.Series):
+            monthly_returns = monthly_returns.to_frame(name='monthly_return')
+
+        # 重置索引
+        monthly_returns = monthly_returns.reset_index()
 
         # 將 Period 轉換為字符串格式，只顯示月份
         monthly_returns['datetime'] = monthly_returns['datetime'].astype(str)

@@ -88,6 +88,36 @@ class DataProcessor:
         order_status_df = order_status_df.sort_values(by="stock_id").reset_index(drop=True)
 
         return order_status_df
+    
+    def process_special_order(self, log_filepath):
+        special_order_list = []
+
+        # 正規表示式匹配日誌行中的各個字段
+        pattern = re.compile(
+            r"(?P<action>買入|賣出)\s+"
+            r"(?P<stock_id>\d+)\s+"
+            r"(?P<quantity>\d+\.\d+)\s+張\s+-\s+總價約\s+"
+            r"(?P<total_price>[\d,\.]+)"
+        )
+
+        with open(log_filepath, 'r', encoding='utf-8') as log_file:
+            for line in log_file:
+                match = pattern.search(line)
+                if match:
+                    stock_id = match.group("stock_id")
+                    stock_name = self.company_info.loc[self.company_info['stock_id'] == stock_id, '公司簡稱'].values[0]
+
+                    special_order = {
+                        "action": "BUY" if match.group("action") == "買入" else "SELL",
+                        "stock_id": stock_id,
+                        "stock_name": stock_name,
+                        "quantity": float(match.group("quantity")),
+                    }
+                    special_order_list.append(special_order)
+
+        special_order_df = pd.DataFrame(special_order_list, columns=["action", "stock_id", "stock_name", "quantity"])
+
+        return special_order_df
 
 
 

@@ -23,12 +23,13 @@ class ReportManager:
         df1_html = self.data_dict['current_portfolio_today'].to_html(classes='table table-striped', index=False, table_id="df1_table")
         df2_html = self.data_dict['next_portfolio_today'].to_html(classes='table table-striped', index=False, table_id="df2_table")
         df3_html = self.data_dict['order_status'].to_html(classes='table table-striped', index=False, table_id="df3_table")
-        df4_html = self.data_dict['financial_summary_today'].to_html(classes='table table-striped', index=False, table_id="df4_table")
+        df4_html = self.data_dict['special_order'].to_html(classes='table table-striped', index=False, table_id="df4_table")
+        df5_html = self.data_dict['financial_summary_today'].to_html(classes='table table-striped', index=False, table_id="df5_table")
 
         plot1_html = self.generate_financial_summary_plot()
         plot2_html = self.generate_monthly_return_plot()
 
-        return df1_html, df2_html, df3_html, df4_html, plot1_html, plot2_html
+        return df1_html, df2_html, df3_html, df4_html, df5_html, plot1_html, plot2_html
     
     def generate_financial_summary_plot(self):
         fig = px.line(
@@ -81,7 +82,7 @@ class ReportManager:
         
         return pio.to_html(fig, full_html=False)
 
-    def integrate_finlab_report(self, df1_html, df2_html, df3_html, df4_html, plot1_html, plot2_html):
+    def integrate_finlab_report(self, df1_html, df2_html, df3_html, df4_html, df5_html, plot1_html, plot2_html):
         # 加載模板
         template = self.env.get_template(os.path.basename(self.template_path))
 
@@ -100,6 +101,7 @@ class ReportManager:
             df2_html=df2_html,
             df3_html=df3_html,
             df4_html=df4_html,
+            df5_html=df5_html,
             plot1_html=plot1_html,
             plot2_html=plot2_html,
             finlab_report_url=relative_finlab_path,
@@ -121,6 +123,6 @@ class ReportManager:
         return self.final_report_path
 
     def save_final_report(self):
-        df1_html, df2_html, df3_html, df4_html, plot1_html, plot2_html = self.render_data_dict()
-        final_report_path = self.integrate_finlab_report(df1_html, df2_html, df3_html, df4_html, plot1_html, plot2_html)
+        df1_html, df2_html, df3_html, df4_html, df5_html, plot1_html, plot2_html = self.render_data_dict()
+        final_report_path = self.integrate_finlab_report(df1_html, df2_html, df3_html, df4_html, df5_html, plot1_html, plot2_html)
         return final_report_path

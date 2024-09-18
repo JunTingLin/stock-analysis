@@ -38,6 +38,7 @@ class PortfolioManager:
 
         if self.position_today is not None:
             order_executor = OrderExecutor(self.position_today, account=self.acc)
+            order_executor.show_alerting_stocks()
             # order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
 
         
@@ -99,6 +100,10 @@ class PortfolioManager:
         # 解析日誌並取得下單狀況
         order_status = self.data_processor.process_order_status(self.log_filepath)
         self.data_dict['order_status'] = order_status
+
+        # 解析特殊下單(注意股、全額交割股)
+        special_order = self.data_processor.process_special_order(self.log_filepath)
+        self.data_dict['special_order'] = special_order
 
         # 更新 financial_summary 並保存所有數據
         financial_summary = self.data_processor.process_financial_summary(self.acc, self.datetime)

@@ -20,29 +20,12 @@ class PeterWuStrategy:
             self.adj_close = self.data.get('etl:adj_close')
             self.eps = self.data.get('financial_statement:每股盈餘')
             self.revenue_growth_yoy = self.data.get('monthly_revenue:去年同月增減(%)')
+            self.company_basic_info = self.data.get('company_basic_info')
 
 
     def run_strategy(self):
         if self.adj_close is None:
             self.load_data()
-
-        market_value_condition = self.market_value.iloc[-1] > 15000000000
-
-        # 將各個DataFrame的欄位（股票代號）轉換為集合
-        sets_of_stocks = [
-            set(self.market_value.columns[market_value_condition]),
-            set(self.adj_close.columns),
-            set(self.eps.columns),
-            set(self.revenue_growth_yoy.columns)
-        ]
-
-        # 使用集合的交集找到操作所有資料集中共享的股票代號
-        valid_stocks = list(set.intersection(*sets_of_stocks))
-
-        self.adj_close = self.adj_close[valid_stocks]
-        self.eps = self.eps[valid_stocks]
-        self.revenue_growth_yoy = self.revenue_growth_yoy[valid_stocks]
-
 
         # 計算季線（60日移動平均）並判斷季線是否上升
         ma60 = self.adj_close.average(60)
@@ -61,6 +44,9 @@ class PeterWuStrategy:
         cumulative_eps_year_before_last = self.eps.shift(4).rolling(4).sum() > 2
         eps_condition = cumulative_eps_last_year & cumulative_eps_year_before_last
 
+        # 挑選總市值在150億台幣以上
+        market_value_condition = self.market_value > 15000000000
+
         # 設定營業額成長的條件
         revenue_growth_condition = self.revenue_growth_yoy > 30
 
@@ -73,6 +59,7 @@ class PeterWuStrategy:
             price_break_high_3m &
             # 基本面
             eps_condition &
+            market_value_condition &
             revenue_growth_condition
         )
         # 設定起始買入日期
@@ -111,7 +98,16 @@ class PeterWuStrategy:
     def get_report(self):
         return self.report if self.report else "report物件為空，請先運行策略"
 
+    def get_close_prices(self):
+        return self.close if self.close is not None else "收盤價數據未加載，請先運行策略"
+    
+    def get_company_basic_info(self):
+        return self.company_basic_info if self.company_basic_info is not None else "公司基本信息未加載，請先運行策略"
+    
 if __name__ == '__main__':
     strategy = PeterWuStrategy()
     strategy.run_strategy()
-    print(strategy.get_report())
+    report = strategy.get_report()
+    from finlab.online.order_executor import Position, OrderExecutor
+    position_today = Position.from_report(report, 120000, odd_lot=True)
+    print(position_today)

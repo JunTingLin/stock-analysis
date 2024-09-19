@@ -27,24 +27,6 @@ class PeterWuStrategy:
         if self.adj_close is None:
             self.load_data()
 
-        market_value_condition = self.market_value.iloc[-1] > 15000000000
-
-        # 將各個DataFrame的欄位（股票代號）轉換為集合
-        sets_of_stocks = [
-            set(self.market_value.columns[market_value_condition]),
-            set(self.adj_close.columns),
-            set(self.eps.columns),
-            set(self.revenue_growth_yoy.columns)
-        ]
-
-        # 使用集合的交集找到操作所有資料集中共享的股票代號
-        valid_stocks = list(set.intersection(*sets_of_stocks))
-
-        self.adj_close = self.adj_close[valid_stocks]
-        self.eps = self.eps[valid_stocks]
-        self.revenue_growth_yoy = self.revenue_growth_yoy[valid_stocks]
-
-
         # 計算季線（60日移動平均）並判斷季線是否上升
         ma60 = self.adj_close.average(60)
         # 使用rise函數檢查ma60是否在過去nwindow天連續上升
@@ -62,6 +44,9 @@ class PeterWuStrategy:
         cumulative_eps_year_before_last = self.eps.shift(4).rolling(4).sum() > 2
         eps_condition = cumulative_eps_last_year & cumulative_eps_year_before_last
 
+        # 挑選總市值在150億台幣以上
+        market_value_condition = self.market_value > 15000000000
+
         # 設定營業額成長的條件
         revenue_growth_condition = self.revenue_growth_yoy > 30
 
@@ -74,6 +59,7 @@ class PeterWuStrategy:
             price_break_high_3m &
             # 基本面
             eps_condition &
+            market_value_condition &
             revenue_growth_condition
         )
         # 設定起始買入日期
@@ -121,4 +107,7 @@ class PeterWuStrategy:
 if __name__ == '__main__':
     strategy = PeterWuStrategy()
     strategy.run_strategy()
-    print(strategy.get_report())
+    report = strategy.get_report()
+    from finlab.online.order_executor import Position, OrderExecutor
+    position_today = Position.from_report(report, 120000, odd_lot=True)
+    print(position_today)

@@ -51,7 +51,7 @@ class DataProcessor:
         
         return pd.DataFrame(data_list)
     
-    def process_order_status(self, log_filepath):
+    def process_order_status(self, order_output):
         order_status_list = []
 
         # 正規表示式匹配日誌行中的各個字段
@@ -64,23 +64,22 @@ class DataProcessor:
             r"(?P<order_condition>CASH|MARGIN_TRADING|DAY_TRADING_LONG|SHORT_SELLING|DAY_TRADING_SHORT)"
         )
 
-        with open(log_filepath, 'r', encoding='utf-8') as log_file:
-            for line in log_file:
-                match = pattern.search(line)
-                if match:
-                    stock_id = match.group("stock_id")
-                    stock_name = self.company_info.loc[self.company_info['stock_id'] == stock_id, '公司簡稱'].values[0]
-                    
-                    order_status = {
-                        "action": match.group("action"),
-                        "stock_id": stock_id,
-                        "stock_name": stock_name,
-                        "quantity": float(match.group("quantity")),
-                        "order_price": float(match.group("order_price")),
-                        "extra_bid_pct": float(match.group("extra_bid_pct").rstrip('%')) / 100 if match.group("extra_bid_pct") else 0.0,
-                        "order_condition": match.group("order_condition")
-                    }
-                    order_status_list.append(order_status)
+        for line in order_output.splitlines():
+            match = pattern.search(line)
+            if match:
+                stock_id = match.group("stock_id")
+                stock_name = self.company_info.loc[self.company_info['stock_id'] == stock_id, '公司簡稱'].values[0]
+                
+                order_status = {
+                    "action": match.group("action"),
+                    "stock_id": stock_id,
+                    "stock_name": stock_name,
+                    "quantity": float(match.group("quantity")),
+                    "order_price": float(match.group("order_price")),
+                    "extra_bid_pct": float(match.group("extra_bid_pct").rstrip('%')) / 100 if match.group("extra_bid_pct") else 0.0,
+                    "order_condition": match.group("order_condition")
+                }
+                order_status_list.append(order_status)
 
         order_status_df = pd.DataFrame(order_status_list, columns=[
             "action", "stock_id", "stock_name", "quantity", "order_price", "extra_bid_pct", "order_condition"
@@ -88,32 +87,32 @@ class DataProcessor:
         order_status_df = order_status_df.sort_values(by="stock_id").reset_index(drop=True)
 
         return order_status_df
+
     
-    def process_special_order(self, log_filepath):
+    def process_special_order(self, alert_output):
         special_order_list = []
 
         # 正規表示式匹配日誌行中的各個字段
         pattern = re.compile(
             r"(?P<action>買入|賣出)\s+"
             r"(?P<stock_id>\d+)\s+"
-            r"(?P<quantity>\d+\.\d+)\s+張\s+-\s+總價約\s+"
-            r"(?P<total_price>[\d,\.]+)"
+            r"(?P<quantity>-?\d+\.\d+)\s+張\s+-\s+總價約\s+"
+            r"(?P<total_price>-?[\d,\.]+)"
         )
 
-        with open(log_filepath, 'r', encoding='utf-8') as log_file:
-            for line in log_file:
-                match = pattern.search(line)
-                if match:
-                    stock_id = match.group("stock_id")
-                    stock_name = self.company_info.loc[self.company_info['stock_id'] == stock_id, '公司簡稱'].values[0]
+        for line in alert_output.splitlines():
+            match = pattern.search(line)
+            if match:
+                stock_id = match.group("stock_id")
+                stock_name = self.company_info.loc[self.company_info['stock_id'] == stock_id, '公司簡稱'].values[0]
 
-                    special_order = {
-                        "action": "BUY" if match.group("action") == "買入" else "SELL",
-                        "stock_id": stock_id,
-                        "stock_name": stock_name,
-                        "quantity": float(match.group("quantity")),
-                    }
-                    special_order_list.append(special_order)
+                special_order = {
+                    "action": "BUY" if match.group("action") == "買入" else "SELL",
+                    "stock_id": stock_id,
+                    "stock_name": stock_name,
+                    "quantity": abs(float(match.group("quantity"))), 
+                }
+                special_order_list.append(special_order)
 
         special_order_df = pd.DataFrame(special_order_list, columns=["action", "stock_id", "stock_name", "quantity"])
 
@@ -164,5 +163,8 @@ if __name__ == '__main__':
     # financial_summary = dp.process_financial_summary(acc, d)
     # print(financial_summary)
 
-    order_status = dp.process_order_status('logs/2024-08-24_15-32-12.log')
-    print(order_status)
+    output = dp.process_special_order("""
+    賣出 6187 -0.012 張 - 總價約        -5157.00
+    買入 1213   0.3 張 - 總價約         3993.00
+    """)
+    print(output)

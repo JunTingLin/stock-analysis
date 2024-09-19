@@ -26,9 +26,8 @@ def setup_logger(current_datetime):
     logger_config = LoggerConfig(log_directory, current_datetime)
     log_filepath = logger_config.setup_logging()
 
-    return log_filepath
 
-def execute_trading(config_loader, acc, current_datetime, log_filepath):
+def execute_trading(config_loader, acc, current_datetime):
     if is_trading_day(acc) or True:
         portfolio_manager = PortfolioManager(
             acc, 
@@ -36,7 +35,6 @@ def execute_trading(config_loader, acc, current_datetime, log_filepath):
             config_loader.get("strategy_class_name"), 
             current_datetime, 
             config_loader.get("extra_bid_pct"),
-            log_filepath
         )
         portfolio_manager.execute_order()
 
@@ -72,8 +70,8 @@ def main():
     config_loader, acc = initialize_environment(args)
     current_datetime = datetime.datetime.now()
 
-    log_filepath = setup_logger(current_datetime)
-    execute_trading(config_loader, acc, current_datetime, log_filepath)
+    setup_logger(current_datetime)    
+    execute_trading(config_loader, acc, current_datetime)
 
 
 

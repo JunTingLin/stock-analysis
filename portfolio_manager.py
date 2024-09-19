@@ -4,22 +4,24 @@ from finlab.online.order_executor import Position, OrderExecutor
 import logging
 from decimal import Decimal
 import os
+from stdout_capture import StdoutCapture
 
 
 class PortfolioManager:
-    def __init__(self, acc, fund, strategy_class_name, datetime, extra_bid_pct, log_filepath):
+    def __init__(self, acc, fund, strategy_class_name, datetime, extra_bid_pct):
         self.acc = acc
         self.fund = fund
         self.strategy = self.load_strategy(strategy_class_name)
         self.datetime = datetime
         self.extra_bid_pct = extra_bid_pct
-        self.log_filepath = log_filepath
         self.data_dict = {}
         self.data_processor = DataProcessor()
         self.data_persistence_manager = DataPersistenceManager()
         self.report = None
         self.position_acc = None
         self.position_today = None
+        self.order_output = ""
+        self.alert_output = ""
 
     def load_strategy(self, strategy_class_name):
         if strategy_class_name == 'TibetanMastiffTWStrategy':
@@ -38,8 +40,16 @@ class PortfolioManager:
 
         if self.position_today is not None:
             order_executor = OrderExecutor(self.position_today, account=self.acc)
-            order_executor.show_alerting_stocks()
-            # order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
+
+            with StdoutCapture() as alert_output:
+                order_executor.show_alerting_stocks()
+            self.alert_output = alert_output.getvalue()
+            logging.info(self.alert_output)
+
+            with StdoutCapture() as order_output:
+                order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
+            self.order_output = order_output.getvalue()
+            logging.info(self.order_output)
 
         
     def rebalance_portfolio(self, position_today, position_acc):
@@ -98,11 +108,11 @@ class PortfolioManager:
         self.data_dict['next_portfolio_today'] = next_portfolio
 
         # 解析日誌並取得下單狀況
-        order_status = self.data_processor.process_order_status(self.log_filepath)
+        order_status = self.data_processor.process_order_status(self.order_output)
         self.data_dict['order_status'] = order_status
 
-        # 解析特殊下單(注意股、全額交割股)
-        special_order = self.data_processor.process_special_order(self.log_filepath)
+        # 解析特殊下單
+        special_order = self.data_processor.process_special_order(self.alert_output)
         self.data_dict['special_order'] = special_order
 
         # 更新 financial_summary 並保存所有數據

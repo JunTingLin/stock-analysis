@@ -2,7 +2,6 @@ from data_persistence_manager import DataPersistenceManager
 from data_processor import DataProcessor
 from finlab.online.order_executor import Position, OrderExecutor
 import logging
-from decimal import Decimal
 import os
 from stdout_capture import StdoutCapture
 
@@ -56,6 +55,8 @@ class PortfolioManager:
         # 獲取今日和現有持倉的股票ID集合
         new_ids = set(p['stock_id'] for p in position_today.position)
         current_ids = set(p['stock_id'] for p in position_acc.position)
+        logging.info(f"new_ids: {new_ids}")
+        logging.info(f"current_ids: {current_ids}")
 
         # 判斷需要新增或移除的股票ID
         add_ids = new_ids - current_ids
@@ -64,17 +65,14 @@ class PortfolioManager:
         try:
             if add_ids:
                 # 如果有新增的股票，回傳今日持倉以進行相應操作
-                logging.info(f"新增股票ID: {add_ids}")
                 return position_today
 
             if remove_ids:
-                # 如果有移除的股票，更新今日持倉並設定該股票的數量為0
-                logging.info(f"移除股票ID: {remove_ids}")
+                # 如果有移除的股票，更新今日持倉，移除應該被移除的股票
                 updated_positions = []
                 for position in position_acc.position:
-                    if position['stock_id'] in remove_ids:
-                        position['quantity'] = Decimal('0')
-                    updated_positions.append(position)
+                    if position['stock_id'] not in remove_ids:
+                        updated_positions.append(position)
                 position_today.position = updated_positions
                 return position_today
 
@@ -85,6 +83,7 @@ class PortfolioManager:
         except Exception as e:
             logging.error(f"調整持倉失敗: {e}")
             return None
+
         
     def update_data_dict(self, report_directory):
         self.data_dict['datetime'] = self.datetime

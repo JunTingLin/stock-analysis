@@ -7,9 +7,10 @@ from stdout_capture import StdoutCapture
 
 
 class PortfolioManager:
-    def __init__(self, acc, fund, strategy_class_name, datetime, extra_bid_pct):
+    def __init__(self, acc, weight, strategy_class_name, datetime, extra_bid_pct):
         self.acc = acc
-        self.fund = fund
+        self.weight = weight
+        self.fund = None
         self.strategy = self.load_strategy(strategy_class_name)
         self.datetime = datetime
         self.extra_bid_pct = extra_bid_pct
@@ -32,6 +33,21 @@ class PortfolioManager:
         return strategy_class()
     
     def execute_order(self):
+
+        current_month = self.datetime.strftime('%Y-%m')
+        monthly_fund_df = self.data_persistence_manager.load_monthly_fund_for_month(current_month)
+
+        if not monthly_fund_df.empty:
+            # 如果有記錄，使用資料庫中的 fund
+            self.fund = monthly_fund_df.iloc[0]['fund']
+            logging.info(f"使用資料庫中的 fund: {self.fund}")
+        else:
+            # 如果沒有記錄，使用當前的帳戶總資產計算 fund
+            total_assets = self.acc.get_total_balance()
+            self.fund =  total_assets * self.weight
+            self.data_persistence_manager.save_monthly_fund(current_month, self.weight, total_assets, self.fund)
+            logging.info(f"使用當前的帳戶總資產計算 fund: {self.fund}")
+
         self.report = self.strategy.run_strategy()
         self.position_acc = self.acc.get_position()
         self.position_today = Position.from_report(self.report, self.fund, odd_lot=True)
@@ -43,12 +59,12 @@ class PortfolioManager:
             with StdoutCapture() as alert_output:
                 order_executor.show_alerting_stocks()
             self.alert_output = alert_output.getvalue()
-            logging.info(self.alert_output)
+            logging.info(f'alert_output: {self.alert_output}')
 
-            with StdoutCapture() as order_output:
-                order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
-            self.order_output = order_output.getvalue()
-            logging.info(self.order_output)
+            # with StdoutCapture() as order_output:
+            #     order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
+            # self.order_output = order_output.getvalue()
+            # logging.info(f'order_output: {self.order_output}')
 
         
     def rebalance_portfolio(self, position_today, position_acc):
@@ -87,7 +103,6 @@ class PortfolioManager:
         
     def update_data_dict(self, report_directory):
         self.data_dict['datetime'] = self.datetime
-        self.data_dict['fund'] = self.fund
 
         config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
         self.data_dict['is_simulation'] = config_file_name == 'config.simulation.ini'
@@ -122,6 +137,14 @@ class PortfolioManager:
         # 從資料庫查詢當日financial_summary
         financial_summary_today = self.data_persistence_manager.load_financial_summary_today(self.datetime)
         self.data_dict['financial_summary_today'] = financial_summary_today
+
+        # 從資料庫查詢所有月份的fund
+        monthly_fund = self.data_persistence_manager.load_monthly_fund()
+        self.data_dict['monthly_fund'] = monthly_fund
+
+        # 從資料庫查詢當月第一天的 fund
+        monthly_fund_for_month = self.data_persistence_manager.load_monthly_fund_for_month(self.datetime.strftime('%Y-%m'))
+        self.data_dict['monthly_fund_for_month'] = monthly_fund_for_month
 
         return self.data_dict
 

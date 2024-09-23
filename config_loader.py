@@ -18,9 +18,8 @@ class ConfigLoader:
             self.config["common"]["extra_bid_pct"] = args.extra_bid_pct
 
     def _convert_type(self, key, value):
-        if key in ["fund"]:
-            return int(value)
-        elif key == "extra_bid_pct":
+        float_keys = {"extra_bid_pct", "weight"}
+        if key in float_keys:
             return float(value)
         return value
     
@@ -32,8 +31,8 @@ if __name__ == "__main__":
     config_loader = ConfigLoader()
     config_loader.load_env_vars()
 
-    fund = config_loader.get("fund")
+    weight = config_loader.get("weight")
     strategy_class_name = config_loader.get("strategy_class_name")
 
-    print(fund, strategy_class_name)
+    print(weight, strategy_class_name)
 

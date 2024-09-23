@@ -25,11 +25,12 @@ class ReportManager:
         df3_html = self.data_dict['order_status'].to_html(classes='table table-striped', index=False, table_id="df3_table")
         df4_html = self.data_dict['special_order'].to_html(classes='table table-striped', index=False, table_id="df4_table")
         df5_html = self.data_dict['financial_summary_today'].to_html(classes='table table-striped', index=False, table_id="df5_table")
+        df6_html = self.data_dict['monthly_fund_for_month'].to_html(classes='table table-striped', index=False, table_id="df6_table")
 
         plot1_html = self.generate_financial_summary_plot()
         plot2_html = self.generate_monthly_return_plot()
 
-        return df1_html, df2_html, df3_html, df4_html, df5_html, plot1_html, plot2_html
+        return df1_html, df2_html, df3_html, df4_html, df5_html, df6_html, plot1_html, plot2_html
     
     def generate_financial_summary_plot(self):
         fig = px.line(
@@ -44,11 +45,24 @@ class ReportManager:
     def generate_monthly_return_plot(self):
         financial_summary_all = self.data_dict['financial_summary_all'].copy()
         financial_summary_all['datetime'] = pd.to_datetime(financial_summary_all['datetime'])
-        fund = self.data_dict.get('fund')
+        monthly_fund_df = self.data_dict['monthly_fund']
+        monthly_fund_series = monthly_fund_df.set_index('month')['fund']
 
-        monthly_returns = financial_summary_all.groupby(financial_summary_all['datetime'].dt.to_period('M')).apply(
-            lambda x: (x.iloc[-1]['total_assets'] - x.iloc[0]['total_assets']) / fund * 100 if len(x) > 1 else None
-        ).dropna()
+        def calculate_monthly_return(x):
+            start_value = x.iloc[0]['total_assets']
+            end_value = x.iloc[-1]['total_assets']
+            month = x.iloc[0]['datetime'].strftime('%Y-%m')
+            fund = monthly_fund_series.get(month)
+
+            if fund is not None and len(x) > 1:
+                monthly_return = (end_value - start_value) / fund * 100
+                logging.info(f"{month}: ({end_value} - {start_value}) / {fund} = {monthly_return}%")
+                return monthly_return
+            else:
+                logging.info(f"{month}: 資料不足或缺少 fund 資訊，monthly return 設為 0，實際 fund 為 {fund}, x 的長度為 {len(x)}")
+                return 0
+
+        monthly_returns = financial_summary_all.groupby(financial_summary_all['datetime'].dt.to_period('M')).apply(calculate_monthly_return).dropna()
 
         # 檢查是否有數據
         if monthly_returns.empty:
@@ -82,7 +96,7 @@ class ReportManager:
         
         return pio.to_html(fig, full_html=False)
 
-    def integrate_finlab_report(self, df1_html, df2_html, df3_html, df4_html, df5_html, plot1_html, plot2_html):
+    def integrate_finlab_report(self, df1_html, df2_html, df3_html, df4_html, df5_html, df6_html, plot1_html, plot2_html):
         # 加載模板
         template = self.env.get_template(os.path.basename(self.template_path))
 
@@ -102,6 +116,7 @@ class ReportManager:
             df3_html=df3_html,
             df4_html=df4_html,
             df5_html=df5_html,
+            df6_html=df6_html,
             plot1_html=plot1_html,
             plot2_html=plot2_html,
             finlab_report_url=relative_finlab_path,
@@ -123,6 +138,6 @@ class ReportManager:
         return self.final_report_path
 
     def save_final_report(self):
-        df1_html, df2_html, df3_html, df4_html, df5_html, plot1_html, plot2_html = self.render_data_dict()
-        final_report_path = self.integrate_finlab_report(df1_html, df2_html, df3_html, df4_html, df5_html, plot1_html, plot2_html)
+        df1_html, df2_html, df3_html, df4_html, df5_html, df6_html, plot1_html, plot2_html = self.render_data_dict()
+        final_report_path = self.integrate_finlab_report(df1_html, df2_html, df3_html, df4_html, df5_html, df6_html, plot1_html, plot2_html)
         return final_report_path

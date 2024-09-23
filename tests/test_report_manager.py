@@ -9,8 +9,7 @@ from report_manager import ReportManager
 
 # 建立假資料
 def generate_fake_data():
-
-    # 生成X天的假資料，用於測試
+    # 生成90天的假資料，用於測試
     base_date = datetime(2024, 6, 1)
     date_range = [base_date + timedelta(days=i) for i in range(90)]
 
@@ -20,7 +19,6 @@ def generate_fake_data():
     market_value = [100000 + i * 1500 for i in range(90)]
     total_assets = [adjusted_bank_balance[i] + market_value[i] for i in range(90)]
 
-
     financial_summary_all = pd.DataFrame({
         "datetime": date_range,
         "bank_balance": bank_balance,
@@ -29,7 +27,6 @@ def generate_fake_data():
         "market_value": market_value,
         "total_assets": total_assets
     })
-
 
     current_portfolio_today = pd.DataFrame({
         "datetime": [datetime(2024, 8, 18, 0, 42, 22)] * 3,
@@ -47,7 +44,6 @@ def generate_fake_data():
         "adjusted_quantity": [110, 190, 310],
     })
 
-    
     financial_summary_today = pd.DataFrame({
         "datetime": [datetime(2024, 8, 18, 0, 42, 22)],
         "bank_balance": [50000],
@@ -55,6 +51,9 @@ def generate_fake_data():
         "adjusted_bank_balance": [60000],
         "market_value": [140000],
         "total_assets": [200000]
+    })
+
+    special_order = pd.DataFrame({
     })
 
     order_status = pd.DataFrame({
@@ -67,16 +66,26 @@ def generate_fake_data():
         "order_condition": ["CASH", "CASH"]
     })
 
+    monthly_fund = pd.DataFrame({
+        "month": ["2024-06", "2024-07", "2024-08"],
+        "weight": [0.8, 0.8, 0.8],
+        "total_assets": [120000, 130000, 140000],
+        "fund": [96000, 104000, 112000]
+    })
+
     data_dict = {
         "fund": 160*1000,
         "current_portfolio_today": current_portfolio_today,
         "next_portfolio_today": next_portfolio_today,
         "financial_summary_all": financial_summary_all,
         "financial_summary_today": financial_summary_today,
-        "order_status": order_status
+        "special_order": special_order,
+        "order_status": order_status,
+        "monthly_fund": monthly_fund 
     }
 
     return data_dict
+
 
 # 測試 ReportManager 類
 def test_report_manager():

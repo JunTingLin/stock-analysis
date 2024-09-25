@@ -1,69 +1,75 @@
 from finlab import data
 
-# 獲取三大法人的買賣超數據
-foreign_net_buy = data.get('institutional_investors_trading_summary:外陸資買賣超股數(不含外資自營商)')
-foreign_self_net_buy = data.get('institutional_investors_trading_summary:外資自營商買賣超股數')
-investment_trust_net_buy = data.get('institutional_investors_trading_summary:投信買賣超股數')
-dealer_self_net_buy = data.get('institutional_investors_trading_summary:自營商買賣超股數(自行買賣)')
-dealer_hedge_net_buy = data.get('institutional_investors_trading_summary:自營商買賣超股數(避險)')
+# 獲取三大法人的買賣超股數數據
+foreign_net_buy_shares = data.get('institutional_investors_trading_summary:外陸資買賣超股數(不含外資自營商)')
+foreign_self_net_buy_shares = data.get('institutional_investors_trading_summary:外資自營商買賣超股數')
+investment_trust_net_buy_shares = data.get('institutional_investors_trading_summary:投信買賣超股數')
+dealer_self_net_buy_shares = data.get('institutional_investors_trading_summary:自營商買賣超股數(自行買賣)')
 
 # 發行股數作為總股數
 shares_outstanding = data.get('internal_equity_changes:發行股數')
 
-# 計算法人買超佔發行量的比例
-foreign_total_net_buy = foreign_net_buy + foreign_self_net_buy  # 外資 = 外陸資買賣超 + 外資自營商
-foreign_net_buy_ratio = foreign_total_net_buy / shares_outstanding
-
-investment_trust_net_buy_ratio = investment_trust_net_buy / shares_outstanding
-
-dealer_total_net_buy = dealer_self_net_buy + dealer_hedge_net_buy  # 自營商 = 自營商自行買賣 + 避險
-dealer_self_net_buy_ratio = dealer_total_net_buy / shares_outstanding
+# 計算外資、投信、自營商的買賣超佔發行量比例 (股數)
+foreign_net_buy_ratio = (foreign_net_buy_shares + foreign_self_net_buy_shares) / shares_outstanding
+investment_trust_net_buy_ratio = investment_trust_net_buy_shares / shares_outstanding
+dealer_self_net_buy_ratio = dealer_self_net_buy_shares / shares_outstanding
 
 # 計算外資、投信、自營商的3天和5天累積買超比例
-foreign_net_buy_3d_sum = foreign_net_buy_ratio.rolling(3).sum()
-foreign_net_buy_5d_sum = foreign_net_buy_ratio.rolling(5).sum()
+foreign_net_buy_ratio_3d_sum = foreign_net_buy_ratio.rolling(3).sum()
+foreign_net_buy_ratio_5d_sum = foreign_net_buy_ratio.rolling(5).sum()
 
-investment_trust_net_buy_3d_sum = investment_trust_net_buy_ratio.rolling(3).sum()
-investment_trust_net_buy_5d_sum = investment_trust_net_buy_ratio.rolling(5).sum()
+investment_trust_net_buy_ratio_3d_sum = investment_trust_net_buy_ratio.rolling(3).sum()
+investment_trust_net_buy_ratio_5d_sum = investment_trust_net_buy_ratio.rolling(5).sum()
 
-dealer_self_net_buy_3d_sum = dealer_self_net_buy_ratio.rolling(3).sum()
-dealer_self_net_buy_5d_sum = dealer_self_net_buy_ratio.rolling(5).sum()
+dealer_self_net_buy_ratio_3d_sum = dealer_self_net_buy_ratio.rolling(3).sum()
+dealer_self_net_buy_ratio_5d_sum = dealer_self_net_buy_ratio.rolling(5).sum()
 
-# 設定每個法人的前5檔股票排名
+# 設定每個法人的前5檔股票排名 (比例)
 top_n = 5
 
 # 外資：取前3天和5天累積買超比例最大的5檔股票
-foreign_3d_top_n = foreign_net_buy_3d_sum.rank(axis=1, ascending=False) <= top_n
-foreign_5d_top_n = foreign_net_buy_5d_sum.rank(axis=1, ascending=False) <= top_n
-foreign_buy_condition = foreign_3d_top_n | foreign_5d_top_n
+foreign_top_3d_ratio = foreign_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= top_n
+foreign_top_5d_ratio = foreign_net_buy_ratio_5d_sum.rank(axis=1, ascending=False) <= top_n
+foreign_buy_condition = foreign_top_3d_ratio | foreign_top_5d_ratio
 
 # 投信：取前3天和5天累積買超比例最大的5檔股票
-investment_trust_3d_top_n = investment_trust_net_buy_3d_sum.rank(axis=1, ascending=False) <= top_n
-investment_trust_5d_top_n = investment_trust_net_buy_5d_sum.rank(axis=1, ascending=False) <= top_n
-investment_trust_buy_condition = investment_trust_3d_top_n | investment_trust_5d_top_n
+investment_trust_top_3d_ratio = investment_trust_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= top_n
+investment_trust_top_5d_ratio = investment_trust_net_buy_ratio_5d_sum.rank(axis=1, ascending=False) <= top_n
+investment_trust_buy_condition = investment_trust_top_3d_ratio | investment_trust_top_5d_ratio
 
 # 自營商：取前3天和5天累積買超比例最大的5檔股票
-dealer_self_3d_top_n = dealer_self_net_buy_3d_sum.rank(axis=1, ascending=False) <= top_n
-dealer_self_5d_top_n = dealer_self_net_buy_5d_sum.rank(axis=1, ascending=False) <= top_n
-dealer_self_buy_condition = dealer_self_3d_top_n | dealer_self_5d_top_n
-
+dealer_self_top_3d_ratio = dealer_self_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= top_n
+dealer_self_top_5d_ratio = dealer_self_net_buy_ratio_5d_sum.rank(axis=1, ascending=False) <= top_n
+dealer_self_buy_condition = dealer_self_top_3d_ratio | dealer_self_top_5d_ratio
 
 # 獲取每檔股票的收盤價數據
 close_price = data.get('price:收盤價')
 
-# 計算每檔股票的買賣超金額
-foreign_net_buy_amount = foreign_total_net_buy * close_price  # 外資買賣超金額
-investment_trust_net_buy_amount = investment_trust_net_buy * close_price  # 投信買賣超金額
-dealer_net_buy_amount = dealer_total_net_buy * close_price  # 自營商買賣超金額
-# 總體買賣超金額 = 外資 + 投信 + 自營商的買賣超金額
-total_net_buy_amount = foreign_net_buy_amount + investment_trust_net_buy_amount + dealer_net_buy_amount
+# 計算三大法人的買賣超股數金額
+foreign_total_net_buy_amount = (foreign_net_buy_shares + foreign_self_net_buy_shares) * close_price  # 外資 = 外陸資買賣超 + 外資自營商
+investment_trust_net_buy_amount = investment_trust_net_buy_shares * close_price  # 投信
+dealer_total_net_buy_amount = dealer_self_net_buy_shares * close_price  # 自營商
+
+# 計算三大法人的總買賣超金額
+total_net_buy_amount = foreign_total_net_buy_amount + investment_trust_net_buy_amount + dealer_total_net_buy_amount
+
+# 計算3天和5天的累積買賣超金額之和
+total_net_buy_amount_3d_sum = total_net_buy_amount.rolling(3).sum()
+total_net_buy_amount_5d_sum = total_net_buy_amount.rolling(5).sum()
 
 # 設定每檔股票買賣超金額前3名
 top_n = 3
-total_market_top_3 = total_net_buy_amount.rank(axis=1, ascending=False) <= top_n
 
-# 最終條件：三大法人的股票聯集
-chip_buy_condition = foreign_buy_condition | investment_trust_buy_condition | dealer_self_buy_condition | total_market_top_3
+# 取3天和5天累積買賣超金額最大的前3名股票
+total_market_top_3d = total_net_buy_amount_3d_sum.rank(axis=1, ascending=False) <= top_n
+total_market_top_5d = total_net_buy_amount_5d_sum.rank(axis=1, ascending=False) <= top_n
+
+# 取3天和5天買賣超金額的交集
+total_market_top_intersection = total_market_top_3d & total_market_top_5d
+
+
+# 最終條件： 
+chip_buy_condition = (foreign_buy_condition | investment_trust_buy_condition | dealer_self_buy_condition) | total_market_top_intersection
 
 # 獲取收盤價數據
 adj_close = data.get('etl:adj_close')

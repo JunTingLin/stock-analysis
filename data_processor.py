@@ -34,8 +34,10 @@ class DataProcessor:
         return pd.DataFrame(data_list)
 
     def process_next_portfolio(self, position_today, datetime):
+        columns = ["datetime", "stock_id", "stock_name", "adjusted_quantity"]
+
         if position_today is None:
-            return pd.DataFrame()
+            return pd.DataFrame(columns=columns)
         
         data_list = []
         for position in position_today.position:

@@ -61,10 +61,10 @@ class PortfolioManager:
             self.alert_output = alert_output.getvalue()
             logging.info(f'alert_output: {self.alert_output}')
 
-            # with StdoutCapture() as order_output:
-            #     order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
-            # self.order_output = order_output.getvalue()
-            # logging.info(f'order_output: {self.order_output}')
+            with StdoutCapture() as order_output:
+                order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
+            self.order_output = order_output.getvalue()
+            logging.info(f'order_output: {self.order_output}')
 
         
     def rebalance_portfolio(self, position_today, position_acc):

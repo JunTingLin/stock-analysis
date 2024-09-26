@@ -42,20 +42,12 @@ dealer_self_top_3d_ratio = dealer_self_net_buy_ratio_3d_sum.rank(axis=1, ascendi
 dealer_self_top_5d_ratio = dealer_self_net_buy_ratio_5d_sum.rank(axis=1, ascending=False) <= top_n
 dealer_self_buy_condition = dealer_self_top_3d_ratio | dealer_self_top_5d_ratio
 
-# 獲取每檔股票的收盤價數據
-close_price = data.get('price:收盤價')
-
-# 計算三大法人的買賣超股數金額
-foreign_total_net_buy_amount = (foreign_net_buy_shares + foreign_self_net_buy_shares) * close_price  # 外資 = 外陸資買賣超 + 外資自營商
-investment_trust_net_buy_amount = investment_trust_net_buy_shares * close_price  # 投信
-dealer_total_net_buy_amount = dealer_self_net_buy_shares * close_price  # 自營商
-
-# 計算三大法人的總買賣超金額
-total_net_buy_amount = foreign_total_net_buy_amount + investment_trust_net_buy_amount + dealer_total_net_buy_amount
+# 獲取三大法人的買賣超金額數據
+institutional_net_buy_amount = data.get('institutional_investors_trading_all_market_summary:買賣超')
 
 # 計算3天和5天的累積買賣超金額之和
-total_net_buy_amount_3d_sum = total_net_buy_amount.rolling(3).sum()
-total_net_buy_amount_5d_sum = total_net_buy_amount.rolling(5).sum()
+total_net_buy_amount_3d_sum = institutional_net_buy_amount.rolling(3).sum()
+total_net_buy_amount_5d_sum = institutional_net_buy_amount.rolling(5).sum()
 
 # 設定每檔股票買賣超金額前3名
 top_n = 3
@@ -66,7 +58,6 @@ total_market_top_5d = total_net_buy_amount_5d_sum.rank(axis=1, ascending=False) 
 
 # 取3天和5天買賣超金額的交集
 total_market_top_intersection = total_market_top_3d & total_market_top_5d
-
 
 # 最終條件： 
 chip_buy_condition = (foreign_buy_condition | investment_trust_buy_condition | dealer_self_buy_condition) | total_market_top_intersection

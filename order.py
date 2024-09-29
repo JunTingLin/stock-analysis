@@ -28,11 +28,12 @@ def setup_logger(current_datetime):
 
 
 def execute_trading(config_loader, acc, current_datetime):
-    if is_trading_day(acc) or True:
+    if is_trading_day(acc):
+        strategy_class_name = config_loader.get("strategy_class_name")
         portfolio_manager = PortfolioManager(
             acc, 
             config_loader.get("weight"),
-            config_loader.get("strategy_class_name"), 
+            strategy_class_name, 
             current_datetime, 
             config_loader.get("extra_bid_pct"),
         )
@@ -56,9 +57,12 @@ def execute_trading(config_loader, acc, current_datetime):
         # 初始化 LineNotifier 並發送推播通知
         line_token = config_loader.get_env_var("LINE_NOTIFY_TOKEN")
         notifier = LineNotifier(line_token)
-        notifier.send_notification(f"Report generated on {current_datetime.strftime('%Y-%m-%d %H:%M:%S')}:\n {public_report_url}")
+        notifier.send_notification(
+            f"Strategy: {strategy_class_name}\n"
+            f"Report generated on {current_datetime.strftime('%Y-%m-%d %H:%M:%S')}:\n"
+            f"{public_report_url}"
+        )
 
-        
     else:
         logging.info("今天不是交易日，無需執行下單操作。")
 

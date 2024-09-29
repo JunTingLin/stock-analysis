@@ -13,6 +13,9 @@ class ConfigLoader:
         value = self.config["common"].get(key)
         return self._convert_type(key, value)
     
+    def get_account_name(self):
+        return self.config["env"]["FUGLE_ACCOUNT"]
+    
     def update_dynamic_params(self, args):
         if args.extra_bid_pct is not None:
             self.config["common"]["extra_bid_pct"] = args.extra_bid_pct

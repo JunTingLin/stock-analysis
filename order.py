@@ -30,6 +30,7 @@ def setup_logger(current_datetime):
 def execute_trading(config_loader, acc, current_datetime):
     if is_trading_day(acc):
         strategy_class_name = config_loader.get("strategy_class_name")
+        account_name = config_loader.get_account_name()
         portfolio_manager = PortfolioManager(
             acc, 
             config_loader.get("weight"),
@@ -37,31 +38,57 @@ def execute_trading(config_loader, acc, current_datetime):
             current_datetime, 
             config_loader.get("extra_bid_pct"),
         )
-        portfolio_manager.execute_order()
+
+        try:
+            portfolio_manager.execute_order()
+        except Exception as e:
+            logging.exception("Error during order execution")
+            notifier = LineNotifier(config_loader.get_env_var("LINE_NOTIFY_TOKEN"))
+            notifier.send_notification(
+                f"\nStrategy: {strategy_class_name}\n"
+                f"Account: {account_name}\n"
+                f"Error during order execution: {e}\n"
+                "Please check the system for more details."
+            )
+            return  # 停止後續報告生成
 
         report_finlab_directory = "output/report_finlab"
         report_final_directory = "output/report_final"
         report_template_path = "templates/report_template.html"
 
-        data_dict = portfolio_manager.update_data_dict(report_finlab_directory)
-        report_manager = ReportManager(data_dict, report_finlab_directory, report_final_directory, current_datetime, report_template_path)
-        final_report_path = report_manager.save_final_report()
+        try:
+            data_dict = portfolio_manager.update_data_dict(report_finlab_directory)
+            report_manager = ReportManager(
+                data_dict, report_finlab_directory, report_final_directory, current_datetime, report_template_path,
+                strategy_class_name, account_name
+            )
+            final_report_path = report_manager.save_final_report()
 
-        # 獲取公開 URL 基礎地址
-        public_base_url = config_loader.get("public_base_url")
-        
-        # 將本地報告路徑轉換為相對於公開基礎 URL 的路徑
-        relative_report_path = os.path.relpath(final_report_path, start="output")
-        public_report_url = f"{public_base_url}/{relative_report_path.replace(os.path.sep, '/')}"
-        
-        # 初始化 LineNotifier 並發送推播通知
-        line_token = config_loader.get_env_var("LINE_NOTIFY_TOKEN")
-        notifier = LineNotifier(line_token)
-        notifier.send_notification(
-            f"Strategy: {strategy_class_name}\n"
-            f"Report generated on {current_datetime.strftime('%Y-%m-%d %H:%M:%S')}:\n"
-            f"{public_report_url}"
-        )
+            # 獲取公開 URL 基礎地址
+            public_base_url = config_loader.get("public_base_url")
+            
+            # 將本地報告路徑轉換為相對於公開基礎 URL 的路徑
+            relative_report_path = os.path.relpath(final_report_path, start="output")
+            public_report_url = f"{public_base_url}/{relative_report_path.replace(os.path.sep, '/')}"
+            
+            # 初始化 LineNotifier 並發送推播通知
+            line_token = config_loader.get_env_var("LINE_NOTIFY_TOKEN")
+            notifier = LineNotifier(line_token)
+            notifier.send_notification(
+                f"\nStrategy: {strategy_class_name}\n"
+                f"Account: {account_name}\n"
+                f"Report generated on {current_datetime.strftime('%Y-%m-%d %H:%M:%S')}:\n"
+                f"{public_report_url}"
+            )
+        except Exception as e:
+            logging.exception("Error during report generation")
+            notifier = LineNotifier(config_loader.get_env_var("LINE_NOTIFY_TOKEN"))
+            notifier.send_notification(
+                f"\nStrategy: {strategy_class_name}\n"
+                f"Account: {account_name}\n"
+                f"Error during report generation: {e}\n"
+                "Please check the system for more details."
+            )
 
     else:
         logging.info("今天不是交易日，無需執行下單操作。")

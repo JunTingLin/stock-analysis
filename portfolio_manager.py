@@ -11,6 +11,7 @@ class PortfolioManager:
         self.acc = acc
         self.weight = weight
         self.fund = None
+        self.strategy_class_name = strategy_class_name
         self.strategy = self.load_strategy(strategy_class_name)
         self.datetime = datetime
         self.extra_bid_pct = extra_bid_pct

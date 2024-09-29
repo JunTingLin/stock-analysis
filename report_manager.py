@@ -6,12 +6,14 @@ import plotly.express as px
 import plotly.io as pio
 
 class ReportManager:
-    def __init__(self, data_dict, report_finlab_directory, report_final_directory, datetime, template_path):
+    def __init__(self, data_dict, report_finlab_directory, report_final_directory, datetime, template_path, strategy_class_name, account_name):
         self.data_dict = data_dict
         self.report_finlab_directory = report_finlab_directory
         self.report_final_directory = report_final_directory
         self.datetime = datetime
         self.template_path = template_path
+        self.strategy_class_name = strategy_class_name
+        self.account_name = account_name
 
         self.report_finlab_path = os.path.join(report_finlab_directory, f'{self.datetime.strftime("%Y-%m-%d_%H-%M-%S")}.html')
         self.final_report_path = os.path.join(report_final_directory, f'{self.datetime.strftime("%Y-%m-%d_%H-%M-%S")}.html')
@@ -120,7 +122,9 @@ class ReportManager:
             plot1_html=plot1_html,
             plot2_html=plot2_html,
             finlab_report_url=relative_finlab_path,
-            formatted_datetime=self.datetime.strftime("%Y-%m-%d %H:%M:%S")
+            formatted_datetime=self.datetime.strftime("%Y-%m-%d %H:%M:%S"),
+            strategy_class_name=self.strategy_class_name,
+            account_name=self.account_name
         )
 
         # 嘗試創建目標目錄

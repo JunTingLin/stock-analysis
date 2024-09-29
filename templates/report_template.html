@@ -11,6 +11,11 @@
     <div class="container">
         <h1 class="my-4">Final Report - {{ formatted_datetime }}</h1>
 
+        <ul class="list-group my-3">
+            <li class="list-group-item"><strong>Strategy:</strong> {{ strategy_class_name }}</li>
+            <li class="list-group-item"><strong>Account:</strong> {{ account_name }}</li>
+        </ul>
+
         <!-- Nav tabs -->
         <ul class="nav nav-tabs" id="reportTabs" role="tablist">
             <li class="nav-item">

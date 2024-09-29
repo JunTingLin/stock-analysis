@@ -3,14 +3,13 @@ from finlab import data
 with data.universe(market='TSE_OTC'):
     # 獲取三大法人的買賣超股數數據
     foreign_net_buy_shares = data.get('institutional_investors_trading_summary:外陸資買賣超股數(不含外資自營商)')
-    foreign_self_net_buy_shares = data.get('institutional_investors_trading_summary:外資自營商買賣超股數')
     investment_trust_net_buy_shares = data.get('institutional_investors_trading_summary:投信買賣超股數')
     dealer_self_net_buy_shares = data.get('institutional_investors_trading_summary:自營商買賣超股數(自行買賣)')
     # 發行股數作為總股數
     shares_outstanding = data.get('internal_equity_changes:發行股數')
 
 # 計算外資、投信、自營商的買賣超佔發行量比例 (股數)
-foreign_net_buy_ratio = (foreign_net_buy_shares + foreign_self_net_buy_shares) / shares_outstanding
+foreign_net_buy_ratio = foreign_net_buy_shares / shares_outstanding
 investment_trust_net_buy_ratio = investment_trust_net_buy_shares / shares_outstanding
 dealer_self_net_buy_ratio = dealer_self_net_buy_shares / shares_outstanding
 
@@ -47,7 +46,7 @@ with data.universe(market='TSE_OTC'):
     close_price = data.get('price:收盤價')
 
 # 計算三大法人的買賣超股數金額
-foreign_total_net_buy_amount = (foreign_net_buy_shares + foreign_self_net_buy_shares) * close_price  # 外資 = 外陸資買賣超 + 外資自營商
+foreign_total_net_buy_amount = foreign_net_buy_shares  * close_price  # 外資 = 外陸資買賣超 + 外資自營商
 investment_trust_net_buy_amount = investment_trust_net_buy_shares * close_price  # 投信
 dealer_total_net_buy_amount = dealer_self_net_buy_shares * close_price  # 自營商
 

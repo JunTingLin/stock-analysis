@@ -7,7 +7,7 @@ from stdout_capture import StdoutCapture
 
 
 class PortfolioManager:
-    def __init__(self, acc, weight, strategy_class_name, datetime, extra_bid_pct):
+    def __init__(self, acc, weight, strategy_class_name, datetime, extra_bid_pct=0, view_only=False):
         self.acc = acc
         self.weight = weight
         self.fund = None
@@ -15,6 +15,7 @@ class PortfolioManager:
         self.strategy = self.load_strategy(strategy_class_name)
         self.datetime = datetime
         self.extra_bid_pct = extra_bid_pct
+        self.view_only = view_only
         self.data_dict = {}
         self.data_processor = DataProcessor()
         self.data_persistence_manager = DataPersistenceManager()
@@ -23,6 +24,13 @@ class PortfolioManager:
         self.position_today = None
         self.order_output = ""
         self.alert_output = ""
+        self.is_simulation = self.check_if_simulation()
+
+    def check_if_simulation(self):
+        config_file_name = os.path.basename(os.environ.get('FUGLE_CONFIG_PATH', ''))
+        is_simulation_config = config_file_name == 'config.simulation.ini'
+
+        return is_simulation_config or self.view_only
 
     def load_strategy(self, strategy_class_name):
         if strategy_class_name == 'TibetanMastiffTWStrategy':
@@ -63,7 +71,7 @@ class PortfolioManager:
             logging.info(f'alert_output: {self.alert_output}')
 
             with StdoutCapture() as order_output:
-                order_executor.create_orders(extra_bid_pct=self.extra_bid_pct)
+                order_executor.create_orders(extra_bid_pct=self.extra_bid_pct, view_only=self.view_only)
             self.order_output = order_output.getvalue()
             logging.info(f'order_output: {self.order_output}')
 

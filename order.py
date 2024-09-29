@@ -37,6 +37,7 @@ def execute_trading(config_loader, acc, current_datetime):
             strategy_class_name, 
             current_datetime, 
             config_loader.get("extra_bid_pct"),
+            config_loader.get("view_only")
         )
 
         try:
@@ -47,6 +48,7 @@ def execute_trading(config_loader, acc, current_datetime):
             notifier.send_notification(
                 f"\nStrategy: {strategy_class_name}\n"
                 f"Account: {account_name}\n"
+                f"Simulation: {portfolio_manager.is_simulation}\n"
                 f"Error during order execution: {e}\n"
                 "Please check the system for more details."
             )
@@ -60,7 +62,7 @@ def execute_trading(config_loader, acc, current_datetime):
             data_dict = portfolio_manager.update_data_dict(report_finlab_directory)
             report_manager = ReportManager(
                 data_dict, report_finlab_directory, report_final_directory, current_datetime, report_template_path,
-                strategy_class_name, account_name
+                strategy_class_name, account_name, portfolio_manager.is_simulation
             )
             final_report_path = report_manager.save_final_report()
 
@@ -77,6 +79,7 @@ def execute_trading(config_loader, acc, current_datetime):
             notifier.send_notification(
                 f"\nStrategy: {strategy_class_name}\n"
                 f"Account: {account_name}\n"
+                f"Simulation: {portfolio_manager.is_simulation}\n"
                 f"Report generated on {current_datetime.strftime('%Y-%m-%d %H:%M:%S')}:\n"
                 f"{public_report_url}"
             )
@@ -86,6 +89,7 @@ def execute_trading(config_loader, acc, current_datetime):
             notifier.send_notification(
                 f"\nStrategy: {strategy_class_name}\n"
                 f"Account: {account_name}\n"
+                f"Simulation: {portfolio_manager.is_simulation}\n"
                 f"Error during report generation: {e}\n"
                 "Please check the system for more details."
             )

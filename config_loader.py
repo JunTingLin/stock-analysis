@@ -22,8 +22,12 @@ class ConfigLoader:
 
     def _convert_type(self, key, value):
         float_keys = {"extra_bid_pct", "weight"}
+        bool_keys = {"view_only"}
+
         if key in float_keys:
             return float(value)
+        elif key in bool_keys:
+            return str(value).lower() == "true"
         return value
     
     def get_env_var(self, key):

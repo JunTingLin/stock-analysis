@@ -1,4 +1,9 @@
 from finlab import data
+from finlab.market_info import TWMarketInfo
+
+class AdjustTWMarketInfo(TWMarketInfo):
+    def get_trading_price(self, name, adj=True):
+        return self.get_price(name, adj=adj).shift(1)
 
 with data.universe(market='TSE_OTC'):
     # 獲取三大法人的買賣超股數數據
@@ -102,6 +107,7 @@ ma5 = adj_close.rolling(5).mean()
 ma10 = adj_close.rolling(10).mean()
 ma20 = adj_close.rolling(20).mean()
 ma60 = adj_close.rolling(60).mean()
+ma240 = adj_close.rolling(240).mean()
 
 # 均線上升
 ma_up_buy_condition = (ma5 > ma5.shift(1)) & (ma10 > ma10.shift(1)) & (ma20 > ma20.shift(1)) & (ma60 > ma60.shift(1))
@@ -110,18 +116,18 @@ ma_up_buy_condition = (ma5 > ma5.shift(1)) & (ma10 > ma10.shift(1)) & (ma20 > ma
 price_above_ma_buy_condition = (adj_close > ma5) & (adj_close > ma10) & (adj_close > ma20) & (adj_close > ma60)
 
 # 計算乖離率
-bias_10 = (adj_close - ma10) / ma10
-bias_20 = (adj_close - ma20) / ma20
+bias_60 = (adj_close - ma60) / ma60
+bias_240 = (adj_close - ma240) / ma240
 
 # 設定進場條件為乖離率在正向且小於 0.14
-bias_buy_condition = (bias_10 < 0.14) & (bias_10 > 0) & (bias_20 < 0.14) & (bias_20 > 0)
+bias_buy_condition = (bias_60 < 0.21) & (bias_60 > 0.01) & (bias_240 < 0.25) & (bias_240 > 0.01)
 
 with data.universe(market='TSE_OTC'):
     # 獲取成交量數據
     volume = data.get('price:成交股數')
 
 # 成交量大於昨日的2.5倍
-volume_buy_condition = volume > (volume.shift(1) * 2.5)
+volume_buy_condition = volume > (volume.shift(1) * 2)
 
 with data.universe(market='TSE_OTC'):
     # 計算DMI指標
@@ -129,7 +135,7 @@ with data.universe(market='TSE_OTC'):
     minus_di = data.indicator('MINUS_DI', timeperiod=14, adjust_price=True)
 
 # DMI條件
-dmi_buy_condition = (plus_di > 28) & (minus_di < 20) | (plus_di > 26) & (minus_di < 18)
+dmi_buy_condition = (plus_di > 24) & (minus_di < 21)
 
 with data.universe(market='TSE_OTC'):
     # 計算 KD 指標
@@ -140,19 +146,26 @@ kd_buy_condition = (k > k.shift(1)) & (d > d.shift(1))
 
 with data.universe(market='TSE_OTC'):
     # 計算 MACD 指標
-    macd, signal, hist = data.indicator('MACD', fastperiod=12, slowperiod=26, signalperiod=9, adjust_price=True)
-    dif = macd  # MACD 中的 DIF
+    dif, _ , _  = data.indicator('MACD', fastperiod=12, slowperiod=26, signalperiod=9, adjust_price=True)
 
 # MACD DIF 向上
 macd_dif_buy_condition = dif > dif.shift(1)
 
 # 技術面
-technical_buy_condition = ma_up_buy_condition & price_above_ma_buy_condition & bias_buy_condition & volume_buy_condition & dmi_buy_condition & kd_buy_condition & macd_dif_buy_condition
+technical_buy_condition = (
+    ma_up_buy_condition & 
+    price_above_ma_buy_condition & 
+    bias_buy_condition & 
+    volume_buy_condition & 
+    dmi_buy_condition & 
+    kd_buy_condition
+    & macd_dif_buy_condition
+)
 
 # 最終的買入訊號
 buy_signal = chip_buy_condition & technical_buy_condition
 
-# ### 新增的賣出條件
+# ### 的賣出條件
 # 停損條件：DMI條件
 dmi_sell_condition = (plus_di < 35) & (minus_di > 18)
 
@@ -171,5 +184,5 @@ position = buy_signal.hold_until(sell_signal)
 # 執行回測
 from finlab.backtest import sim
 
-report = sim(position, resample=None, upload=False)
-report.display()
+# report = sim(position, resample=None, upload=False, trade_at_price='close')
+report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())

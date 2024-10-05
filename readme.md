@@ -36,5 +36,8 @@
 - `Flask-AutoIndex`：自動索引與公開資料夾報告
 - `gunicorn`：WSGI HTTP 伺服器，用於生產環境下的 Web 服務
 
+⚠️ **提醒**：
+請確保 `numpy` 的版本低於 2.0 (`<2`)。`finlab` 依賴較舊版本的 `numpy`，若 `numpy` 被手動升級到 2.0 以上，可能會導致 `finlab` 無法正常運行。
+
 ## 部署
 [股票自動交易手冊](https://hackmd.io/@RPTu-Li-R66a9lr4Fb9qEg/BJpNu1QSC/%2FSy7PQ0BB0)

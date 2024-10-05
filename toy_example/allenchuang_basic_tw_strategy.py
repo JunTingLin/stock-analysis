@@ -120,7 +120,7 @@ bias_60 = (adj_close - ma60) / ma60
 bias_240 = (adj_close - ma240) / ma240
 
 # 設定進場條件為乖離率在正向且小於 0.14
-bias_buy_condition = (bias_60 < 0.21) & (bias_60 > 0.01) & (bias_240 < 0.25) & (bias_240 > 0.01)
+bias_buy_condition = (bias_60 <= 0.21) & (bias_60 >= 0.01) & (bias_240 <= 0.25) & (bias_240 >= 0.01)
 
 with data.universe(market='TSE_OTC'):
     # 獲取成交量數據
@@ -139,7 +139,7 @@ dmi_buy_condition = (plus_di > 24) & (minus_di < 21)
 
 with data.universe(market='TSE_OTC'):
     # 計算 KD 指標
-    k, d = data.indicator('STOCH', adjust_price=True)
+    k, d = data.indicator('STOCH', fastk_period=9, slowk_period=3, slowd_period=3, adjust_price=True)
 
 # KD 指標條件：%K 和 %D 都向上
 kd_buy_condition = (k > k.shift(1)) & (d > d.shift(1))

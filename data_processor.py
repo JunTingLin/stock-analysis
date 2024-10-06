@@ -1,6 +1,7 @@
 import re
 import pandas as pd
 from finlab import data
+import logging
 
 class DataProcessor:
     def __init__(self):
@@ -9,17 +10,20 @@ class DataProcessor:
     def process_current_portfolio(self, acc, position_acc, datetime):
         if position_acc is None:
             return pd.DataFrame()
-        
+
         stock_ids = [position['stock_id'] for position in position_acc.position]
         stock_prices = acc.get_stocks(stock_ids)
-        
+
         data_list = []
+        total_market_value = 0
+
         for position in position_acc.position:
             stock_id = position['stock_id']
             stock_name = self.company_info.loc[self.company_info['stock_id'] == stock_id, '公司簡稱'].values[0]
             close_price = stock_prices[stock_id].close
             quantity = float(position['quantity'])
             market_value = close_price * quantity * 1000
+            total_market_value += market_value  
 
             row = {
                 "datetime": datetime.strftime("%Y-%m-%d %H:%M:%S"),
@@ -31,7 +35,10 @@ class DataProcessor:
             }
             data_list.append(row)
         
+        logging.info(f"column sum total_market_value: {total_market_value}")
+
         return pd.DataFrame(data_list)
+
 
     def process_next_portfolio(self, position_today, datetime):
         columns = ["datetime", "stock_id", "stock_name", "adjusted_quantity"]
@@ -122,13 +129,12 @@ class DataProcessor:
 
 
 
-    def process_financial_summary(self, acc, datetime):
-        bank_balance = acc.get_cash()
-        settlements = acc.get_settlement()
-        adjusted_bank_balance = bank_balance + settlements
-
-        total_assets = acc.get_total_balance()
-        market_value = total_assets - adjusted_bank_balance
+    def process_financial_summary(self, acc, datetime, bank_balance, settlements, adjusted_bank_balance, market_value, total_assets):
+        logging.info(f"bank_balance: {bank_balance}")
+        logging.info(f"settlements: {settlements}")
+        logging.info(f"adjusted_bank_balance: {adjusted_bank_balance}")
+        logging.info(f"market_value: {market_value}")
+        logging.info(f"total_assets: {total_assets}")
 
         new_data = {
             "datetime": datetime.strftime("%Y-%m-%d %H:%M:%S"),

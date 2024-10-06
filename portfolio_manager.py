@@ -25,6 +25,11 @@ class PortfolioManager:
         self.order_output = ""
         self.alert_output = ""
         self.is_simulation = self.check_if_simulation()
+        self.bank_balance = acc.get_cash()
+        self.settlements = acc.get_settlement()
+        self.adjusted_bank_balance = self.bank_balance + self.settlements
+        self.total_assets = acc.get_total_balance()
+        self.market_value = self.total_assets - self.adjusted_bank_balance
 
     def check_if_simulation(self):
         config_file_name = os.path.basename(os.environ.get('FUGLE_CONFIG_PATH', ''))
@@ -52,9 +57,8 @@ class PortfolioManager:
             logging.info(f"使用資料庫中的 fund: {self.fund}")
         else:
             # 如果沒有記錄，使用當前的帳戶總資產計算 fund
-            total_assets = self.acc.get_total_balance()
-            self.fund =  total_assets * self.weight
-            self.data_persistence_manager.save_monthly_fund(current_month, self.weight, total_assets, self.fund)
+            self.fund =  self.total_assets * self.weight
+            self.data_persistence_manager.save_monthly_fund(current_month, self.weight, self.total_assets, self.fund)
             logging.info(f"使用當前的帳戶總資產計算 fund: {self.fund}")
 
         self.report = self.strategy.run_strategy()
@@ -112,9 +116,7 @@ class PortfolioManager:
         
     def update_data_dict(self, report_directory):
         self.data_dict['datetime'] = self.datetime
-
-        config_file_name = os.path.basename(os.environ['FUGLE_CONFIG_PATH'])
-        self.data_dict['is_simulation'] = config_file_name == 'config.simulation.ini'
+        self.data_dict['is_simulation'] = self.is_simulation
 
         # 保存 finlab 報告
         report_filename = f'{self.datetime.strftime("%Y-%m-%d_%H-%M-%S")}.html'
@@ -139,8 +141,8 @@ class PortfolioManager:
         self.data_dict['special_order'] = special_order
 
         # 更新 financial_summary 並保存所有數據
-        financial_summary = self.data_processor.process_financial_summary(self.acc, self.datetime)
-        self.data_persistence_manager.save_financial_summary(financial_summary)
+        financial_summary = self.data_processor.process_financial_summary(self.acc, self.datetime, self.bank_balance, self.settlements, self.adjusted_bank_balance, self.market_value, self.total_assets)
+        self.data_persistence_manager.save_financial_summary_today(financial_summary)
         self.data_dict['financial_summary_all'] = self.data_persistence_manager.load_financial_summary()
 
         # 從資料庫查詢當日financial_summary

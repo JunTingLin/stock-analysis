@@ -31,7 +31,7 @@ def test_datapersistence_manager():
 
     financial_summary = generate_financial_summary()
 
-    dpm.save_financial_summary(financial_summary)
+    dpm.save_financial_summary_today(financial_summary)
 
     df = dpm.load_financial_summary()
     print(df)

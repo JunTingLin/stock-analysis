@@ -1,6 +1,7 @@
 import sqlite3
 import pandas as pd
 import os
+import logging
 
 class DataPersistenceManager:
     def __init__(self, db_path='data_prod.db'):
@@ -29,9 +30,22 @@ class DataPersistenceManager:
             ''')
             conn.commit()
 
-    def save_financial_summary(self, data):
+    def save_financial_summary_today(self, data):
+        # 擷取資料中的日期部分
+        target_date = pd.to_datetime(data['datetime'].values[0]).date()
+
         with sqlite3.connect(self.db_path) as conn:
-            data.to_sql('financial_summary', conn, if_exists='append', index=False)
+            # 檢查資料庫是否已經存在同一天的資料
+            query = f"SELECT * FROM financial_summary WHERE DATE(datetime) = '{target_date}'"
+            existing_data = pd.read_sql_query(query, conn)
+
+            if not existing_data.empty:
+                logging.info(f"Financial summary for {target_date} already exists. Skipping save.")
+            else:
+                # 若同一天沒有資料，則保存帶有完整時間的datetime
+                data.to_sql('financial_summary', conn, if_exists='append', index=False)
+                logging.info(f"Financial summary for {target_date} saved with full datetime.")
+
 
     def save_finlab_report(self, report, report_save_path):
         dir_name = os.path.dirname(report_save_path)
@@ -53,9 +67,13 @@ class DataPersistenceManager:
         return df
     
     def load_financial_summary_today(self, target_datetime):
+        target_date = target_datetime.date()
+
         with sqlite3.connect(self.db_path) as conn:
-            query = f"SELECT * FROM financial_summary WHERE datetime = '{target_datetime.strftime('%Y-%m-%d %H:%M:%S')}'"
+            # 根據日期部分進行查詢，返回當天所有資料（帶時間）
+            query = f"SELECT * FROM financial_summary WHERE DATE(datetime) = '{target_date}'"
             df = pd.read_sql_query(query, conn)
+            
         return df
     
     def load_financial_summary_first_of_month(self, target_date):

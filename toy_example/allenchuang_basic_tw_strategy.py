@@ -112,15 +112,24 @@ ma240 = adj_close.rolling(240).mean()
 # 均線上升
 ma_up_buy_condition = (ma5 > ma5.shift(1)) & (ma10 > ma10.shift(1)) & (ma20 > ma20.shift(1)) & (ma60 > ma60.shift(1))
 
+# 5 日線大於 60/240 日線
+ma5_above_others_condition = (ma5 > ma60) & (ma5 > ma240)
+
 # 價格在均線之上
 price_above_ma_buy_condition = (adj_close > ma5) & (adj_close > ma10) & (adj_close > ma20) & (adj_close > ma60)
 
 # 計算乖離率
+bias_10 = (adj_close - ma10) / ma10
+bias_20 = (adj_close - ma20) / ma20
 bias_60 = (adj_close - ma60) / ma60
 bias_240 = (adj_close - ma240) / ma240
 
+
 # 設定進場條件為乖離率在正向且小於 0.14
-bias_buy_condition = (bias_60 <= 0.21) & (bias_60 >= 0.01) & (bias_240 <= 0.25) & (bias_240 >= 0.01)
+bias_buy_condition = ((bias_10 < 0.14) & (bias_10 > 0) &
+                      (bias_20 < 0.14) & (bias_20 > 0) &
+                      (bias_60 <= 0.21) & (bias_60 >= 0.01) & 
+                      (bias_240 <= 0.25) & (bias_240 >= 0.01))
 
 with data.universe(market='TSE_OTC'):
     # 獲取成交量數據
@@ -146,7 +155,7 @@ kd_buy_condition = (k > k.shift(1)) & (d > d.shift(1))
 
 with data.universe(market='TSE_OTC'):
     # 計算 MACD 指標
-    dif, _ , _  = data.indicator('MACD', fastperiod=12, slowperiod=26, signalperiod=9, adjust_price=True)
+    dif, macd , _  = data.indicator('MACD', fastperiod=12, slowperiod=26, signalperiod=9, adjust_price=True)
 
 # MACD DIF 向上
 macd_dif_buy_condition = dif > dif.shift(1)
@@ -154,29 +163,27 @@ macd_dif_buy_condition = dif > dif.shift(1)
 # 技術面
 technical_buy_condition = (
     ma_up_buy_condition & 
+    ma5_above_others_condition &
     price_above_ma_buy_condition & 
     bias_buy_condition & 
     volume_buy_condition & 
     dmi_buy_condition & 
-    kd_buy_condition
-    & macd_dif_buy_condition
+    kd_buy_condition & 
+    macd_dif_buy_condition
 )
 
 # 最終的買入訊號
 buy_signal = chip_buy_condition & technical_buy_condition
 
 # ### 的賣出條件
-# 停損條件：DMI條件
-dmi_sell_condition = (plus_di < 35) & (minus_di > 18)
+# 停損條件 1：5日均線向下 & DIF、MACD都向下
+sell_condition_1 = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (macd < macd.shift(1))
 
-# 停損條件：KD指標 %K 和 %D 都向下
-kd_sell_condition = (k < k.shift(1)) & (d < d.shift(1))
-
-# 停損條件：MACD DIF 向下
-macd_dif_sell_condition = dif < dif.shift(1)
+# 停損條件 2：5日均線向下 & DIF向下 & -DI大於21
+sell_condition_2 = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (minus_di > 21)
 
 # 合併所有賣出條件
-sell_signal = dmi_sell_condition & kd_sell_condition & macd_dif_sell_condition
+sell_signal = sell_condition_1 | sell_condition_2
 
 # 最終的持倉訊號
 position = buy_signal.hold_until(sell_signal)

@@ -1,5 +1,7 @@
 from finlab import data
 from finlab.market_info import TWMarketInfo
+from finlab.backtest import sim
+from finlab.optimize.combinations import sim_conditions
 
 class AdjustTWMarketInfo(TWMarketInfo):
     def get_trading_price(self, name, adj=True):
@@ -96,9 +98,6 @@ main_force_condition_5d = net_buy_ratio_5d_sum > 0.025
 # 合併主力籌碼條件
 main_force_buy_condition = main_force_condition_3d | main_force_condition_5d
 
-# 最終條件： 
-chip_buy_condition = institutional_investors_top_buy_condition  | total_market_top_intersection | main_force_buy_condition
-
 with data.universe(market='TSE_OTC'):
     # 獲取收盤價數據
     adj_close = data.get('etl:adj_close')
@@ -161,24 +160,6 @@ with data.universe(market='TSE_OTC'):
 # MACD DIF 向上
 macd_dif_buy_condition = dif > dif.shift(1)
 
-# 技術面
-technical_buy_condition = (
-    ma_up_buy_condition & 
-    ma5_above_others_condition &
-    price_above_ma_buy_condition & 
-    bias_buy_condition & 
-    volume_buy_condition & 
-    dmi_buy_condition & 
-    kd_buy_condition & 
-    macd_dif_buy_condition
-)
-
-# 最終的買入訊號
-buy_signal = chip_buy_condition & technical_buy_condition
-
-# 設定起始買入日期
-# start_buy_date = '2017-12-31'
-# buy_signal = buy_signal.loc[start_buy_date:]
 
 # ### 的賣出條件
 # 停損條件 1：5日均線向下 & DIF、MACD都向下
@@ -188,13 +169,40 @@ sell_condition_1 = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (macd < macd.sh
 sell_condition_2 = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (minus_di > 21)
 
 # 合併所有賣出條件
-sell_signal = sell_condition_1 | sell_condition_2
+exits = sell_condition_1 | sell_condition_2
 
-# 最終的持倉訊號
-position = buy_signal.hold_until(sell_signal)
+conditions = {'c1':institutional_investors_top_buy_condition  | 
+                    total_market_top_intersection | 
+                    main_force_buy_condition, 
+            'c2':ma_up_buy_condition,
+            'c3':ma5_above_others_condition,
+            'c4':price_above_ma_buy_condition,
+            'c5':bias_buy_condition,
+            'c6':volume_buy_condition,
+            'c7':dmi_buy_condition,
+            'c8':kd_buy_condition,
+            'c9':macd_dif_buy_condition
+            }
+report_collection = sim_conditions(conditions=conditions, hold_until={'exit':exits}, resample=None, upload=False, market=AdjustTWMarketInfo())
 
-# 執行回測
-from finlab.backtest import sim
+import pickle
+# 儲存 report_collection 物件至 pkl 文件
+with open('report_collection.pkl', 'wb') as f:
+    pickle.dump(report_collection, f)
 
-# report = sim(position, resample=None, upload=False, trade_at_price='close')
-report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
+# 策略分組指標報告
+stats_df  = report_collection.get_stats()
+report_collection.plot_creturns().show()
+
+import finlab
+# 按照 'daily_mean' 排序，選取表現最好的 5 個策略
+top_strategies = stats_df.loc['daily_mean'].sort_values(ascending=False).head(5).index
+# 篩選出表現最好的前 5 個策略，並繪製累積收益圖
+filtered_report_collection = {k: report_collection.reports[k] for k in top_strategies}
+# 使用這些篩選後的策略報告繪圖
+filtered_reports = finlab.optimize.combinations.ReportCollection(filtered_report_collection)
+filtered_reports.plot_creturns().show()
+
+
+report_collection.plot_stats('bar').show()
+report_collection.plot_stats('heatmap')

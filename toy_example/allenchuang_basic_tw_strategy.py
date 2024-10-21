@@ -181,14 +181,12 @@ buy_signal = chip_buy_condition & technical_buy_condition
 # buy_signal = buy_signal.loc[start_buy_date:]
 
 # ### 的賣出條件
-# 停損條件 1：5日均線向下 & DIF、MACD都向下
-sell_condition_1 = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (macd < macd.shift(1))
-
-# 停損條件 2：5日均線向下 & DIF向下 & -DI大於21
-sell_condition_2 = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (minus_di > 21)
+sell_condition_1 = (ma5 < ma5.shift(1))  # 5 日均線向下
+sell_condition_2 = (dif < dif.shift(1)) & (macd < macd.shift(1))  # DIF 和 MACD 雙線向下
+sell_condition_3 = adj_close < ma20  # 收盤價小於 20 日均線
 
 # 合併所有賣出條件
-sell_signal = sell_condition_1 | sell_condition_2
+sell_signal = sell_condition_1 | sell_condition_2 | sell_condition_3
 
 # 最終的持倉訊號
 position = buy_signal.hold_until(sell_signal)

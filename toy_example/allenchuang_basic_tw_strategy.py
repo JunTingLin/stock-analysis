@@ -1,5 +1,8 @@
 from finlab import data
 from finlab.market_info import TWMarketInfo
+import pandas as pd
+import numpy as np
+from numba import njit
 
 class AdjustTWMarketInfo(TWMarketInfo):
     def get_trading_price(self, name, adj=True):
@@ -104,6 +107,7 @@ with data.universe(market='TSE_OTC'):
     adj_close = data.get('etl:adj_close')
 
 # 計算均線
+ma3 = adj_close.rolling(3).mean()
 ma5 = adj_close.rolling(5).mean()
 ma10 = adj_close.rolling(10).mean()
 ma20 = adj_close.rolling(20).mean()
@@ -180,16 +184,52 @@ buy_signal = chip_buy_condition & technical_buy_condition
 # start_buy_date = '2017-12-31'
 # buy_signal = buy_signal.loc[start_buy_date:]
 
-# ### 的賣出條件
-sell_condition_1 = (ma5 < ma5.shift(1))  # 5 日均線向下
-sell_condition_2 = (dif < dif.shift(1)) & (macd < macd.shift(1))  # DIF 和 MACD 雙線向下
-sell_condition_3 = adj_close < ma20  # 收盤價小於 20 日均線
+# ### 賣出條件
+# 法一
+sell_condition_1 = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (macd < macd.shift(1)) & (adj_close < ma20)  # 日線向下，DIF、MACD 雙線向下，收盤價小於 20 日均線
+sell_condition_2 = (ma3 < ma3.shift(1)) & (dif < dif.shift(1))  # 3 日均線向下，DIF 向下
 
-# 合併所有賣出條件
-sell_signal = sell_condition_1 | sell_condition_2 | sell_condition_3
+# 將信號轉換為 NumPy 陣列
+buy_signal_np = buy_signal.to_numpy()
+sell_condition_1_np = sell_condition_1.to_numpy()
+sell_condition_2_np = sell_condition_2.to_numpy()
 
-# 最終的持倉訊號
-position = buy_signal.hold_until(sell_signal)
+# 初始化持倉表（轉換為 NumPy 格式），初始值設為 0.0
+position_np = np.zeros_like(buy_signal_np, dtype=np.float64)
+
+@njit
+def process_positions(buy_signal, sell_condition_1, sell_condition_2, position):
+    # 遍歷數據，處理每檔股票的持倉變化
+    for stock_idx in range(position.shape[1]):  # 遍歷每一檔股票
+        for day_idx in range(1, position.shape[0]):  # 從第二天開始處理
+            # 如果當天有買入訊號，且前一天持倉為0，設為 1.0
+            if position[day_idx-1, stock_idx] == 0.0 and buy_signal[day_idx, stock_idx]:
+                position[day_idx, stock_idx] = 1.0
+            # 如果前一天倉位是 1.0 且 sell_condition_1 發生，將持倉改為 0.5
+            elif position[day_idx-1, stock_idx] == 1.0 and sell_condition_1[day_idx, stock_idx]:
+                position[day_idx, stock_idx] = 0.5
+            # 如果前一天倉位是 0.5 且 sell_condition_2 發生，將持倉改為 0.0
+            elif position[day_idx-1, stock_idx] == 0.5 and sell_condition_2[day_idx, stock_idx]:
+                position[day_idx, stock_idx] = 0.0
+            # 否則保持前一天的持倉狀態
+            else:
+                position[day_idx, stock_idx] = position[day_idx-1, stock_idx]
+
+    return position
+
+# 先將 buy_signal 為 True 的位置設為 1.0
+# position_np[buy_signal_np] = 1.0
+
+# 使用 numba 加速的函數來計算持倉
+position_np = process_positions(buy_signal_np, sell_condition_1_np, sell_condition_2_np, position_np)
+
+# 將結果轉換回 pandas DataFrame
+position = pd.DataFrame(position_np, index=buy_signal.index, columns=buy_signal.columns)
+
+# 法二
+sell_condition = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (macd < macd.shift(1)) & (adj_close < ma20)  # 日線向下，DIF、MACD 雙線向下，收盤價小於 20 日均線
+position = buy_signal.hold_until(sell_condition)
+
 
 # 執行回測
 from finlab.backtest import sim

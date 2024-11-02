@@ -2,6 +2,7 @@ from finlab import data, backtest
 import talib
 from talib import abstract
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # 取得台股加權指數（TAIEX）的資料
 market_data_open = data.get('taiex_total_index:開盤指數')
@@ -83,3 +84,26 @@ total_score_adjusted = total_score_adjusted + macd_up.astype(int)
 # K 和 D 同時向上再加 1 分
 kd_up = (k > k.shift(1)) & (d > d.shift(1)) & adjust_up
 total_score_adjusted = total_score_adjusted + kd_up.astype(int)
+
+# =====================================================================================
+# 繪製 total_score_adjusted 與台股指數的趨勢圖
+fig, ax1 = plt.subplots(figsize=(12, 6))
+
+# 第一個 Y 軸：total_score_adjusted
+ax1.plot(total_score_adjusted.index, total_score_adjusted, label='Total Score', color='blue')
+ax1.set_ylabel('Total Score', color='blue')
+ax1.tick_params(axis='y', labelcolor='blue')
+ax1.set_xlabel('Date')
+
+# 第二個 Y 軸：TAIEX 指數
+ax2 = ax1.twinx()
+ax2.plot(taiex_data.index, taiex_data['close'], label='TAIEX Index', color='green', alpha=0.7)
+ax2.set_ylabel('TAIEX Index', color='green')
+ax2.tick_params(axis='y', labelcolor='green')
+
+# 標題和圖例
+fig.suptitle('Comparison of TAIEX Index and Total Score Adjusted Trend')
+ax1.legend(loc='upper left')
+ax2.legend(loc='upper right')
+plt.grid(True)
+plt.show()

@@ -33,12 +33,12 @@ from finlab.online.order_executor import Position
 import pandas as pd
 
 with data.universe(market='TSE_OTC'):
-    position = pd.DataFrame((data.get('price:收盤價') < 0), dtype='float').loc[:'2024-10-22']
+    position = pd.DataFrame((data.get('price:收盤價') < 0), dtype='float')
 
-position.loc['2024-10-22':'2024-10-24', '1101'] = 1
-position.loc['2024-10-22':'2024-10-24', '1102'] = 0.5
+position.loc['2024-10-27':'2024-10-30', '1101'] = 1
+position.loc['2024-10-27':'2024-10-30', '1102'] = 0.5
 
 report = backtest.sim(position, resample=None, upload=False, name="test")
 
-position = Position.from_report(report, 1000, odd_lot=True) # 零股
-print(position)
+position_today = Position.from_report(report, 1000, odd_lot=True) # 零股
+print(position_today)

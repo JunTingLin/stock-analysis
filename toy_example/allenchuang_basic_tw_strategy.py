@@ -164,6 +164,10 @@ with data.universe(market='TSE_OTC'):
 # MACD DIF 向上
 macd_dif_buy_condition = dif > dif.shift(1)
 
+# 判斷當前收盤價是否為240天內最高
+high_240 = adj_close.rolling(window=240).max()
+new_high_240_condition = adj_close >= high_240
+
 # 技術面
 technical_buy_condition = (
     ma_up_buy_condition & 
@@ -173,7 +177,8 @@ technical_buy_condition = (
     volume_buy_condition & 
     dmi_buy_condition & 
     kd_buy_condition & 
-    macd_dif_buy_condition
+    macd_dif_buy_condition &
+    new_high_240_condition
 )
 
 # 最終的買入訊號
@@ -184,49 +189,7 @@ buy_signal = chip_buy_condition & technical_buy_condition
 # buy_signal = buy_signal.loc[start_buy_date:]
 
 # ### 賣出條件
-# 法一
-sell_condition_1 = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (macd < macd.shift(1)) & (adj_close < ma20)  # 日線向下，DIF、MACD 雙線向下，收盤價小於 20 日均線
-sell_condition_2 = (ma3 < ma3.shift(1)) & (dif < dif.shift(1))  # 3 日均線向下，DIF 向下
-
-# 獲取聯集的日期索引 (index) 和交集的股票代碼 (columns)
-combined_index = buy_signal.index.union(sell_condition_1.index).union(sell_condition_2.index)
-combined_columns = buy_signal.columns.intersection(sell_condition_1.columns).intersection(sell_condition_2.columns)
-
-position = pd.DataFrame(0.0, index=combined_index, columns=combined_columns)
-
-import time
-start_time = time.time()
-
-# 初始化持倉，直接對 `DataFrame` 操作
-for stock in position.columns:
-    for day in range(1, len(position)):
-        prev_index = position.index[day-1]
-        current_index = position.index[day]
-
-        try:
-            # 如果前一天持倉為 1.0 且 sell_condition_1 發生，將持倉設為 0.5
-            if position.at[prev_index, stock] == 1.0 and sell_condition_1.at[current_index, stock]:
-                position.at[current_index, stock] = 0.5
-            # 如果前一天持倉為 0.5 且 sell_condition_2 發生，將持倉設為 0.0
-            elif position.at[prev_index, stock] == 0.5 and sell_condition_2.at[current_index, stock]:
-                position.at[current_index, stock] = 0.0
-            # 如果當天買入訊號為 True 且前一天持倉為 0，將持倉設為 1.0
-            elif position.at[prev_index, stock] == 0.0 and buy_signal.at[current_index, stock]:
-                position.at[current_index, stock] = 1.0
-            # 否則保持前一天的持倉狀態
-            else:
-                position.at[current_index, stock] = position.at[prev_index, stock]
-        
-        except KeyError:
-            # 遇到 KeyError 時，保持前一天的持倉狀態
-            position.at[current_index, stock] = position.at[prev_index, stock]
-            
-end_time = time.time()
-execution_time = end_time - start_time
-print("程式執行時間：", execution_time, "秒")
-
-# 法二
-sell_condition = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (macd < macd.shift(1)) & (adj_close < ma20)  # 日線向下，DIF、MACD 雙線向下，收盤價小於 20 日均線
+sell_condition = (ma3 < ma3.shift(1)) & (dif < dif.shift(1))
 position = buy_signal.hold_until(sell_condition)
 
 

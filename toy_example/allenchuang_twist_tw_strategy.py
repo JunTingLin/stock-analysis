@@ -95,6 +95,9 @@ ax1.set_ylabel('Total Score', color='blue')
 ax1.tick_params(axis='y', labelcolor='blue')
 ax1.set_xlabel('Date')
 
+# 添加 y=0 的紅線
+ax1.axhline(0, color='red', linestyle='--', linewidth=1, label='Zero Line')
+
 # 第二個 Y 軸：TAIEX 指數
 ax2 = ax1.twinx()
 ax2.plot(taiex_data.index, taiex_data['close'], label='TAIEX Index', color='green', alpha=0.7)
@@ -105,5 +108,68 @@ ax2.tick_params(axis='y', labelcolor='green')
 fig.suptitle('Comparison of TAIEX Index and Total Score Adjusted Trend')
 ax1.legend(loc='upper left')
 ax2.legend(loc='upper right')
+plt.grid(True)
+plt.show()
+
+# =====================================================================================
+
+# 定義參數
+n = 10  # 未來檢測天數
+m = 100  # 目標漲幅或跌幅
+
+# 設定分數轉折點條件
+low_turn = (total_score_adjusted.shift(1) < 0) & (total_score_adjusted > 0)  # 低檔轉折
+high_turn = (total_score_adjusted.shift(1) > 0) & (total_score_adjusted < 0)  # 高檔轉折
+
+# 建立一個 DataFrame 來存放結果
+result = pd.DataFrame(index=taiex_data.index)
+result['close'] = taiex_data['close']
+result['low_turn'] = low_turn
+result['high_turn'] = high_turn
+
+# 計算未來 n 天的累計漲跌幅
+result['future_return'] = taiex_data['close'].shift(-n) - taiex_data['close']
+
+# 高檔轉折後檢測是否達成跌幅目標
+result['high_turn_correct'] = result['high_turn'] & (result['future_return'] <= -m)
+
+# 低檔轉折後檢測是否達成漲幅目標
+result['low_turn_correct'] = result['low_turn'] & (result['future_return'] >= m)
+
+# 結果統計
+high_turn_total = result['high_turn'].sum()
+high_turn_success = result['high_turn_correct'].sum()
+low_turn_total = result['low_turn'].sum()
+low_turn_success = result['low_turn_correct'].sum()
+
+# 計算準確率
+high_turn_accuracy = high_turn_success / high_turn_total if high_turn_total > 0 else 0
+low_turn_accuracy = low_turn_success / low_turn_total if low_turn_total > 0 else 0
+
+# 印出結果
+print(f"高檔轉折次數: {high_turn_total}")
+print(f"高檔轉折成功次數: {high_turn_success}")
+print(f"高檔轉折準確率: {high_turn_accuracy:.2%}")
+print(f"低檔轉折次數: {low_turn_total}")
+print(f"低檔轉折成功次數: {low_turn_success}")
+print(f"低檔轉折準確率: {low_turn_accuracy:.2%}")
+
+# 繪製轉折點與大盤指數
+plt.figure(figsize=(12, 6))
+plt.plot(result.index, result['close'], label='TAIEX Close', color='blue')
+
+# 標記低檔轉折
+plt.scatter(result.index[result['low_turn']], result['close'][result['low_turn']],
+            label='Low Turn (Positive)', color='green', marker='^', alpha=0.8)
+
+# 標記高檔轉折
+plt.scatter(result.index[result['high_turn']], result['close'][result['high_turn']],
+            label='High Turn (Negative)', color='red', marker='v', alpha=0.8)
+
+# 加入圖例與標題
+plt.title(f"TAIEX with High and Low Turns (n={n}, m={m})")
+plt.xlabel('Date')
+plt.ylabel('Index')
+plt.legend()
 plt.grid(True)
 plt.show()

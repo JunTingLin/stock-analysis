@@ -164,9 +164,9 @@ with data.universe(market='TSE_OTC'):
 # MACD DIF 向上
 macd_dif_buy_condition = dif > dif.shift(1)
 
-# 判斷當前收盤價是否為60天內最高
-high_60 = adj_close.rolling(window=60).max()
-new_high_60_condition = adj_close >= high_60
+# 判斷當前收盤價是否為240天內最高
+high_240 = adj_close.rolling(window=240).max()
+new_high_240_condition = adj_close >= high_240
 
 # 技術面
 technical_buy_condition = (
@@ -177,8 +177,8 @@ technical_buy_condition = (
     volume_buy_condition & 
     dmi_buy_condition & 
     kd_buy_condition & 
-    macd_dif_buy_condition
-    # new_high_60_condition
+    macd_dif_buy_condition &
+    new_high_240_condition
 )
 
 # 最終的買入訊號
@@ -216,29 +216,32 @@ import numpy as np
 trades = report.get_trades()
 
 # 確定離群值閾值，例如回報超過 500%
-outlier_threshold = 5
+outlier_threshold = 5  # 500%
 outliers = trades[trades["return"] > outlier_threshold]
-print(f"Outliers:{outliers}")
-# # 移除離群值
-# trades = trades[trades["return"] <= outlier_threshold]
+print(f"Outliers:\n{outliers}")
 
+# 移除離群值
+# trades = trades[trades["return"] <= outlier_threshold]
 
 # 初始化存放進場點的 bias_60 和 return
 bias_60_values = []
 trade_returns = []
 
-# 遍歷每筆交易
+# 遍歷每筆交易，匹配 bias_60 和回報
 for date, stock_id, trade_return in zip(trades['entry_sig_date'], trades['stock_id'], trades['return']):
     stock_id = stock_id.split()[0]  # 提取股票代號
     if date in bias_60.index and stock_id in bias_60.columns:
-        # 獲取該筆交易的 bias_60 和 return
+        # 獲取該筆交易的 bias_60 和 return，並轉換為百分比
         bias_60_values.append(bias_60.loc[date, stock_id])
-        trade_returns.append(trade_return)
-        
-# 調整回報為百分比
-bias_60_values = pd.Series(bias_60_values, name="Bias_60")
-trade_returns = pd.Series(trades['return'] * 100, name="Return (%)")
+        trade_returns.append(trade_return * 100)  # 回報轉換為百分比
 
+# 將數據轉為 pandas Series
+bias_60_values = pd.Series(bias_60_values, name="Bias_60")
+trade_returns = pd.Series(trade_returns, name="Return (%)")
+
+# 確認數據大小是否一致
+print(f"Number of Bias_60 values: {len(bias_60_values)}")
+print(f"Number of Return values: {len(trade_returns)}")
 
 # 散點圖：展示 Bias_60 與 Return 的關係
 plt.figure(figsize=(10, 6))

@@ -209,36 +209,62 @@ report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 # ===============================================================================
 
 import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
 
-# 從交易報告中提取實際進場的交易日期和股票代碼
+# 提取交易報告中的交易信息
 trades = report.get_trades()
-entry_sig_dates = trades['entry_sig_date']
-stock_ids = trades['stock_id'].str.split().str[0]  # 提取股票代號的前部分
 
-# 初始化存放進場乖離率的列表
+# 確定離群值閾值，例如回報超過 500%
+outlier_threshold = 5
+outliers = trades[trades["return"] > outlier_threshold]
+print(f"Outliers:{outliers}")
+# # 移除離群值
+# trades = trades[trades["return"] <= outlier_threshold]
+
+
+# 初始化存放進場點的 bias_60 和 return
 bias_60_values = []
+trade_returns = []
 
-# 遍歷每筆交易，提取對應日期和股票的乖離率
-for date, stock_id in zip(entry_sig_dates, stock_ids):
+# 遍歷每筆交易
+for date, stock_id, trade_return in zip(trades['entry_sig_date'], trades['stock_id'], trades['return']):
+    stock_id = stock_id.split()[0]  # 提取股票代號
     if date in bias_60.index and stock_id in bias_60.columns:
-        # 提取該筆交易對應的乖離率
+        # 獲取該筆交易的 bias_60 和 return
         bias_60_values.append(bias_60.loc[date, stock_id])
+        trade_returns.append(trade_return)
+        
+# 調整回報為百分比
+bias_60_values = pd.Series(bias_60_values, name="Bias_60")
+trade_returns = pd.Series(trades['return'] * 100, name="Return (%)")
 
-# 將乖離率數據轉換為 Series 方便後續處理
-bias_60_values = pd.Series(bias_60_values, name="Bias 60")
 
-# 繪製 Bias 60 的直方圖
+# 散點圖：展示 Bias_60 與 Return 的關係
 plt.figure(figsize=(10, 6))
-plt.hist(bias_60_values, bins=50, alpha=0.7, color='blue', label="Bias 60")
-plt.title("Histogram of Bias 60 at Entry Points")
-plt.xlabel("Bias Value")
-plt.ylabel("Frequency")
-plt.legend() 
+plt.scatter(bias_60_values, trade_returns, alpha=0.7, color="blue", label="Bias_60 vs Return")
+plt.axhline(0, color='red', linestyle='--', linewidth=0.8)  # 基準線
+plt.title("Scatter Plot of Bias_60 vs Return")
+plt.xlabel("Bias_60")
+plt.ylabel("Return (%)")
+plt.grid(True)
+plt.legend()
+plt.show()
+
+# 直方圖：統計 Bias_60 區間內的平均回報
+bins = np.arange(0, bias_60_values.max() + 0.05, 0.05)  # 每 5% 一個區間
+bias_return_df = pd.DataFrame({"Bias_60": bias_60_values, "Return (%)": trade_returns})
+bias_return_df["Bias_60_Bins"] = pd.cut(bias_return_df["Bias_60"], bins=bins)
+average_return_per_bin = bias_return_df.groupby("Bias_60_Bins")["Return (%)"].mean()
+
+# 繪製直方圖
+average_return_per_bin.plot(kind="bar", figsize=(12, 6), color="green", alpha=0.7)
+plt.title("Average Return per Bias_60 Interval")
+plt.xlabel("Bias_60 Interval")
+plt.ylabel("Average Return (%)")
 plt.grid(True)
 plt.show()
 
-# 區間統計 Bias 60
-bins = np.arange(0, bias_60_values.max() + 0.05, 0.05)  # 每 5% 一個區間
-bias_60_hist = pd.cut(bias_60_values, bins=bins).value_counts().sort_index()
-print("Bias 60 Interval Statistics:")
-print(bias_60_hist)
+# 輸出統計數據
+print("Average Return per Bias_60 Interval:")
+print(average_return_per_bin)

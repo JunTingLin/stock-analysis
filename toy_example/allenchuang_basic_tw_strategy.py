@@ -1,9 +1,12 @@
 from finlab import data
-from finlab.market_info import TWMarketInfo
+#  finlab 版本 < 1.2.20
+# from finlab.market_info import TWMarketInfo
+#  finlab 版本 >= 1.2.20
+from finlab.markets.tw import TWMarket
 import pandas as pd
 import numpy as np
 
-class AdjustTWMarketInfo(TWMarketInfo):
+class AdjustTWMarketInfo(TWMarket):
     def get_trading_price(self, name, adj=True):
         return self.get_price(name, adj=adj).shift(1)
 
@@ -117,7 +120,7 @@ ma240 = adj_close.rolling(240).mean()
 ma_up_buy_condition = (ma5 > ma5.shift(1)) & (ma10 > ma10.shift(1)) & (ma20 > ma20.shift(1)) & (ma60 > ma60.shift(1))
 
 # 5 日線大於 60/240 日線
-# ma5_above_others_condition = (ma5 > ma60) & (ma5 > ma240)
+ma5_above_others_condition = (ma5 > ma60) & (ma5 > ma240)
 
 # 價格在均線之上
 price_above_ma_buy_condition = (adj_close > ma5) & (adj_close > ma10) & (adj_close > ma20) & (adj_close > ma60)
@@ -132,8 +135,8 @@ bias_240 = (adj_close - ma240) / ma240
 # 設定進場條件為乖離率在正向且小於 0.14
 bias_buy_condition = ((bias_10 < 0.14) & (bias_10 > 0) &
                       (bias_20 < 0.14) & (bias_20 > 0) &
-                      (bias_60 <= 0.30) & (bias_60 >= 0.01) & 
-                      (bias_240 <= 0.30) & (bias_240 >= 0.01))
+                      (bias_60 <= 0.20) & (bias_60 >= 0.05) & 
+                      (bias_240 <= 0.25) & (bias_240 >= 0.10))
 
 with data.universe(market='TSE_OTC'):
     # 獲取成交量數據
@@ -164,21 +167,21 @@ with data.universe(market='TSE_OTC'):
 # MACD DIF 向上
 macd_dif_buy_condition = dif > dif.shift(1)
 
-# 判斷當前收盤價是否為240天內最高
-high_240 = adj_close.rolling(window=240).max()
-new_high_240_condition = adj_close >= high_240
+# 判斷當前收盤價是否為120天內最高
+high_120 = adj_close.rolling(window=120).max()
+new_high_120_condition = adj_close >= high_120
 
 # 技術面
 technical_buy_condition = (
     ma_up_buy_condition & 
-    # ma5_above_others_condition &
+    ma5_above_others_condition &
     price_above_ma_buy_condition & 
     bias_buy_condition & 
     volume_buy_condition & 
     dmi_buy_condition & 
     kd_buy_condition & 
     macd_dif_buy_condition &
-    new_high_240_condition
+    new_high_120_condition
 )
 
 # 最終的買入訊號

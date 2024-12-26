@@ -105,8 +105,8 @@ main_force_buy_condition = ( main_force_top_1d_buy & main_force_condition_1d ) |
 chip_buy_condition = institutional_investors_top_buy_condition  | total_market_top_intersection | main_force_buy_condition
 
 with data.universe(market='TSE_OTC'):
-    # 獲取收盤價數據
     adj_close = data.get('etl:adj_close')
+    adj_open = data.get('etl:adj_open')
 
 # 計算均線
 ma3 = adj_close.rolling(3).mean()
@@ -143,7 +143,13 @@ with data.universe(market='TSE_OTC'):
     volume = data.get('price:成交股數')
 
 # 成交量大於昨日的2倍
-volume_buy_condition = volume > (volume.shift(1) * 2)
+volume_doubled_condition = volume > (volume.shift(1) * 2)
+
+# 今收盤 > 今開盤，且今收盤 > 昨收盤
+positive_close_condition = (adj_close > adj_open) & (adj_close > adj_close.shift(1))
+
+# 今日成交張數 > 500 張
+volume_above_500_condition = volume > 500 * 1000
 
 with data.universe(market='TSE_OTC'):
     # 計算DMI指標
@@ -174,10 +180,13 @@ new_high_120_condition = adj_close >= high_120
 # 技術面
 technical_buy_condition = (
     ma_up_buy_condition & 
-    ma5_above_others_condition &
+    # ma5_above_others_condition &
     price_above_ma_buy_condition & 
     bias_buy_condition & 
-    volume_buy_condition & 
+    volume_doubled_condition & 
+    positive_close_condition &
+    volume_above_500_condition &
+    
     dmi_buy_condition & 
     kd_buy_condition & 
     macd_dif_buy_condition &

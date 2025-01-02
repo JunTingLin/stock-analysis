@@ -173,9 +173,9 @@ with data.universe(market='TSE_OTC'):
 # MACD DIF 向上
 macd_dif_buy_condition = dif > dif.shift(1)
 
-# 判斷當前收盤價是否為120天內最高
+# 判斷當前收盤價是否大於120天內最高價的85%
 high_120 = adj_close.rolling(window=120).max()
-new_high_120_condition = adj_close >= high_120
+new_high_120_condition = adj_close >= high_120 * 0.85
 
 # 技術面
 technical_buy_condition = (
@@ -186,7 +186,7 @@ technical_buy_condition = (
     volume_doubled_condition & 
     positive_close_condition &
     volume_above_500_condition &
-    
+
     dmi_buy_condition & 
     kd_buy_condition & 
     macd_dif_buy_condition &
@@ -202,10 +202,10 @@ buy_signal = chip_buy_condition & technical_buy_condition
 
 # ### 賣出條件
 ## 法一: 短線出場
-# sell_condition = (ma3 < ma3.shift(1)) & (dif < dif.shift(1))
+sell_condition = (ma3 < ma3.shift(1)) & (dif < dif.shift(1))
 
 ## 法二: 中線出場
-sell_condition = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (macd < macd.shift(1)) & (adj_close < ma20)
+# sell_condition = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (macd < macd.shift(1)) & (adj_close < ma20)
 
 position = buy_signal.hold_until(sell_condition)
 
@@ -214,7 +214,7 @@ position = buy_signal.hold_until(sell_condition)
 from finlab.backtest import sim
 
 # report = sim(position, resample=None, upload=False, trade_at_price='close')
-report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
+report = sim(position, resample=None, upload=False, position_limit=1/3, market=AdjustTWMarketInfo())
 
 
 
@@ -282,4 +282,65 @@ plt.show()
 
 # 輸出統計數據
 print("Average Return per Bias_60 Interval:")
+print(average_return_per_bin)
+
+# ===============================================================================
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+# 計算收盤價相對於120天高點的百分比
+relative_close_to_120_high = adj_close / high_120
+
+# 提取交易報告中的交易信息
+trades = report.get_trades()
+
+# 初始化存放相對位置和回報的列表
+relative_close_values = []
+trade_returns = []
+
+# 遍歷每筆交易，匹配收盤價相對120天高點的位置和回報
+for date, stock_id, trade_return in zip(trades['entry_sig_date'], trades['stock_id'], trades['return']):
+    stock_id = stock_id.split()[0]  # 提取股票代號
+    if date in relative_close_to_120_high.index and stock_id in relative_close_to_120_high.columns:
+        relative_position = relative_close_to_120_high.loc[date, stock_id]
+        if 0.85 <= relative_position:
+            relative_close_values.append(relative_position)
+            trade_returns.append(trade_return * 100)  # 回報轉換為百分比
+
+# 將數據轉為 pandas Series
+relative_close_values = pd.Series(relative_close_values, name="Relative Close to 120 High")
+trade_returns = pd.Series(trade_returns, name="Return (%)")
+
+# 確認數據大小是否一致
+print(f"Number of Relative Close values: {len(relative_close_values)}")
+print(f"Number of Return values: {len(trade_returns)}")
+
+# 散點圖：展示收盤價相對120天高點的位置與回報的關係
+plt.figure(figsize=(10, 6))
+plt.scatter(relative_close_values, trade_returns, alpha=0.7, color="blue", label="Relative Position vs Return")
+plt.axhline(0, color='red', linestyle='--', linewidth=0.8)  # 基準線
+plt.title("Scatter Plot of Relative Close to 120 High vs Return")
+plt.xlabel("Relative Close to 120 High")
+plt.ylabel("Return (%)")
+plt.grid(True)
+plt.legend()
+plt.show()
+
+# 直方圖：統計每個5%的區間內的平均回報
+bins = np.arange(0.85, 1.05, 0.05)  # 每 5% 一個區間，從 85% 到 100%
+relative_return_df = pd.DataFrame({"Relative Close to 120 High": relative_close_values, "Return (%)": trade_returns})
+relative_return_df["Relative Bins"] = pd.cut(relative_return_df["Relative Close to 120 High"], bins=bins)
+average_return_per_bin = relative_return_df.groupby("Relative Bins")["Return (%)"].mean()
+
+# 繪製直方圖
+average_return_per_bin.plot(kind="bar", figsize=(12, 6), color="green", alpha=0.7)
+plt.title("Average Return per Relative Close to 120 High Interval")
+plt.xlabel("Relative Close Interval (120 High)")
+plt.ylabel("Average Return (%)")
+plt.grid(True)
+plt.show()
+
+# 輸出統計數據
+print("Average Return per Relative Close to 120 High Interval:")
 print(average_return_per_bin)

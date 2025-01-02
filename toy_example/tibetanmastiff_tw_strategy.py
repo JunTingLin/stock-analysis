@@ -1,12 +1,6 @@
 from finlab import data
 from finlab.backtest import sim
-from finlab.market_info import TWMarketInfo
 from finlab.online.order_executor import Position
-
-class AdjustTWMarketInfo(TWMarketInfo):
-    def get_trading_price(self, name, adj=True):
-        return self.get_price(name, adj=adj).shift(1)
-
 
 with data.universe(market='TSE_OTC'):
     close = data.get("price:收盤價")

@@ -96,9 +96,9 @@ net_buy_ratio_3d_sum = net_buy_ratio.rolling(3).sum()
 main_force_top_1d_buy = net_buy_ratio.rank(axis=1, ascending=False) <= 3
 main_force_top_2d_buy = net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 3
 main_force_top_3d_buy = net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 3
-main_force_condition_1d = net_buy_ratio > 0.025
+main_force_condition_1d = net_buy_ratio > 0.008
 main_force_condition_2d = net_buy_ratio_2d_sum > 0.015
-main_force_condition_3d = net_buy_ratio_3d_sum > 0.008
+main_force_condition_3d = net_buy_ratio_3d_sum > 0.025
 
 main_force_buy_condition = ( main_force_top_1d_buy & main_force_condition_1d ) | ( main_force_top_2d_buy & main_force_condition_2d ) | ( main_force_top_3d_buy & main_force_condition_3d )
 
@@ -173,9 +173,11 @@ with data.universe(market='TSE_OTC'):
 # MACD DIF 向上
 macd_dif_buy_condition = dif > dif.shift(1)
 
-# 判斷當前收盤價是否大於120天內最高價的85%
+# 創新高
 high_120 = adj_close.rolling(window=120).max()
-new_high_120_condition = adj_close >= high_120 * 0.85
+new_high_120_condition = adj_close >= high_120
+
+new_high_condition = new_high_120_condition
 
 # 技術面
 technical_buy_condition = (
@@ -190,7 +192,7 @@ technical_buy_condition = (
     dmi_buy_condition & 
     kd_buy_condition & 
     macd_dif_buy_condition &
-    new_high_120_condition
+    new_high_condition
 )
 
 # 最終的買入訊號
@@ -214,7 +216,7 @@ position = buy_signal.hold_until(sell_condition)
 from finlab.backtest import sim
 
 # report = sim(position, resample=None, upload=False, trade_at_price='close')
-report = sim(position, resample=None, upload=False, position_limit=1/3, market=AdjustTWMarketInfo())
+report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 
 
 

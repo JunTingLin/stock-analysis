@@ -23,34 +23,26 @@ foreign_net_buy_ratio = foreign_net_buy_shares / shares_outstanding
 investment_trust_net_buy_ratio = investment_trust_net_buy_shares / shares_outstanding
 dealer_self_net_buy_ratio = dealer_self_net_buy_shares / shares_outstanding
 
-# 計算外資、投信、自營商的2天、3天累積買超比例
+# 計算外資、投信、自營商的2天累積買超比例
 foreign_net_buy_ratio_2d_sum = foreign_net_buy_ratio.rolling(2).sum()
-foreign_net_buy_ratio_3d_sum = foreign_net_buy_ratio.rolling(3).sum()
-
 investment_trust_net_buy_ratio_2d_sum = investment_trust_net_buy_ratio.rolling(2).sum()
-investment_trust_net_buy_ratio_3d_sum = investment_trust_net_buy_ratio.rolling(3).sum()
-
 dealer_self_net_buy_ratio_2d_sum = dealer_self_net_buy_ratio.rolling(2).sum()
-dealer_self_net_buy_ratio_3d_sum = dealer_self_net_buy_ratio.rolling(3).sum()
 
 
-# 外資：取當天、前2天、前3天累積買超比例前幾
-foreign_top_1d_ratio = foreign_net_buy_ratio.rank(axis=1, ascending=False) <= 3
-foreign_top_2d_ratio = foreign_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 3
-foreign_top_3d_ratio = foreign_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 5
-foreign_buy_condition = foreign_top_1d_ratio | foreign_top_2d_ratio | foreign_top_3d_ratio
+# 外資：取當天、前2天累積買超比例前幾
+foreign_top_1d_ratio = foreign_net_buy_ratio.rank(axis=1, ascending=False) <= 5
+foreign_top_2d_ratio = foreign_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 5
+foreign_buy_condition = foreign_top_1d_ratio | foreign_top_2d_ratio
 
-# 投信：取當天、前2天、前3天累積買超比例前幾
-investment_trust_top_1d_ratio = investment_trust_net_buy_ratio.rank(axis=1, ascending=False) <= 3
-investment_trust_top_2d_ratio = investment_trust_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 3
-investment_trust_top_3d_ratio = investment_trust_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 5
-investment_trust_buy_condition = investment_trust_top_1d_ratio | investment_trust_top_2d_ratio | investment_trust_top_3d_ratio
+# 投信：取當天、前2天累積買超比例前幾
+investment_trust_top_1d_ratio = investment_trust_net_buy_ratio.rank(axis=1, ascending=False) <= 5
+investment_trust_top_2d_ratio = investment_trust_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 5
+investment_trust_buy_condition = investment_trust_top_1d_ratio | investment_trust_top_2d_ratio
 
-# 自營商：取當天、前2天、前3天累積買超比例前幾
-dealer_self_top_1d_ratio = dealer_self_net_buy_ratio.rank(axis=1, ascending=False) <= 3
-dealer_self_top_2d_ratio = dealer_self_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 3
-dealer_self_top_3d_ratio = dealer_self_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 5
-dealer_self_buy_condition = dealer_self_top_1d_ratio | dealer_self_top_2d_ratio | dealer_self_top_3d_ratio
+# 自營商：取當天、前2天累積買超比例前幾
+dealer_self_top_1d_ratio = dealer_self_net_buy_ratio.rank(axis=1, ascending=False) <= 5
+dealer_self_top_2d_ratio = dealer_self_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 5
+dealer_self_buy_condition = dealer_self_top_1d_ratio | dealer_self_top_2d_ratio
 
 institutional_investors_top_buy_condition = foreign_buy_condition | investment_trust_buy_condition | dealer_self_buy_condition
 
@@ -66,16 +58,14 @@ dealer_total_net_buy_amount = dealer_self_net_buy_shares * close_price  # 自營
 # 計算三大法人的總買超金額
 total_net_buy_amount = foreign_total_net_buy_amount + investment_trust_net_buy_amount + dealer_total_net_buy_amount
 
-# 計算2天、3天的累積買超金額之和
+# 計算2天的累積買超金額之和
 total_net_buy_amount_2d_sum = total_net_buy_amount.rolling(2).sum()
-total_net_buy_amount_3d_sum = total_net_buy_amount.rolling(3).sum()
 
-# 取當天、前2天、前3天、前5天買超金額前幾
-total_market_top_1d = total_net_buy_amount.rank(axis=1, ascending=False) <= 3
-total_market_top_2d = total_net_buy_amount_2d_sum.rank(axis=1, ascending=False) <= 3
-total_market_top_3d = total_net_buy_amount_3d_sum.rank(axis=1, ascending=False) <= 3
+# 取當天、前2天買超金額前幾
+total_market_top_1d = total_net_buy_amount.rank(axis=1, ascending=False) <= 5
+total_market_top_2d = total_net_buy_amount_2d_sum.rank(axis=1, ascending=False) <= 5
 
-total_market_top_intersection = total_market_top_1d & total_market_top_2d & total_market_top_3d
+total_market_top_intersection = total_market_top_1d | total_market_top_2d
 
 with data.universe(market='TSE_OTC'):
     # 獲取主力籌碼數據 (買超和賣超)
@@ -88,19 +78,16 @@ net_buy_shares = (top15_buy_shares - top15_sell_shares) * 1000
 # 買賣超差額股數佔發行股數的比例
 net_buy_ratio = net_buy_shares / shares_outstanding
 
-# 計算2天、3天買賣超差額股數佔發行股數的比
+# 計算2天買賣超差額股數佔發行股數的比
 net_buy_ratio_2d_sum = net_buy_ratio.rolling(2).sum()
-net_buy_ratio_3d_sum = net_buy_ratio.rolling(3).sum()
 
 # 主力籌碼條件
-main_force_top_1d_buy = net_buy_ratio.rank(axis=1, ascending=False) <= 3
-main_force_top_2d_buy = net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 3
-main_force_top_3d_buy = net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 3
+main_force_top_1d_buy = net_buy_ratio.rank(axis=1, ascending=False) <= 5
+main_force_top_2d_buy = net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 5
 main_force_condition_1d = net_buy_ratio > 0.008
 main_force_condition_2d = net_buy_ratio_2d_sum > 0.015
-main_force_condition_3d = net_buy_ratio_3d_sum > 0.025
 
-main_force_buy_condition = ( main_force_top_1d_buy & main_force_condition_1d ) | ( main_force_top_2d_buy & main_force_condition_2d ) | ( main_force_top_3d_buy & main_force_condition_3d )
+main_force_buy_condition = ( main_force_top_1d_buy & main_force_condition_1d ) | ( main_force_top_2d_buy & main_force_condition_2d )
 
 chip_buy_condition = institutional_investors_top_buy_condition  | total_market_top_intersection | main_force_buy_condition
 
@@ -175,7 +162,7 @@ macd_dif_buy_condition = dif > dif.shift(1)
 
 # 創新高
 high_120 = adj_close.rolling(window=120).max()
-new_high_120_condition = adj_close >= high_120 * 0.9
+new_high_120_condition = adj_close >= high_120
 new_high_condition = new_high_120_condition
 
 # 技術面
@@ -202,11 +189,11 @@ yoy_growth_condition = (rev_year_growth > 0) & (rev_year_growth.shift(1) > 0)
 basic_condition = yoy_growth_condition
 
 # 最終的買入訊號
-buy_signal = chip_buy_condition & technical_buy_condition & basic_condition
+buy_signal = chip_buy_condition & technical_buy_condition
 
 # 設定起始買入日期
-# start_buy_date = '2017-12-31'
-# buy_signal = buy_signal.loc[start_buy_date:]
+start_buy_date = '2017-12-31'
+buy_signal = buy_signal.loc[start_buy_date:]
 
 # ### 賣出條件
 ## 法一: 短線出場

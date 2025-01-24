@@ -175,8 +175,7 @@ macd_dif_buy_condition = dif > dif.shift(1)
 
 # 創新高
 high_120 = adj_close.rolling(window=120).max()
-new_high_120_condition = adj_close >= high_120
-
+new_high_120_condition = adj_close >= high_120 * 0.9
 new_high_condition = new_high_120_condition
 
 # 技術面
@@ -195,8 +194,15 @@ technical_buy_condition = (
     new_high_condition
 )
 
+with data.universe(market='TSE_OTC'):
+    rev_year_growth = data.get('monthly_revenue:去年同月增減(%)')
+
+# YOY連續兩個月增加條件
+yoy_growth_condition = (rev_year_growth > 0) & (rev_year_growth.shift(1) > 0)
+basic_condition = yoy_growth_condition
+
 # 最終的買入訊號
-buy_signal = chip_buy_condition & technical_buy_condition
+buy_signal = chip_buy_condition & technical_buy_condition & basic_condition
 
 # 設定起始買入日期
 # start_buy_date = '2017-12-31'

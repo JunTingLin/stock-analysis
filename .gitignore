@@ -5,6 +5,7 @@ __pycache__/
 
 # Output directories
 output/
+report_finlab/
 logs/
 *.db
 

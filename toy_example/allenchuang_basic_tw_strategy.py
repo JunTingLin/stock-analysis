@@ -172,7 +172,7 @@ technical_buy_condition = (
     price_above_ma_buy_condition & 
     bias_buy_condition & 
     volume_doubled_condition & 
-    positive_close_condition &
+    # positive_close_condition &
     volume_above_500_condition &
 
     dmi_buy_condition & 

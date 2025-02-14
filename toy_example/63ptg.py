@@ -114,6 +114,7 @@ ma5 = adj_close.rolling(5).mean()
 ma10 = adj_close.rolling(10).mean()
 ma20 = adj_close.rolling(20).mean()
 ma60 = adj_close.rolling(60).mean()
+ma120 = adj_close.rolling(120).mean()
 ma240 = adj_close.rolling(240).mean()
 
 # 均線上升
@@ -126,9 +127,11 @@ ma5_above_others_condition = (ma5 > ma60) & (ma5 > ma240)
 price_above_ma_buy_condition = (adj_close > ma5) & (adj_close > ma10) & (adj_close > ma20) & (adj_close > ma60)
 
 # 計算乖離率
+bias_5 = (adj_close - ma5) / ma5
 bias_10 = (adj_close - ma10) / ma10
 bias_20 = (adj_close - ma20) / ma20
 bias_60 = (adj_close - ma60) / ma60
+bias_120 = (adj_close - ma120) / ma120
 bias_240 = (adj_close - ma240) / ma240
 
 
@@ -198,8 +201,8 @@ technical_buy_condition = (
 buy_signal = chip_buy_condition & technical_buy_condition
 
 # 設定起始買入日期
-# start_buy_date = '2017-12-31'
-# buy_signal = buy_signal.loc[start_buy_date:]
+start_buy_date = '2017-12-31'
+buy_signal = buy_signal.loc[start_buy_date:]
 
 # ### 賣出條件
 ## 法一: 短線出場
@@ -217,3 +220,78 @@ from finlab.backtest import sim
 # report = sim(position, resample=None, upload=False, trade_at_price='close')
 report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 
+
+# ===============================================================================
+
+import matplotlib.pyplot as plt
+
+def plot_bias_vs_return(bias, trades, bias_name):
+    bias_values = []
+    trade_returns = []
+
+    for date, stock_id, trade_return in zip(trades['entry_sig_date'], trades['stock_id'], trades['return']):
+        stock_id = stock_id.split()[0]  # 提取股票代號
+        if date in bias.index and stock_id in bias.columns:
+            # 獲取該筆交易的 bias 和 return，並轉換為百分比
+            bias_values.append(bias.loc[date, stock_id])
+            trade_returns.append(trade_return * 100)  # 回報轉換為百分比
+
+    # 將數據轉為 pandas Series
+    bias_values = pd.Series(bias_values, name=bias_name)
+    trade_returns = pd.Series(trade_returns, name="Return (%)")
+
+    # 確認數據大小是否一致
+    print(f"Number of {bias_name} values: {len(bias_values)}")
+    print(f"Number of Return values: {len(trade_returns)}")
+
+    # 散點圖：展示 bias 與 Return 的關係
+    plt.figure(figsize=(10, 6))
+    plt.scatter(bias_values, trade_returns, alpha=0.7, color="blue", label=f"{bias_name} vs Return")
+    plt.axhline(0, color='red', linestyle='--', linewidth=0.8)  # 基準線
+    plt.title(f"Scatter Plot of {bias_name} vs Return")
+    plt.xlabel(bias_name)
+    plt.ylabel("Return (%)")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+
+    # 直方圖
+    bins = np.arange(0, bias_values.max() + 0.05, 0.05)  # 每 5% 一個區間
+    bias_return_df = pd.DataFrame({bias_name: bias_values, "Return (%)": trade_returns})
+    bias_return_df[f"{bias_name}_Bins"] = pd.cut(bias_return_df[bias_name], bins=bins)
+    average_return_per_bin = bias_return_df.groupby(f"{bias_name}_Bins")["Return (%)"].mean()
+
+    # 繪製直方圖
+    average_return_per_bin.plot(kind="bar", figsize=(12, 6), color="green", alpha=0.7)
+    plt.title(f"Average Return per {bias_name} Interval")
+    plt.xlabel(f"{bias_name} Interval")
+    plt.ylabel("Average Return (%)")
+    plt.grid(True)
+    plt.show()
+
+    # 輸出統計數據
+    print(f"Average Return per {bias_name} Interval:")
+    print(average_return_per_bin)
+
+# 提取交易報告中的交易信息
+trades = report.get_trades()
+
+# 確定離群值閾值，例如回報超過 500%
+outlier_threshold = 5  # 500%
+outliers = trades[trades["return"] > outlier_threshold]
+print(f"Outliers:\n{outliers}")
+
+# 移除離群值
+# trades = trades[trades["return"] <= outlier_threshold]
+
+# Plot for Bias_5
+plot_bias_vs_return(bias_5, trades, "Bias_5")
+
+# Plot for Bias_10
+plot_bias_vs_return(bias_10, trades, "Bias_10")
+
+# Plot for Bias_20
+plot_bias_vs_return(bias_20, trades, "Bias_20")
+
+# Plot for Bias_120
+plot_bias_vs_return(bias_120, trades, "Bias_120")

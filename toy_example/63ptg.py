@@ -54,28 +54,28 @@ dealer_self_buy_condition = dealer_self_top_1d_ratio | dealer_self_top_2d_ratio 
 
 institutional_investors_top_buy_condition = foreign_buy_condition | investment_trust_buy_condition | dealer_self_buy_condition
 
-with data.universe(market='TSE_OTC'):
-    # 獲取每檔股票的收盤價數據
-    close_price = data.get('price:收盤價')
+# with data.universe(market='TSE_OTC'):
+#     # 獲取每檔股票的收盤價數據
+#     close_price = data.get('price:收盤價')
 
-# 計算三大法人的買超金額
-foreign_total_net_buy_amount = foreign_net_buy_shares  * close_price  # 外資
-investment_trust_net_buy_amount = investment_trust_net_buy_shares * close_price  # 投信
-dealer_total_net_buy_amount = dealer_self_net_buy_shares * close_price  # 自營商
+# # 計算三大法人的買超金額
+# foreign_total_net_buy_amount = foreign_net_buy_shares  * close_price  # 外資
+# investment_trust_net_buy_amount = investment_trust_net_buy_shares * close_price  # 投信
+# dealer_total_net_buy_amount = dealer_self_net_buy_shares * close_price  # 自營商
 
-# 計算三大法人的總買超金額
-total_net_buy_amount = foreign_total_net_buy_amount + investment_trust_net_buy_amount + dealer_total_net_buy_amount
+# # 計算三大法人的總買超金額
+# total_net_buy_amount = foreign_total_net_buy_amount + investment_trust_net_buy_amount + dealer_total_net_buy_amount
 
-# 計算2天、3天的累積買超金額之和
-total_net_buy_amount_2d_sum = total_net_buy_amount.rolling(2).sum()
-total_net_buy_amount_3d_sum = total_net_buy_amount.rolling(3).sum()
+# # 計算2天、3天的累積買超金額之和
+# total_net_buy_amount_2d_sum = total_net_buy_amount.rolling(2).sum()
+# total_net_buy_amount_3d_sum = total_net_buy_amount.rolling(3).sum()
 
-# 取當天、前2天、前3天、前5天買超金額前幾
-total_market_top_1d = total_net_buy_amount.rank(axis=1, ascending=False) <= 3
-total_market_top_2d = total_net_buy_amount_2d_sum.rank(axis=1, ascending=False) <= 3
-total_market_top_3d = total_net_buy_amount_3d_sum.rank(axis=1, ascending=False) <= 3
+# # 取當天、前2天、前3天、前5天買超金額前幾
+# total_market_top_1d = total_net_buy_amount.rank(axis=1, ascending=False) <= 3
+# total_market_top_2d = total_net_buy_amount_2d_sum.rank(axis=1, ascending=False) <= 3
+# total_market_top_3d = total_net_buy_amount_3d_sum.rank(axis=1, ascending=False) <= 3
 
-total_market_top_intersection = total_market_top_1d & total_market_top_2d & total_market_top_3d
+# total_market_top_intersection = total_market_top_1d & total_market_top_2d & total_market_top_3d
 
 with data.universe(market='TSE_OTC'):
     # 獲取主力籌碼數據 (買超和賣超)
@@ -102,7 +102,7 @@ main_force_condition_3d = net_buy_ratio_3d_sum > 0.025
 
 main_force_buy_condition = ( main_force_top_1d_buy & main_force_condition_1d ) | ( main_force_top_2d_buy & main_force_condition_2d ) | ( main_force_top_3d_buy & main_force_condition_3d )
 
-chip_buy_condition = institutional_investors_top_buy_condition  | total_market_top_intersection | main_force_buy_condition
+chip_buy_condition = institutional_investors_top_buy_condition | main_force_buy_condition
 
 with data.universe(market='TSE_OTC'):
     adj_close = data.get('etl:adj_close')
@@ -136,10 +136,19 @@ bias_240 = (adj_close - ma240) / ma240
 
 
 # 設定進場條件為乖離率在正向且小於 0.14
-bias_buy_condition = ((bias_10 < 0.14) & (bias_10 > 0) &
-                      (bias_20 < 0.14) & (bias_20 > 0) &
-                      (bias_60 <= 0.20) & (bias_60 >= 0.05) & 
-                      (bias_240 <= 0.25) & (bias_240 >= 0.10))
+# bias_buy_condition = ((bias_10 < 0.14) & (bias_10 > 0) &
+#                       (bias_20 < 0.14) & (bias_20 > 0) &
+#                       (bias_60 <= 0.20) & (bias_60 >= 0.05) & 
+#                       (bias_240 <= 0.25) & (bias_240 >= 0.10))
+
+bias_buy_condition = (
+                    (bias_5 <= 0.12) & (bias_5 >= 0.02) &
+                    (bias_10 <= 0.15) & (bias_10 >= 0.05) &
+                    (bias_20 <= 0.20) & (bias_20 >= 0.05) &
+                    (bias_60 <= 0.20) & (bias_60 >= 0.05) & 
+                    (bias_120 <= 0.25) & (bias_120 >= 0.10) &
+                    (bias_240 <= 0.25) & (bias_240 >= 0.10)
+                    )
 
 with data.universe(market='TSE_OTC'):
     # 獲取成交量數據

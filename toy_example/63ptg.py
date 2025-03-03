@@ -1,7 +1,4 @@
 from finlab import data
-#  finlab 版本 < 1.2.20
-# from finlab.market_info import TWMarketInfo
-#  finlab 版本 >= 1.2.20
 from finlab.markets.tw import TWMarket
 import pandas as pd
 import numpy as np
@@ -53,29 +50,6 @@ dealer_self_top_3d_ratio = dealer_self_net_buy_ratio_3d_sum.rank(axis=1, ascendi
 dealer_self_buy_condition = dealer_self_top_1d_ratio | dealer_self_top_2d_ratio | dealer_self_top_3d_ratio
 
 institutional_investors_top_buy_condition = foreign_buy_condition | investment_trust_buy_condition | dealer_self_buy_condition
-
-# with data.universe(market='TSE_OTC'):
-#     # 獲取每檔股票的收盤價數據
-#     close_price = data.get('price:收盤價')
-
-# # 計算三大法人的買超金額
-# foreign_total_net_buy_amount = foreign_net_buy_shares  * close_price  # 外資
-# investment_trust_net_buy_amount = investment_trust_net_buy_shares * close_price  # 投信
-# dealer_total_net_buy_amount = dealer_self_net_buy_shares * close_price  # 自營商
-
-# # 計算三大法人的總買超金額
-# total_net_buy_amount = foreign_total_net_buy_amount + investment_trust_net_buy_amount + dealer_total_net_buy_amount
-
-# # 計算2天、3天的累積買超金額之和
-# total_net_buy_amount_2d_sum = total_net_buy_amount.rolling(2).sum()
-# total_net_buy_amount_3d_sum = total_net_buy_amount.rolling(3).sum()
-
-# # 取當天、前2天、前3天、前5天買超金額前幾
-# total_market_top_1d = total_net_buy_amount.rank(axis=1, ascending=False) <= 3
-# total_market_top_2d = total_net_buy_amount_2d_sum.rank(axis=1, ascending=False) <= 3
-# total_market_top_3d = total_net_buy_amount_3d_sum.rank(axis=1, ascending=False) <= 3
-
-# total_market_top_intersection = total_market_top_1d & total_market_top_2d & total_market_top_3d
 
 with data.universe(market='TSE_OTC'):
     # 獲取主力籌碼數據 (買超和賣超)
@@ -135,12 +109,7 @@ bias_120 = (adj_close - ma120) / ma120
 bias_240 = (adj_close - ma240) / ma240
 
 
-# 設定進場條件為乖離率在正向且小於 0.14
-# bias_buy_condition = ((bias_10 < 0.14) & (bias_10 > 0) &
-#                       (bias_20 < 0.14) & (bias_20 > 0) &
-#                       (bias_60 <= 0.20) & (bias_60 >= 0.05) & 
-#                       (bias_240 <= 0.25) & (bias_240 >= 0.10))
-
+# 設定進場乖離率
 bias_buy_condition = (
                     (bias_5 <= 0.12) & (bias_5 >= 0.02) &
                     (bias_10 <= 0.15) & (bias_10 >= 0.05) &
@@ -205,6 +174,24 @@ technical_buy_condition = (
     macd_dif_buy_condition &
     new_high_condition
 )
+
+with data.universe(market='TSE_OTC'):
+    # 取得月營收及去年同月增減(%)資料
+    monthly_revenue = data.get('monthly_revenue:當月營收')
+    monthly_revenue_yoy = data.get('monthly_revenue:去年同月增減(%)')
+
+# 判斷連續兩個月的 YOY 增長是否均達到 20%
+revenue_yoy_increase = monthly_revenue_yoy >= 20
+consecutive_revenue_yoy = revenue_yoy_increase & revenue_yoy_increase.shift(1)
+
+# 判斷近3個月平均營收是否大於過去12個月平均營收
+revenue_3m_avg = monthly_revenue.rolling(window=3).mean()
+revenue_12m_avg = monthly_revenue.rolling(window=12).mean()
+revenue_growth = revenue_3m_avg > revenue_12m_avg
+
+# 基本面
+fundamental_buy_condition = consecutive_revenue_yoy & revenue_growth
+
 
 # 最終的買入訊號
 buy_signal = chip_buy_condition & technical_buy_condition

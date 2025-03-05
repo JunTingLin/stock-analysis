@@ -8,7 +8,7 @@ config_loader.load_env_vars()
 
 auth = Authenticator()
 auth.login_finlab()
-acc = auth.login_fugle()
+acc = auth._login_fugle()
 
 order_executor = OrderExecutor(None, acc)
 order_executor.cancel_orders()

@@ -1,114 +1,67 @@
-import os
-import logging
-import argparse
 import datetime
+import logging
+from logger_manager import LoggerManager
 from authentication import Authenticator
 from config_loader import ConfigLoader
-from line_notifier import LineNotifier
-from portfolio_manager import PortfolioManager
-from logger_config import LoggerConfig
-from report_manager import ReportManager
-from utils import is_trading_day
+from finlab.portfolio import Portfolio
+from finlab.portfolio import PortfolioSyncManager
 
-def initialize_environment(args):
-    config_loader = ConfigLoader()
-    config_loader.load_env_vars()
-    config_loader.update_dynamic_params(args)
+batch_timestamp = datetime.datetime.now()
 
-    auth = Authenticator()
-    auth.login_finlab()
-    acc = auth.login_fugle()
+log_config = LoggerManager(
+    base_log_directory="logs",
+    current_datetime=batch_timestamp,
+    user_id="junting",
+    broker="fugle"
+)
+log_file = log_config.setup_logging()
+logger = logging.getLogger(__name__)
+logger.info(f"Log file: {log_file}")
 
-    return config_loader, acc
+userId = 'junting'
+broker = 'fugle'
+logger.info(f"userId: {userId}, broker: {broker}")
 
-def setup_logger(current_datetime):
-    log_directory = "logs"
-    logger_config = LoggerConfig(log_directory, current_datetime)
-    log_filepath = logger_config.setup_logging()
+config_loader = ConfigLoader("config.yaml")
+config_loader.load_global_env_vars()
+config_loader.load_user_config(userId, broker)
+auth = Authenticator()
+auth.login_finlab()
+account = auth.login_broker(broker)
 
 
-def execute_trading(config_loader, acc, current_datetime):
-    if is_trading_day(acc):
-        strategy_class_name = config_loader.get("strategy_class_name")
-        account_name = config_loader.get_account_name()
-        portfolio_manager = PortfolioManager(
-            acc, 
-            config_loader.get("weight"),
-            strategy_class_name, 
-            current_datetime, 
-            config_loader.get("extra_bid_pct"),
-            config_loader.get("view_only")
-        )
-
-        try:
-            portfolio_manager.execute_order()
-        except Exception as e:
-            logging.exception("Error during order execution")
-            notifier = LineNotifier(config_loader.get_env_var("LINE_NOTIFY_TOKEN"))
-            notifier.send_notification(
-                f"\nStrategy: {strategy_class_name}\n"
-                f"Account: {account_name}\n"
-                f"Simulation: {portfolio_manager.is_simulation}\n"
-                f"Error during order execution: {e}\n"
-                "Please check the system for more details."
-            )
-            return  # 停止後續報告生成
-
-        report_finlab_directory = "output/report_finlab"
-        report_final_directory = "output/report_final"
-        report_template_path = "templates/report_template.html"
-
-        try:
-            data_dict = portfolio_manager.update_data_dict(report_finlab_directory)
-            report_manager = ReportManager(
-                data_dict, report_finlab_directory, report_final_directory, current_datetime, report_template_path,
-                strategy_class_name, account_name, portfolio_manager.is_simulation
-            )
-            final_report_path = report_manager.save_final_report()
-
-            # 獲取公開 URL 基礎地址
-            public_base_url = config_loader.get("public_base_url")
-            
-            # 將本地報告路徑轉換為相對於公開基礎 URL 的路徑
-            relative_report_path = os.path.relpath(final_report_path, start="output")
-            public_report_url = f"{public_base_url}/{relative_report_path.replace(os.path.sep, '/')}"
-            
-            # 初始化 LineNotifier 並發送推播通知
-            line_token = config_loader.get_env_var("LINE_NOTIFY_TOKEN")
-            notifier = LineNotifier(line_token)
-            notifier.send_notification(
-                f"\nStrategy: {strategy_class_name}\n"
-                f"Account: {account_name}\n"
-                f"Simulation: {portfolio_manager.is_simulation}\n"
-                f"Report generated on {current_datetime.strftime('%Y-%m-%d %H:%M:%S')}:\n"
-                f"{public_report_url}"
-            )
-        except Exception as e:
-            logging.exception("Error during report generation")
-            notifier = LineNotifier(config_loader.get_env_var("LINE_NOTIFY_TOKEN"))
-            notifier.send_notification(
-                f"\nStrategy: {strategy_class_name}\n"
-                f"Account: {account_name}\n"
-                f"Simulation: {portfolio_manager.is_simulation}\n"
-                f"Error during report generation: {e}\n"
-                "Please check the system for more details."
-            )
-
+def load_strategy(strategy_class_name):
+    if strategy_class_name == 'TibetanMastiffTWStrategy':
+        from strategy_class.tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy as strategy_class
+    elif strategy_class_name == 'PeterWuStrategy':
+        from strategy_class.peterwu_tw_strategy import PeterWuStrategy as strategy_class
     else:
-        logging.info("今天不是交易日，無需執行下單操作。")
+        raise ValueError(f"Unknown strategy class: {strategy_class_name}")
+    return strategy_class()
 
-def main():
-    parser = argparse.ArgumentParser(description='Process parameters for order execution.')
-    parser.add_argument('--extra_bid_pct', type=float, help='Extra bid percentage for order execution')
-    args = parser.parse_args()
+strategy_class_name = config_loader.get_user_constant("strategy_class_name")
+strategy = load_strategy(strategy_class_name)
+report = strategy.run_strategy()
 
-    config_loader, acc = initialize_environment(args)
-    current_datetime = datetime.datetime.now()
+port = Portfolio({
+    'strategy': (report, 1.0),
+})
+pm_name = f"{userId}_{broker}"
+try:
+    pm = PortfolioSyncManager.from_local(name=pm_name)
+except FileNotFoundError:
+    pm = PortfolioSyncManager()
 
-    setup_logger(current_datetime)    
-    execute_trading(config_loader, acc, current_datetime)
+total_balance = account.get_total_balance()
+if total_balance <= 0:
+    raise ValueError(f"{userId}'s total balance is not positive. Please check your {broker} account balance.")
+
+rebalance_safety_weight = config_loader.get_user_constant("rebalance_safety_weight")
+pm.update(port, total_balance=total_balance, rebalance_safety_weight=rebalance_safety_weight, odd_lot=True)
+pm.to_local(name=pm_name)
+
+extra_bid_pct = config_loader.get_user_constant("extra_bid_pct")
+view_only = config_loader.get_user_constant("view_only")
+pm.sync(account, extra_bid_pct=extra_bid_pct, view_only=view_only)
 
 
-
-if __name__ == "__main__":
-    main()

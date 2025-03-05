@@ -32,16 +32,16 @@ app.layout = html.Div([
             html.P("Select Order Date:"),
             dcc.DatePickerSingle(
                 id='order-date-picker',
-                min_date_allowed=date(2020, 1, 1),
-                max_date_allowed=date(2100, 12, 31),
-                date=date(2024, 8, 18)  # 預設值
+                min_date_allowed=date(2025, 1, 1),
+                max_date_allowed=date(2030, 12, 31),
+                date=date.today()
             ),
             dash_table.DataTable(
                 id='orders-table',
                 columns=[
                     {"name": "ID", "id": "id"},
-                    {"name": "代號", "id": "stk_no"},
-                    {"name": "名稱", "id": "stk_na"},
+                    {"name": "股票代號", "id": "stk_no"},
+                    {"name": "股票名稱", "id": "stk_na"},
                     {"name": "股數", "id": "qty"},
                     {"name": "委託價", "id": "limit_price"},
                     {"name": "加減碼%", "id": "extra_bid_pct"},
@@ -60,10 +60,9 @@ app.layout = html.Div([
             html.P("Select Date:"),
             dcc.DatePickerSingle(
                 id='inventory-date-picker',
-                min_date_allowed=date(2020, 1, 1),
-                max_date_allowed=date(2100, 12, 31),
-                initial_visible_month=date(2024, 1, 1),
-                date=date(2024, 1, 1)  # 預設選擇
+                min_date_allowed=date(2025, 1, 1),
+                max_date_allowed=date(2030, 12, 31),
+                date=date.today()
             ),
 
             html.H4("庫存彙總 (inventories):"),

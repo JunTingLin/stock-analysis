@@ -10,7 +10,7 @@ def initialize_environment():
 
     auth = Authenticator()
     auth.login_finlab()
-    acc = auth.login_fugle()
+    acc = auth._login_fugle()
     return acc
 
 def get_and_store_transactions(acc):

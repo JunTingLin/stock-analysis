@@ -10,14 +10,8 @@ logs/
 *.db
 
 # Configuration files
-config.json
-*.p12
-*.ini
-*.env
-*.yaml
-
-# User-specific files
-user_ids.json
+/config
+config.yaml
 
 # Environment and setup files
 *.sh

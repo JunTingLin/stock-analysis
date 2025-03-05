@@ -93,3 +93,47 @@ class OrderDAO:
         conn.close()
         orders = [dict(zip(col_names, row)) for row in rows]
         return orders
+    
+    def get_available_years(self, account_id):
+        """取得指定帳戶所有可用的年份"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT strftime('%Y', order_timestamp) as year
+            FROM order_history
+            WHERE account_id = ?
+            ORDER BY year DESC
+        """, (account_id,))
+        years = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return years
+
+    def get_available_months(self, account_id, year):
+        """取得指定帳戶和年份所有可用的月份"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT strftime('%m', order_timestamp) as month
+            FROM order_history
+            WHERE account_id = ? AND strftime('%Y', order_timestamp) = ?
+            ORDER BY month DESC
+        """, (account_id, year))
+        months = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return months
+
+    def get_available_days(self, account_id, year, month):
+        """取得指定帳戶、年份和月份所有可用的日期"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT strftime('%d', order_timestamp) as day
+            FROM order_history
+            WHERE account_id = ? 
+            AND strftime('%Y', order_timestamp) = ? 
+            AND strftime('%m', order_timestamp) = ?
+            ORDER BY day DESC
+        """, (account_id, year, month))
+        days = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return days

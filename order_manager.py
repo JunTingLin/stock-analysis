@@ -80,9 +80,9 @@ class OrderManager:
             self.order_dao.insert_order_logs(order_logs, account_id, self.order_timestamp)
             self.save_finlab_report(report, self.user_name, self.broker, self.order_timestamp)
 
-    def save_finlab_report(self, report, user_name, broker, order_timestamp, base_assets_directory="assets"):
-        subdirectory = f"{user_name}-{broker}"
-        report_directory = os.path.join(base_assets_directory, "report_finlab", subdirectory)
+    def save_finlab_report(self, report, user_name, broker, order_timestamp, base_directory="assets/report_finlab"):
+        subdirectory = f"{user_name}_{broker}"
+        report_directory = os.path.join(base_directory, subdirectory)
         if not os.path.exists(report_directory):
             os.makedirs(report_directory)
         datetime_str = order_timestamp.strftime("%Y-%m-%d_%H-%M-%S")

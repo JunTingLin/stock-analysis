@@ -72,3 +72,24 @@ class OrderDAO:
         conn.commit()
         conn.close()
         logger.info(f"Inserted {len(order_logs)} order logs into order_history")
+
+
+    def get_orders_by_account_and_date(self, account_id, query_date):
+        """
+        根據 account_id 與 query_date 撈取當天的訂單資料。
+        query_date 為 datetime.date 物件
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        # 假設 create_timestamp 儲存格式為 "YYYY-MM-DD HH:MM:SS"，用 LIKE 搜尋當天記錄
+        date_pattern = query_date.strftime("%Y-%m-%d") + "%"
+        cursor.execute("""
+            SELECT account_id, order_timestamp, create_timestamp, action, stock_id, stock_name, quantity, price, extra_bid_pct, order_condition
+            FROM order_history
+            WHERE account_id = ? AND create_timestamp LIKE ?
+        """, (account_id, date_pattern))
+        rows = cursor.fetchall()
+        col_names = [desc[0] for desc in cursor.description]
+        conn.close()
+        orders = [dict(zip(col_names, row)) for row in rows]
+        return orders

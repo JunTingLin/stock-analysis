@@ -36,6 +36,9 @@
 - `Flask-AutoIndex`：自動索引與公開資料夾報告
 - `gunicorn`：WSGI HTTP 伺服器，用於生產環境下的 Web 服務
 
+- `dash`：用於生成交互式 Web 應用
+- `dash-bootstrap-components`：用於生成 Bootstrap 組件
+
 ⚠️ **提醒**：
 請確保 `numpy` 的版本低於 2.0 (`<2`)。`finlab` 依賴較舊版本的 `numpy`，若 `numpy` 被手動升級到 2.0 以上，可能會導致 `finlab` 無法正常運行。
 

@@ -29,7 +29,7 @@ class AccountDAO:
         根據 account_name 取得 account_id，若不存在則新增一筆帳戶資料並回傳 account_id。
         
         Args:
-            account_name (str): 帳戶名稱，例如 "junting-fugle"。
+            account_name (str): 帳戶名稱，例如 "junting_fugle"。
             broker (str): 券商名稱，例如 "fugle"。
             user_name (str): 使用者名稱，例如 "junting"。
         
@@ -53,3 +53,16 @@ class AccountDAO:
             logger.info(f"Created new account_id: {account_id}")
         conn.close()
         return account_id
+    
+    def get_all_accounts(self):
+        """
+        取得所有帳戶資料，回傳一個列表，每個項目為 dict，包含 account_id, account_name, broker, user_name, created_timestamp。
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT account_id, account_name, broker, user_name, created_timestamp FROM account")
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        conn.close()
+        accounts = [dict(zip(columns, row)) for row in rows]
+        return accounts

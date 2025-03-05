@@ -53,7 +53,7 @@ class LoggerManager:
                     d = match.groupdict()
                     d["quantity"] = float(d["quantity"])
                     d["price"] = float(d["price"])
-                    d["extra_bid_pct"] = float(d["extra_bid_pct"]) if d["extra_bid_pct"] is not None else 0.0
+                    d["extra_bid_pct"] = float(d["extra_bid_pct"]) / 100 if d["extra_bid_pct"] is not None else 0.0
                     order_logs.append(d)
         return order_logs
 

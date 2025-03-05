@@ -85,11 +85,11 @@ class Authenticator:
 
 if __name__ == "__main__":
     try:
-        userId = 'junting'
+        user_name = 'junting'
         broker = 'fugle'
         config_loader = ConfigLoader("config.yaml")
         config_loader.load_global_env_vars()
-        config_loader.load_user_config(userId, broker)
+        config_loader.load_user_config(user_name, broker)
         auth = Authenticator()
         auth.login_finlab()
         account = auth.login_broker(broker)

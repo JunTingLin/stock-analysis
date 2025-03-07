@@ -55,6 +55,7 @@ class OrderManager:
             pm = PortfolioSyncManager()
 
         total_balance = self.account.get_total_balance()
+        logger.info("Total balance: {total_balance}")
         if total_balance <= 0:
             raise ValueError(f"{self.user_name}'s total balance is not positive. Please check your {self.broker} account balance.")
 
@@ -109,7 +110,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    logger.info(f"user_name: {args.user_name}, broker: {args.broker}, extra_bid_pct: {args.extra_bid_pct}, view_only: {args.view_only}")
+    logger.info(f"args: {args}")
 
     try:
         order_manager = OrderManager(

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
-from authentication import Authenticator
-from config_loader import ConfigLoader
+from utils.authentication import Authenticator
+from utils.config_loader import ConfigLoader
 from db import init_db, store_assets, store_inventories_and_details, store_transaction_and_details
 
 def initialize_environment():

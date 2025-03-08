@@ -59,7 +59,9 @@ class LoggerManager:
 
 if __name__ == "__main__":
     from datetime import datetime
-    config = LoggerManager(base_log_directory="logs",
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(root_dir)
+    config = LoggerManager(base_log_directory=os.path.join(root_dir, "logs"),
                           current_datetime=datetime.now(),
                           user_id="junting",
                           broker="fugle")

@@ -34,10 +34,13 @@ class ConfigLoader:
         return os.environ.get(key)
 
 if __name__ == "__main__":
-    config_loader = ConfigLoader("config.yaml")
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(root_dir)
+
+    config_loader = ConfigLoader(os.path.join(root_dir, "config.yaml"))
     config_loader.load_global_env_vars()
     
-    config_loader.load_user_config("junting", "shioaji")
+    config_loader.load_user_config("junting", "fugle")
 
     print("FINLAB_API_TOKEN:", os.environ.get("FINLAB_API_TOKEN"))
     print("FUGLE_ACCOUNT:", os.environ.get("FUGLE_ACCOUNT"))

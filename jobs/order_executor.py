@@ -2,16 +2,16 @@ import argparse
 import datetime
 import logging
 import os
-from logger_manager import LoggerManager
-from authentication import Authenticator
-from config_loader import ConfigLoader
+from utils.logger_manager import LoggerManager
+from utils.authentication import Authenticator
+from utils.config_loader import ConfigLoader
 from finlab.portfolio import Portfolio, PortfolioSyncManager
 from dao import OrderDAO, AccountDAO
-from stock_mapper import StockMapper
+from utils.stock_mapper import StockMapper
 
 logger = logging.getLogger(__name__)
 
-class OrderManager:
+class OrderExecutor:
     def __init__(self, user_name, broker, extra_bid_pct, view_only, config_path="config.yaml", base_log_directory="logs"):
         self.user_name = user_name
         self.broker = broker
@@ -101,6 +101,9 @@ class OrderManager:
         return strategy_class()
 
 if __name__ == "__main__":
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(root_dir)
+
     parser = argparse.ArgumentParser(description="Run OrderManager")
     parser.add_argument("--user_name", required=True, help="User name (e.g., junting)")
     parser.add_argument("--broker", required=True, help="Broker name (e.g., fugle)")
@@ -113,16 +116,16 @@ if __name__ == "__main__":
     logger.info(f"args: {args}")
 
     try:
-        order_manager = OrderManager(
+        order_manager = OrderExecutor(
             user_name=args.user_name,
             broker=args.broker,
             extra_bid_pct=args.extra_bid_pct,
             view_only=args.view_only,
-            config_path="config.yaml",
-            base_log_directory="logs"
+            config_path = os.path.join(root_dir, "config.yaml"),
+            base_log_directory = os.path.join(root_dir, "logs")
         )
         order_manager.run_strategy_and_sync()
     except Exception as e:
         logger.exception(e)
 
-    # python order_manager.py --user_name junting --broker fugle --extra_bid_pct 0 --view_only
+    # python -m jobs.order_executor --user_name junting --broker fugle --extra_bid_pct 0 --view_only

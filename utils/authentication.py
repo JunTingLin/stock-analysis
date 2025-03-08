@@ -7,7 +7,7 @@ import finlab
 from finlab.online.fugle_account import FugleAccount
 from finlab.online.sinopac_account import SinopacAccount
 from fugle_trade.util import setup_keyring
-from config_loader import ConfigLoader
+from utils.config_loader import ConfigLoader
 
 logger = logging.getLogger(__name__)
 
@@ -84,10 +84,14 @@ class Authenticator:
             raise ValueError(f"Unsupported broker: {broker}")
 
 if __name__ == "__main__":
+
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(root_dir)
+
     try:
         user_name = 'junting'
         broker = 'fugle'
-        config_loader = ConfigLoader("config.yaml")
+        config_loader = ConfigLoader(os.path.join(root_dir, "config.yaml"))
         config_loader.load_global_env_vars()
         config_loader.load_user_config(user_name, broker)
         auth = Authenticator()

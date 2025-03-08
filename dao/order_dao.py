@@ -43,6 +43,8 @@ class OrderDAO:
         """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+        if order_timestamp is None:
+            raise ValueError("order_timestamp cannot be None")
         # 將批次時間轉為字串格式儲存 (ISO 格式比較普遍)
         batch_ts_str = order_timestamp.strftime("%Y-%m-%d %H:%M:%S")
         for order in order_logs:

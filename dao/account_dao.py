@@ -16,7 +16,7 @@ class AccountDAO:
             CREATE TABLE IF NOT EXISTS account (
                 account_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 account_name TEXT UNIQUE,
-                broker TEXT,
+                broker_name TEXT,
                 user_name TEXT,
                 created_timestamp TEXT DEFAULT (datetime('now','localtime'))
             );
@@ -24,13 +24,13 @@ class AccountDAO:
         conn.commit()
         conn.close()
     
-    def get_account_id(self, account_name, broker, user_name):
+    def get_account_id(self, account_name, broker_name, user_name):
         """
         根據 account_name 取得 account_id，若不存在則新增一筆帳戶資料並回傳 account_id。
         
         Args:
             account_name (str): 帳戶名稱，例如 "junting_fugle"。
-            broker (str): 券商名稱，例如 "fugle"。
+            broker_name (str): 券商名稱，例如 "fugle"。
             user_name (str): 使用者名稱，例如 "junting"。
         
         Returns:
@@ -45,9 +45,9 @@ class AccountDAO:
             logger.info(f"Found existing account_id: {account_id}")
         else:
             cursor.execute("""
-                INSERT INTO account (account_name, broker, user_name)
+                INSERT INTO account (account_name, broker_name, user_name)
                 VALUES (?, ?, ?)
-            """, (account_name, broker, user_name))
+            """, (account_name, broker_name, user_name))
             conn.commit()
             account_id = cursor.lastrowid
             logger.info(f"Created new account_id: {account_id}")
@@ -56,11 +56,11 @@ class AccountDAO:
     
     def get_all_accounts(self):
         """
-        取得所有帳戶資料，回傳一個列表，每個項目為 dict，包含 account_id, account_name, broker, user_name, created_timestamp。
+        取得所有帳戶資料，回傳一個列表，每個項目為 dict，包含 account_id, account_name, broker_name, user_name, created_timestamp。
         """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT account_id, account_name, broker, user_name, created_timestamp FROM account")
+        cursor.execute("SELECT account_id, account_name, broker_name, user_name, created_timestamp FROM account")
         rows = cursor.fetchall()
         columns = [desc[0] for desc in cursor.description]
         conn.close()

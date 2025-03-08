@@ -74,14 +74,14 @@ class Authenticator:
         logger.info("Successfully logged into Shioaji")
         return account
 
-    def login_broker(self, broker: str):
-        broker = broker.lower()
-        if broker == "fugle":
+    def login_broker(self, broker_name: str):
+        broker_name = broker_name.lower()
+        if broker_name == "fugle":
             return self._login_fugle()
-        elif broker == "shioaji":
+        elif broker_name == "shioaji":
             return self._login_shioaji()
         else:
-            raise ValueError(f"Unsupported broker: {broker}")
+            raise ValueError(f"Unsupported broker: {broker_name}")
 
 if __name__ == "__main__":
 
@@ -90,13 +90,13 @@ if __name__ == "__main__":
 
     try:
         user_name = 'junting'
-        broker = 'fugle'
+        broker_name = 'fugle'
         config_loader = ConfigLoader(os.path.join(root_dir, "config.yaml"))
         config_loader.load_global_env_vars()
-        config_loader.load_user_config(user_name, broker)
+        config_loader.load_user_config(user_name, broker_name)
         auth = Authenticator()
         auth.login_finlab()
-        account = auth.login_broker(broker)
+        account = auth.login_broker(broker_name)
         
         print("Account:", account)
 

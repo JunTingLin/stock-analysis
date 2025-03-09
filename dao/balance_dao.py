@@ -24,7 +24,7 @@ class BalanceDAO:
                 adjusted_bank_balance REAL,
                 market_value REAL,
                 total_assets REAL,
-                record_timestamp TEXT,
+                fetch_timestamp TEXT,
                 created_timestamp TEXT DEFAULT (datetime('now','localtime')),
                 FOREIGN KEY (account_id) REFERENCES account (account_id)
             );
@@ -46,22 +46,22 @@ class BalanceDAO:
         """
         return self.account_dao.get_account_id(account_name, broker_name, user_name)
     
-    def insert_balance(self, balance_data, account_id, timestamp=None):
+    def insert_balance(self, account_id, balance_data, fetch_timestamp=None):
         """
         插入餘額資料至資料庫
         
         Args:
-            balance_data (dict): 餘額資料，包含 bank_balance, settlements, adjusted_bank_balance, market_value, total_assets
             account_id (int): 帳戶ID
-            timestamp (datetime, optional): 紀錄時間戳記，若未提供則使用目前時間
+            balance_data (dict): 餘額資料，包含 bank_balance, settlements, adjusted_bank_balance, market_value, total_assets
+            fetch_timestamp (datetime, optional): 紀錄時間戳記
             
         Returns:
             int: 新增資料的 balance_id
         """
-        if timestamp is None:
-            timestamp = datetime.datetime.now()
+        if fetch_timestamp is None:
+            raise ValueError("timestamp cannot be None")
             
-        timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        batch_ts_str = fetch_timestamp.strftime("%Y-%m-%d %H:%M:%S")
         
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -69,7 +69,7 @@ class BalanceDAO:
         cursor.execute("""
             INSERT INTO balance (
                 account_id, bank_balance, settlements, adjusted_bank_balance, 
-                market_value, total_assets, record_timestamp
+                market_value, total_assets, fetch_timestamp
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             account_id,
@@ -78,7 +78,7 @@ class BalanceDAO:
             balance_data['adjusted_bank_balance'],
             balance_data['market_value'],
             balance_data['total_assets'],
-            timestamp_str
+            batch_ts_str
         ))
         
         conn.commit()
@@ -104,10 +104,10 @@ class BalanceDAO:
             SELECT 
                 balance_id, account_id, bank_balance, settlements, 
                 adjusted_bank_balance, market_value, total_assets, 
-                record_timestamp, created_timestamp 
+                fetch_timestamp, created_timestamp 
             FROM balance 
             WHERE account_id = ? 
-            ORDER BY record_timestamp DESC 
+            ORDER BY fetch_timestamp DESC 
             LIMIT 1
         """, (account_id,))
         
@@ -120,7 +120,7 @@ class BalanceDAO:
         columns = [
             'balance_id', 'account_id', 'bank_balance', 'settlements',
             'adjusted_bank_balance', 'market_value', 'total_assets',
-            'record_timestamp', 'created_timestamp'
+            'fetch_timestamp', 'created_timestamp'
         ]
         
         return dict(zip(columns, row))
@@ -144,21 +144,21 @@ class BalanceDAO:
             SELECT 
                 balance_id, account_id, bank_balance, settlements, 
                 adjusted_bank_balance, market_value, total_assets, 
-                record_timestamp, created_timestamp 
+                fetch_timestamp, created_timestamp 
             FROM balance 
             WHERE account_id = ?
         """
         params = [account_id]
         
         if start_date:
-            query += " AND record_timestamp >= ?"
+            query += " AND fetch_timestamp >= ?"
             params.append(f"{start_date} 00:00:00")
         
         if end_date:
-            query += " AND record_timestamp <= ?"
+            query += " AND fetch_timestamp <= ?"
             params.append(f"{end_date} 23:59:59")
             
-        query += " ORDER BY record_timestamp ASC"
+        query += " ORDER BY fetch_timestamp ASC"
         
         cursor.execute(query, params)
         rows = cursor.fetchall()
@@ -166,7 +166,7 @@ class BalanceDAO:
         columns = [
             'balance_id', 'account_id', 'bank_balance', 'settlements',
             'adjusted_bank_balance', 'market_value', 'total_assets',
-            'record_timestamp', 'created_timestamp'
+            'fetch_timestamp', 'created_timestamp'
         ]
         
         balance_history = [dict(zip(columns, row)) for row in rows]

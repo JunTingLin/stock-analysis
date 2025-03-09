@@ -7,11 +7,11 @@ logger = logging.getLogger(__name__)
 
 
 class BalanceFetcherBase:
-    def __init__(self, user_name, broker_name, account_obj: Account):
+    def __init__(self, user_name, broker_name, account_obj: Account, fetch_timestamp=None):
         self.user_name = user_name
         self.broker_name = broker_name
         self.account = account_obj
-        self.order_timestamp = datetime.datetime.now()
+        self.fetch_timestamp = fetch_timestamp
         self.balance_dao = BalanceDAO()
     
     def fetch_and_save(self):
@@ -51,7 +51,6 @@ class BalanceFetcherBase:
             'adjusted_bank_balance': raw_data['adjusted_bank_balance'],
             'market_value': raw_data['market_value'],
             'total_assets': raw_data['total_assets'],
-            'timestamp': self.order_timestamp
         }
         
         logger.debug(f"Processed balance data: {processed_data}")
@@ -60,5 +59,9 @@ class BalanceFetcherBase:
     def save_to_db(self, processed_data):
         account_name = f"{self.user_name}_{self.broker_name}"
         account_id = self.balance_dao.get_account_id(account_name, broker_name=self.broker_name, user_name=self.user_name)
-        self.balance_dao.insert_balance(processed_data, account_id, self.order_timestamp)
+        self.balance_dao.insert_balance(
+            account_id,
+            balance_data = processed_data, 
+            fetch_timestamp = self.fetch_timestamp
+        )
         logger.info(f"Saved balance data for account {account_name} (ID: {account_id})")

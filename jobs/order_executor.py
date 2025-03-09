@@ -112,11 +112,10 @@ if __name__ == "__main__":
     parser.add_argument("--view_only", action='store_true', help="Run in view-only mode")
 
     args = parser.parse_args()
-
     logger.info(f"args: {args}")
 
     try:
-        order_manager = OrderExecutor(
+        order_executor = OrderExecutor(
             user_name=args.user_name,
             broker_name=args.broker_name,
             extra_bid_pct=args.extra_bid_pct,
@@ -124,7 +123,7 @@ if __name__ == "__main__":
             config_path = os.path.join(root_dir, "config.yaml"),
             base_log_directory = os.path.join(root_dir, "logs")
         )
-        order_manager.run_strategy_and_sync()
+        order_executor.run_strategy_and_sync()
     except Exception as e:
         logger.exception(e)
 

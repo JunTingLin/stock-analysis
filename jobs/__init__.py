@@ -1,9 +1,9 @@
 from .order_executor import OrderExecutor
-from .balance_fetcher import BalanceFetcher
+from .balance_fetcher import BalanceFetcherBase
 from .inventory_fetcher import InventoryFetcher
 
 __all__ = [
     'OrderExecutor',
-    'BalanceFetcher',
+    'BalanceFetcherBase',
     'InventoryFetcher'
 ]

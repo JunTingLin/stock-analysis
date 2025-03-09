@@ -90,15 +90,16 @@ if __name__ == "__main__":
 
     try:
         user_name = 'junting'
-        broker_name = 'fugle'
+        broker_name = 'shioaji'
         config_loader = ConfigLoader(os.path.join(root_dir, "config.yaml"))
         config_loader.load_global_env_vars()
         config_loader.load_user_config(user_name, broker_name)
         auth = Authenticator()
         auth.login_finlab()
         account = auth.login_broker(broker_name)
-        
         print("Account:", account)
 
     except Exception as e:
         traceback.print_exc()
+
+    # python -m utils.authentication

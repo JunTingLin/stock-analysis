@@ -15,7 +15,7 @@ class OrderService:
                 "stock_id": order.get("stock_id"),
                 "stock_name": order.get("stock_name"),
                 "quantity": order.get("quantity"),
-                "price": order.get("price"),
+                "limit_price": order.get("limit_price"),
                 "extra_bid_pct": order.get("extra_bid_pct"),
                 "order_condition": order.get("order_condition"),
             })

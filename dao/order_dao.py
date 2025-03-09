@@ -22,7 +22,7 @@ class OrderDAO:
                 stock_id TEXT,
                 stock_name TEXT,
                 quantity REAL,
-                price REAL,
+                limit_price REAL,
                 extra_bid_pct REAL,
                 order_condition TEXT,
                 FOREIGN KEY (account_id) REFERENCES account(account_id)
@@ -37,7 +37,7 @@ class OrderDAO:
         
         Args:
             order_logs (list[dict]): 每筆訂單資料，包含 'action', 'stock_id', 'stock_name', 
-                'quantity', 'price', 'extra_bid_pct', 'order_condition'
+                'quantity', 'limit_price', 'extra_bid_pct', 'order_condition'
             account_id (int): 對應 Account 資料表的 account_id。
             order_timestamp (datetime.datetime): 批次時間，用於標記這次下單作業。
         """
@@ -56,7 +56,7 @@ class OrderDAO:
                     stock_id,
                     stock_name,
                     quantity,
-                    price,
+                    limit_price,
                     extra_bid_pct,
                     order_condition
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -67,7 +67,7 @@ class OrderDAO:
                 order.get("stock_id"),
                 order.get("stock_name"),
                 order.get("quantity"),
-                order.get("price"),
+                order.get("limit_price"),
                 order.get("extra_bid_pct"),
                 order.get("order_condition")
             ))
@@ -86,7 +86,7 @@ class OrderDAO:
         # 假設 create_timestamp 儲存格式為 "YYYY-MM-DD HH:MM:SS"，用 LIKE 搜尋當天記錄
         date_pattern = query_date.strftime("%Y-%m-%d") + "%"
         cursor.execute("""
-            SELECT account_id, order_timestamp, create_timestamp, action, stock_id, stock_name, quantity, price, extra_bid_pct, order_condition
+            SELECT account_id, order_timestamp, create_timestamp, action, stock_id, stock_name, quantity, limit_price, extra_bid_pct, order_condition
             FROM order_history
             WHERE account_id = ? AND create_timestamp LIKE ?
         """, (account_id, date_pattern))

@@ -43,7 +43,7 @@ class LoggerManager:
     def extract_order_logs(self, log_filepath):
         order_logs = []
         pattern = re.compile(
-            r"(?P<action>BUY|SELL)\s+(?P<stock_id>\S+)\s+X\s+(?P<quantity>[\d\.]+)\s+@\s+(?P<price>[\d\.]+)"
+            r"(?P<action>BUY|SELL)\s+(?P<stock_id>\S+)\s+X\s+(?P<quantity>[\d\.]+)\s+@\s+(?P<limit_price>[\d\.]+)"
             r"(?:\s+with extra bid\s+(?P<extra_bid_pct>[\d\.]+)%){0,1}\s+(?P<order_condition>\S+)"
         )
         with open(log_filepath, "r", encoding="utf-8") as f:
@@ -52,7 +52,7 @@ class LoggerManager:
                 if match:
                     d = match.groupdict()
                     d["quantity"] = float(d["quantity"])
-                    d["price"] = float(d["price"])
+                    d["limit_price"] = float(d["limit_price"])
                     d["extra_bid_pct"] = float(d["extra_bid_pct"]) / 100 if d["extra_bid_pct"] is not None else 0.0
                     order_logs.append(d)
         return order_logs

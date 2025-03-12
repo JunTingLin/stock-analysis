@@ -5,7 +5,7 @@ class OrderService:
     def __init__(self, db_path="data_prod.db"):
         self.order_dao = OrderDAO(db_path=db_path)
 
-    def get_order_history(self, account_id, query_date):
+    def get_orders_by_account_and_date(self, account_id, query_date):
         raw_orders = self.order_dao.get_orders_by_account_and_date(account_id, query_date)
         filtered_orders = []
         for order in raw_orders:
@@ -40,5 +40,5 @@ if __name__ == "__main__":
     order_service = OrderService()
     date_str = f"2025-03-05"
     query_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-    orders = order_service.get_order_history(account_id=1, query_date=query_date)
+    orders = order_service.get_orders_by_account_and_date(account_id=1, query_date=query_date)
     print(orders)

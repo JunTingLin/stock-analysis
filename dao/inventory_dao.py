@@ -11,11 +11,11 @@ class InventoryDAO:
         self._create_table()
     
     def _create_table(self):
-        """建立 inventory 資料表，記錄庫存資料並以 account_id 作為外鍵"""
+        """建立 inventory_history 資料表，記錄庫存資料並以 account_id 作為外鍵"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS inventory (
+            CREATE TABLE IF NOT EXISTS inventory_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 account_id INTEGER,
                 fetch_timestamp TEXT,
@@ -34,7 +34,7 @@ class InventoryDAO:
     
     def insert_inventory_data(self, account_id, inventory_data, fetch_timestamp=None):
         """
-        將庫存資料寫入 inventory 表。
+        將庫存資料寫入 inventory_history 表。
         
         Args:
             account_id (int): 對應 Account 資料表的 account_id。
@@ -56,7 +56,7 @@ class InventoryDAO:
             raw_data_json = json.dumps(item.get('raw_data', {}))
             
             cursor.execute("""
-                INSERT INTO inventory (
+                INSERT INTO inventory_history (
                     account_id,
                     fetch_timestamp,
                     stock_id,
@@ -79,4 +79,50 @@ class InventoryDAO:
         
         conn.commit()
         conn.close()
-        logger.info(f"Inserted {len(inventory_data)} inventory records for account_id {account_id}")
+        logger.info(f"Inserted {len(inventory_data)} inventory_history records for account_id {account_id}")
+
+
+    def get_inventories_by_account_and_date(self, account_id, query_date):
+        """
+        根據帳戶ID和日期獲取該帳戶當天的庫存記錄
+        
+        Args:
+            account_id (int): 帳戶ID
+            query_date (datetime.date): 查詢日期
+            
+        Returns:
+            list: 包含庫存記錄的列表
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row  # 使結果以字典形式返回
+        cursor = conn.cursor()
+        
+        # 將日期轉換為開始和結束時間範圍
+        date_str = query_date.strftime("%Y-%m-%d")
+        start_date = f"{date_str} 00:00:00"
+        end_date = f"{date_str} 23:59:59"
+        
+        cursor.execute("""
+            SELECT stock_id, stock_name, quantity, last_price, pnl, raw_data
+            FROM inventory_history
+            WHERE account_id = ? AND fetch_timestamp BETWEEN ? AND ?
+            ORDER BY fetch_timestamp DESC
+        """, (account_id, start_date, end_date))
+        
+        results = cursor.fetchall()
+        
+        # 將結果轉換為列表
+        inventories = []
+        for row in results:
+            inventory = dict(row)
+            
+            # 將 raw_data 從 JSON 字串轉回字典
+            try:
+                inventory['raw_data'] = json.loads(inventory['raw_data'])
+            except (json.JSONDecodeError, TypeError):
+                inventory['raw_data'] = {}
+            
+            inventories.append(inventory)
+        
+        conn.close()
+        return inventories

@@ -12,11 +12,11 @@ class BalanceDAO:
         self._create_table()
     
     def _create_table(self):
-        """建立 balance 資料表，記錄帳戶餘額資訊"""
+        """建立 balance_history 資料表，記錄帳戶餘額資訊"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS balance (
+            CREATE TABLE IF NOT EXISTS balance_history (
                 balance_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 account_id INTEGER,
                 bank_balance REAL,
@@ -67,7 +67,7 @@ class BalanceDAO:
         cursor = conn.cursor()
         
         cursor.execute("""
-            INSERT INTO balance (
+            INSERT INTO balance_history (
                 account_id, bank_balance, settlements, adjusted_bank_balance, 
                 market_value, total_assets, fetch_timestamp
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -88,42 +88,6 @@ class BalanceDAO:
         logger.info(f"Inserted balance record with ID {balance_id} for account {account_id}")
         return balance_id
     
-    def get_latest_balance(self, account_id):
-        """
-        取得特定帳戶的最新餘額資料
-        
-        Args:
-            account_id (int): 帳戶ID
-            
-        Returns:
-            dict: 最新的餘額資料，若無資料則回傳 None
-        """
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT 
-                balance_id, account_id, bank_balance, settlements, 
-                adjusted_bank_balance, market_value, total_assets, 
-                fetch_timestamp, created_timestamp 
-            FROM balance 
-            WHERE account_id = ? 
-            ORDER BY fetch_timestamp DESC 
-            LIMIT 1
-        """, (account_id,))
-        
-        row = cursor.fetchone()
-        conn.close()
-        
-        if not row:
-            return None
-            
-        columns = [
-            'balance_id', 'account_id', 'bank_balance', 'settlements',
-            'adjusted_bank_balance', 'market_value', 'total_assets',
-            'fetch_timestamp', 'created_timestamp'
-        ]
-        
-        return dict(zip(columns, row))
     
     def get_balance_history(self, account_id, start_date=None, end_date=None):
         """
@@ -145,7 +109,7 @@ class BalanceDAO:
                 balance_id, account_id, bank_balance, settlements, 
                 adjusted_bank_balance, market_value, total_assets, 
                 fetch_timestamp, created_timestamp 
-            FROM balance 
+            FROM balance_history 
             WHERE account_id = ?
         """
         params = [account_id]

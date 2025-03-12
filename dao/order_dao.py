@@ -82,18 +82,27 @@ class OrderDAO:
         query_date 為 datetime.date 物件
         """
         conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row  # 使結果以字典形式返回
         cursor = conn.cursor()
-        # 假設 create_timestamp 儲存格式為 "YYYY-MM-DD HH:MM:SS"，用 LIKE 搜尋當天記錄
-        date_pattern = query_date.strftime("%Y-%m-%d") + "%"
+        
+        # 將日期轉換為開始和結束時間範圍
+        date_str = query_date.strftime("%Y-%m-%d")
+        start_date = f"{date_str} 00:00:00"
+        end_date = f"{date_str} 23:59:59"
+        
         cursor.execute("""
-            SELECT account_id, order_timestamp, create_timestamp, action, stock_id, stock_name, quantity, limit_price, extra_bid_pct, order_condition
+            SELECT account_id, order_timestamp, create_timestamp, action, stock_id, stock_name, 
+                quantity, limit_price, extra_bid_pct, order_condition
             FROM order_history
-            WHERE account_id = ? AND create_timestamp LIKE ?
-        """, (account_id, date_pattern))
-        rows = cursor.fetchall()
-        col_names = [desc[0] for desc in cursor.description]
+            WHERE account_id = ? AND order_timestamp BETWEEN ? AND ?
+        """, (account_id, start_date, end_date))
+        
+        results = cursor.fetchall()
+        
+        # 將結果轉換為列表
+        orders = [dict(row) for row in results]
+        
         conn.close()
-        orders = [dict(zip(col_names, row)) for row in rows]
         return orders
     
     def get_available_years(self, account_id):

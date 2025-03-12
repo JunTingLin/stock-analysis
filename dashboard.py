@@ -3,16 +3,19 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 
 from service.account_service import AccountService
+from service.inventory_service import InventoryService
 from service.order_service import OrderService
 from service.report_service import ReportService
 from tabs.order_history import OrderHistoryTab
 from tabs.finlab_report import FinlabReportTab
+from tabs.inventory_history import InventoryHistoryTab
 
 def create_app():
     # 初始化服務
     account_service = AccountService()
     order_service = OrderService()
     report_service = ReportService()
+    inventory_service = InventoryService()
     
     # 獲取帳戶信息
     accounts = account_service.get_all_accounts()
@@ -21,6 +24,7 @@ def create_app():
     # 初始化標籤
     order_history_tab = OrderHistoryTab(order_service)
     finlab_report_tab = FinlabReportTab(report_service, accounts)
+    inventory_history_tab = InventoryHistoryTab(inventory_service)
     
     # 創建 Dash 應用
     app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -41,16 +45,22 @@ def create_app():
             dcc.Tab(label='下單歷史', value='tab-order-history', children=[
                 order_history_tab.get_layout()
             ]),
+            dcc.Tab(label='庫存', value='tab-inventory', children=[
+                inventory_history_tab.get_layout()
+            ]),
+            dcc.Tab(label='帳戶資金', value='tab-balance-history', children=[
+                # balance_history_tab.get_layout()
+            ]),
             dcc.Tab(label='finlab報表', value='tab-finlab-report', children=[
                 finlab_report_tab.get_layout()
             ])
-            # 你可以在這裡繼續添加更多標籤
         ])
     ])
     
     # 註冊所有標籤的回調函數
     order_history_tab.register_callbacks(app)
     finlab_report_tab.register_callbacks(app)
+    inventory_history_tab.register_callbacks(app)
     
     return app
 

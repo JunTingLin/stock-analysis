@@ -121,5 +121,5 @@ class OrderHistoryTab:
             except Exception as e:
                 return []
 
-            orders = self.order_service.get_order_history(selected_account, query_date)
+            orders = self.order_service.get_orders_by_account_and_date(selected_account, query_date)
             return orders

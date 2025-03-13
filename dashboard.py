@@ -6,9 +6,11 @@ from service.account_service import AccountService
 from service.inventory_service import InventoryService
 from service.order_service import OrderService
 from service.report_service import ReportService
+from service.balance_service import BalanceService
 from tabs.order_history import OrderHistoryTab
 from tabs.finlab_report import FinlabReportTab
 from tabs.inventory_history import InventoryHistoryTab
+from tabs.balance_history import BalanceHistoryTab
 
 def create_app():
     # 初始化服務
@@ -16,6 +18,7 @@ def create_app():
     order_service = OrderService()
     report_service = ReportService()
     inventory_service = InventoryService()
+    balance_service = BalanceService()
     
     # 獲取帳戶信息
     accounts = account_service.get_all_accounts()
@@ -25,6 +28,7 @@ def create_app():
     order_history_tab = OrderHistoryTab(order_service)
     finlab_report_tab = FinlabReportTab(report_service, accounts)
     inventory_history_tab = InventoryHistoryTab(inventory_service)
+    balance_history_tab = BalanceHistoryTab(balance_service)
     
     # 創建 Dash 應用
     app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -49,7 +53,7 @@ def create_app():
                 inventory_history_tab.get_layout()
             ]),
             dcc.Tab(label='帳戶資金', value='tab-balance-history', children=[
-                # balance_history_tab.get_layout()
+                balance_history_tab.get_layout()
             ]),
             dcc.Tab(label='finlab報表', value='tab-finlab-report', children=[
                 finlab_report_tab.get_layout()
@@ -61,6 +65,7 @@ def create_app():
     order_history_tab.register_callbacks(app)
     finlab_report_tab.register_callbacks(app)
     inventory_history_tab.register_callbacks(app)
+    balance_history_tab.register_callbacks(app)
     
     return app
 

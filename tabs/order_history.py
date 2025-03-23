@@ -47,6 +47,7 @@ class OrderHistoryTab:
                         {'name': '委託價', 'id': 'limit_price'},
                         {'name': '追價', 'id': 'extra_bid_pct'},
                         {'name': '資金類型', 'id': 'order_condition'},
+                        {'name': '模擬', 'id': 'view_only'},
                     ],
                     data=[],
                     page_size=10,

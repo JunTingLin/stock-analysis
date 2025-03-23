@@ -25,13 +25,14 @@ class OrderDAO:
                 limit_price REAL,
                 extra_bid_pct REAL,
                 order_condition TEXT,
+                view_only INTEGER DEFAULT 0,
                 FOREIGN KEY (account_id) REFERENCES account(account_id)
             );
         """)
         conn.commit()
         conn.close()
     
-    def insert_order_logs(self, order_logs, account_id, order_timestamp):
+    def insert_order_logs(self, order_logs, account_id, order_timestamp, view_only=False):
         """
         將下單記錄寫入 order_history 表。
         
@@ -40,13 +41,15 @@ class OrderDAO:
                 'quantity', 'limit_price', 'extra_bid_pct', 'order_condition'
             account_id (int): 對應 Account 資料表的 account_id。
             order_timestamp (datetime.datetime): 批次時間，用於標記這次下單作業。
+            view_only (bool): 是否為模擬下單 (True) 或實際下單 (False)
         """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         if order_timestamp is None:
             raise ValueError("order_timestamp cannot be None")
-        # 將批次時間轉為字串格式儲存 (ISO 格式比較普遍)
+        # 將批次時間轉為字串格式儲存 (ISO 格式)
         batch_ts_str = order_timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        view_only_int = 1 if view_only else 0  # 轉換布爾值為整數
         for order in order_logs:
             cursor.execute("""
                 INSERT INTO order_history (
@@ -58,8 +61,9 @@ class OrderDAO:
                     quantity,
                     limit_price,
                     extra_bid_pct,
-                    order_condition
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    order_condition,
+                    view_only
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 account_id,
                 batch_ts_str,
@@ -69,7 +73,8 @@ class OrderDAO:
                 order.get("quantity"),
                 order.get("limit_price"),
                 order.get("extra_bid_pct"),
-                order.get("order_condition")
+                order.get("order_condition"),
+                view_only_int
             ))
         conn.commit()
         conn.close()
@@ -92,7 +97,7 @@ class OrderDAO:
         
         cursor.execute("""
             SELECT account_id, order_timestamp, create_timestamp, action, stock_id, stock_name, 
-                quantity, limit_price, extra_bid_pct, order_condition
+                quantity, limit_price, extra_bid_pct, order_condition, view_only
             FROM order_history
             WHERE account_id = ? AND order_timestamp BETWEEN ? AND ?
         """, (account_id, start_date, end_date))

@@ -2,9 +2,9 @@ from dash import dcc, html, Input, Output, callback
 import datetime
 
 class FinlabReportTab:
-    def __init__(self, report_service, accounts):
+    def __init__(self, report_service, account_service):
         self.report_service = report_service
-        self.accounts = accounts
+        self.account_service = account_service
 
     def get_layout(self):
         """返回 finlab 報表標籤的版面配置"""
@@ -40,8 +40,8 @@ class FinlabReportTab:
                 return html.Div("請選擇帳戶和日期以查看報告。", 
                              style={'padding': '20px', 'text-align': 'center'})
                 
-            # 從 account_id 取得 account_name
-            account_name = next((acc['account_name'] for acc in self.accounts if acc['account_id'] == selected_account), None)
+            accounts = self.account_service.get_all_accounts()
+            account_name = next((acc['account_name'] for acc in accounts if acc['account_id'] == selected_account), None)
             if not account_name:
                 return html.Div("無效的帳戶選擇。", 
                              style={'padding': '20px', 'text-align': 'center'})

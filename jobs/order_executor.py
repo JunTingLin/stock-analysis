@@ -86,7 +86,7 @@ class OrderExecutor:
 
             account_name = self.user_name+"_"+self.broker_name
             account_id = self.account_dao.get_account_id(account_name, broker_name=self.broker_name, user_name=self.user_name)
-            self.order_dao.insert_order_logs(order_logs, account_id, self.order_timestamp)
+            self.order_dao.insert_order_logs(order_logs, account_id, self.order_timestamp, view_only=self.view_only)
 
     def get_or_create_strategy_report(self, strategy_class_name):
         report_pickle_dir = os.path.join("assets/report_pickle", f"{self.user_name}_{self.broker_name}")
@@ -174,3 +174,5 @@ if __name__ == "__main__":
         logger.exception(e)
 
     # python -m jobs.order_executor --user_name junting --broker_name fugle --extra_bid_pct 0 --view_only
+    # python -m jobs.order_executor --user_name junting --broker_name shioaji --extra_bid_pct 0 --view_only
+    # python -m jobs.order_executor --user_name allen --broker_name fugle --extra_bid_pct 0 --view_only

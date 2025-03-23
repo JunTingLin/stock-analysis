@@ -18,6 +18,7 @@ class OrderService:
                 "limit_price": order.get("limit_price"),
                 "extra_bid_pct": order.get("extra_bid_pct"),
                 "order_condition": order.get("order_condition"),
+                "view_only": order.get("view_only"),
             })
         return filtered_orders
     

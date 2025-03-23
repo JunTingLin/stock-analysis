@@ -165,6 +165,8 @@ class AllenChuangBasicTWStrategy:
         position = buy_signal.hold_until(sell_condition)
 
         self.report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
+        
+        return self.report
 
     def get_report(self):
         return self.report if self.report else "report物件為空，請先運行策略"

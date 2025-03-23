@@ -7,6 +7,8 @@ conda activate stock-analysis
 
 # Change to project root directory
 cd /home/mirlab/stock-analysis
+# Set PYTHONPATH to the current directory
+export PYTHONPATH=$(pwd)
 
 # Set default user name and broker name
 USER_NAME="junting"

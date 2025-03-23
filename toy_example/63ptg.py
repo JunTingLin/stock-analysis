@@ -79,6 +79,7 @@ main_force_buy_condition = ( main_force_top_1d_buy & main_force_condition_1d ) |
 chip_buy_condition = institutional_investors_top_buy_condition | main_force_buy_condition
 
 with data.universe(market='TSE_OTC'):
+    close = data.get("price:收盤價")
     adj_close = data.get('etl:adj_close')
     adj_open = data.get('etl:adj_open')
 
@@ -119,15 +120,17 @@ bias_buy_condition = (
                     (bias_240 <= 0.25) & (bias_240 >= 0.10)
                     )
 
+# 今收盤 > 今開盤，且今收盤 > 昨收盤
+positive_close_condition = (adj_close > adj_open) & (adj_close > adj_close.shift(1))
+
+price_above_15_condition = close > 15
+
 with data.universe(market='TSE_OTC'):
     # 獲取成交量數據
     volume = data.get('price:成交股數')
 
 # 成交量大於昨日的2倍
 volume_doubled_condition = volume > (volume.shift(1) * 2)
-
-# 今收盤 > 今開盤，且今收盤 > 昨收盤
-positive_close_condition = (adj_close > adj_open) & (adj_close > adj_close.shift(1))
 
 # 今日成交張數 > 500 張
 volume_above_500_condition = volume > 500 * 1000
@@ -168,6 +171,7 @@ technical_buy_condition = (
     volume_doubled_condition & 
     # positive_close_condition &
     volume_above_500_condition &
+    price_above_15_condition &
 
     dmi_buy_condition & 
     kd_buy_condition & 
@@ -180,6 +184,7 @@ with data.universe(market='TSE_OTC'):
     monthly_revenue = data.get('monthly_revenue:當月營收')
     monthly_revenue_yoy = data.get('monthly_revenue:去年同月增減(%)')
     operating_margin = data.get('fundamental_features:營業利益率')
+    gross_margin = data.get('fundamental_features:營業毛利率')
 
 # 判斷連續兩個月的 YOY 增長是否均達到 20%
 revenue_yoy_increase = monthly_revenue_yoy >= 20
@@ -190,8 +195,19 @@ revenue_3m_avg = monthly_revenue.rolling(window=3).mean()
 revenue_12m_avg = monthly_revenue.rolling(window=12).mean()
 revenue_growth = revenue_3m_avg > revenue_12m_avg
 
-# 營業利益率比上期增加10%
-operating_margin_increase = operating_margin > operating_margin.shift(1) * 1.10
+# 營業利益率比上期增加 10% ~ 25%
+# operating_margin_growth = (operating_margin - operating_margin.shift(1)) / operating_margin.shift(1)
+# operating_margin_increase = (operating_margin_growth > 0.10) \
+#                             & (operating_margin_growth <= 0.25)
+
+operating_margin_increase = (operating_margin > (operating_margin.shift(1) * 1.25)) \
+                            #  & (operating_margin <= (operating_margin.shift(1) * 1.25))
+
+# 營業利益率大於 2%
+# operating_margin_increase = operating_margin > 2
+
+# 毛利率的成長率
+gross_margin_condition = gross_margin > gross_margin.shift(1) * 1.05
 
 # 基本面
 fundamental_buy_condition =  operating_margin_increase
@@ -223,75 +239,47 @@ report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 
 # ===============================================================================
 
+# 取得基本面資料並計算季度增長率（季 vs. 上季）
+operating_margin_growth_q = (operating_margin - operating_margin.shift(1)) / operating_margin.shift(1)
+
+# 以財報截止日作為 index，前向填充
+operating_margin_growth_q_daily = operating_margin_growth_q.deadline().ffill()
+
+def get_margin_growth(row):
+    date = pd.to_datetime(row['entry_sig_date'])
+    stock = row['stock_id'].split()[0]  # 假設股票代號為字串，例如 "2484"
+    
+    # 取得所有截止日 >= 交易日期的日期
+    future_deadlines = operating_margin_growth_q_daily.index[operating_margin_growth_q_daily.index >= date]
+    if len(future_deadlines) > 0:
+        # 使用最接近（最小）的截止日的基本面數值
+        nearest_deadline = future_deadlines.min()
+        try:
+            return operating_margin_growth_q_daily.loc[nearest_deadline, stock]
+        except Exception as e:
+            print(f"Error for row {row}: {e}")
+            return np.nan
+    else:
+        # 如果沒有未來截止日，則以 asof() 的方式取得最後一筆
+        try:
+            return operating_margin_growth_q_daily.asof(date)[stock]
+        except Exception as e:
+            print(f"Error for row {row}: {e}")
+            return np.nan
+
+trades = report.get_trades()    
+trades['operating_margin_growth'] = trades.apply(get_margin_growth, axis=1)
+
+print(trades[['entry_sig_date', 'stock_id', 'operating_margin_growth']].dropna().head())
+
 import matplotlib.pyplot as plt
 
-def plot_bias_vs_return(bias, trades, bias_name):
-    bias_values = []
-    trade_returns = []
-
-    for date, stock_id, trade_return in zip(trades['entry_sig_date'], trades['stock_id'], trades['return']):
-        stock_id = stock_id.split()[0]  # 提取股票代號
-        if date in bias.index and stock_id in bias.columns:
-            # 獲取該筆交易的 bias 和 return，並轉換為百分比
-            bias_values.append(bias.loc[date, stock_id])
-            trade_returns.append(trade_return * 100)  # 回報轉換為百分比
-
-    # 將數據轉為 pandas Series
-    bias_values = pd.Series(bias_values, name=bias_name)
-    trade_returns = pd.Series(trade_returns, name="Return (%)")
-
-    # 確認數據大小是否一致
-    print(f"Number of {bias_name} values: {len(bias_values)}")
-    print(f"Number of Return values: {len(trade_returns)}")
-
-    # 散點圖：展示 bias 與 Return 的關係
-    plt.figure(figsize=(10, 6))
-    plt.scatter(bias_values, trade_returns, alpha=0.7, color="blue", label=f"{bias_name} vs Return")
-    plt.axhline(0, color='red', linestyle='--', linewidth=0.8)  # 基準線
-    plt.title(f"Scatter Plot of {bias_name} vs Return")
-    plt.xlabel(bias_name)
-    plt.ylabel("Return (%)")
-    plt.grid(True)
-    plt.legend()
-    plt.show()
-
-    # 直方圖
-    bins = np.arange(0, bias_values.max() + 0.05, 0.05)  # 每 5% 一個區間
-    bias_return_df = pd.DataFrame({bias_name: bias_values, "Return (%)": trade_returns})
-    bias_return_df[f"{bias_name}_Bins"] = pd.cut(bias_return_df[bias_name], bins=bins)
-    average_return_per_bin = bias_return_df.groupby(f"{bias_name}_Bins")["Return (%)"].mean()
-
-    # 繪製直方圖
-    average_return_per_bin.plot(kind="bar", figsize=(12, 6), color="green", alpha=0.7)
-    plt.title(f"Average Return per {bias_name} Interval")
-    plt.xlabel(f"{bias_name} Interval")
-    plt.ylabel("Average Return (%)")
-    plt.grid(True)
-    plt.show()
-
-    # 輸出統計數據
-    print(f"Average Return per {bias_name} Interval:")
-    print(average_return_per_bin)
-
-# 提取交易報告中的交易信息
-trades = report.get_trades()
-
-# 確定離群值閾值，例如回報超過 500%
-outlier_threshold = 5  # 500%
-outliers = trades[trades["return"] > outlier_threshold]
-print(f"Outliers:\n{outliers}")
-
-# 移除離群值
-# trades = trades[trades["return"] <= outlier_threshold]
-
-# Plot for Bias_5
-plot_bias_vs_return(bias_5, trades, "Bias_5")
-
-# Plot for Bias_10
-plot_bias_vs_return(bias_10, trades, "Bias_10")
-
-# Plot for Bias_20
-plot_bias_vs_return(bias_20, trades, "Bias_20")
-
-# Plot for Bias_120
-plot_bias_vs_return(bias_120, trades, "Bias_120")
+plt.figure(figsize=(10, 6))
+# 轉換為百分比
+plt.scatter(trades['operating_margin_growth']*100, trades['return']*100, alpha=0.7, color='blue')
+plt.xlabel("Operating Margin Growth (%)")
+plt.ylabel("Return (%)")
+plt.title("Scatter Plot of Operating Margin Growth vs Return")
+plt.grid(True)
+plt.axhline(0, color='red', linestyle='--', linewidth=0.8)
+plt.show()

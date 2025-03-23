@@ -216,8 +216,7 @@ class BalanceHistoryTab:
             heatmap_data, years, max_return, min_return = self.balance_service.get_monthly_return_data(
                 selected_account
             )
-            print(heatmap_data)
-
+            
             if not heatmap_data:
                 fig = go.Figure()
                 fig.update_layout(
@@ -226,62 +225,102 @@ class BalanceHistoryTab:
                     yaxis_title="年份"
                 )
                 return fig
-                
-            # 轉換為DataFrame
-            df = pd.DataFrame(heatmap_data)
             
-            # 月份名稱映射
+            # 所有月份名稱和顯示順序
+            all_months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
             month_names = {
                 '01': '一月', '02': '二月', '03': '三月', '04': '四月',
                 '05': '五月', '06': '六月', '07': '七月', '08': '八月',
                 '09': '九月', '10': '十月', '11': '十一月', '12': '十二月'
             }
+            all_month_labels = [month_names[m] for m in all_months]
             
-            # 添加月份名稱列
-            df['month_name'] = df['month'].map(month_names)
+            # 處理數據，確保只有有效資料被考慮
+            all_years = sorted(set([item['year'] for item in heatmap_data]))
+            
+            # 創建數據矩陣
+            z_matrix = []
+            annotations = []
+            
+            # 為每個年份創建一行資料，包含所有12個月
+            for year in all_years:
+                row_data = []
+                for month in all_months:
+                    # 查找對應的報酬率
+                    value = None
+                    for item in heatmap_data:
+                        if item['year'] == year and item['month'] == month:
+                            value = item['return']
+                            break
+                    
+                    row_data.append(value)
+                    
+                    # 如果有值，添加註釋
+                    if value is not None:
+                        month_idx = all_months.index(month)
+                        year_idx = all_years.index(year)
+                        
+                        # 確定文字顏色
+                        text_color = "black" if min_return <= value <= (min_return + max_return)/2 else "white"
+                        
+                        annotations.append({
+                            "x": month_idx,
+                            "y": year_idx,
+                            "text": f"{value:.2f}%",
+                            "showarrow": False,
+                            "font": {"color": text_color, "size": 10}
+                        })
+                
+                z_matrix.append(row_data)
             
             # 創建熱力圖
-            fig = px.imshow(
-                pd.pivot_table(
-                    df, 
-                    values='return', 
-                    index='year', 
-                    columns='month_name',
-                    aggfunc='first'
-                ),
-                labels=dict(x="月份", y="年份", color="月報酬率 (%)"),
-                x=[month_names[m] for m in sorted(df['month'].unique())],
-                y=sorted(df['year'].unique()),
-                color_continuous_scale='RdBu_r',  # 紅藍色比例(負值為紅，正值為藍)
-                zmin=min_return,  # 最小值
-                zmax=max_return,  # 最大值
-            )
+            fig = go.Figure(data=go.Heatmap(
+                z=z_matrix,
+                x=all_month_labels,
+                y=all_years,
+                colorscale='RdBu_r',
+                showscale=True,
+                colorbar={"title": "報酬率 (%)"},
+                # 確保數據範圍適當
+                zmid=0,  # 中間點設為0
+                zmin=min(min_return, -0.1),  # 確保有一定範圍
+                zmax=max(max_return, 0.1),
+                # 設置缺失值顏色
+                hoverongaps=False
+            ))
             
-            # 添加數值標籤
-            for year in df['year'].unique():
-                for month, month_name in month_names.items():
-                    if month in df[df['year'] == year]['month'].values:
-                        value = df[(df['year'] == year) & (df['month'] == month)]['return'].values[0]
-                        fig.add_annotation(
-                            x=month_name,
-                            y=year,
-                            text=f"{value:.2f}%",
-                            showarrow=False,
-                            font=dict(
-                                color="black" if abs(value) < (max_return - min_return) / 2 else "white",
-                                size=10
-                            )
-                        )
+            # 添加註釋
+            fig.update_layout(annotations=annotations)
             
             # 更新佈局
             fig.update_layout(
                 title="月度報酬率熱力圖",
                 xaxis_title="月份",
                 yaxis_title="年份",
-                coloraxis_colorbar=dict(
-                    title="報酬率 (%)"
+                xaxis=dict(
+                    # 固定顯示所有月份
+                    tickmode='array',
+                    tickvals=list(range(len(all_month_labels))),
+                    ticktext=all_month_labels,
+                    showgrid=True
                 ),
-                template="plotly_white"
+                yaxis=dict(
+                    # 固定年份順序
+                    categoryorder="array",
+                    categoryarray=all_years,
+                    showgrid=True
+                ),
+                plot_bgcolor='white',
+                margin=dict(l=50, r=50, t=80, b=50),
+                template="plotly_white",
+                width=900
             )
             
+            # 確保有標示網格
+            fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgrey')
+            fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgrey')
+            
             return fig
+
+
+

@@ -112,7 +112,7 @@ class BalanceService:
                         'month': month,
                         'return': round(monthly_return, 2)
                     })
-        
+
         # 處理沒有數據的情況
         if not heatmap_data:
             return [], years, 0, 0

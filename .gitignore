@@ -7,13 +7,15 @@ __pycache__/
 output/
 report_finlab/
 report_pickle/
-logs/
 *.db
+
+# logs
+logs/
+shioaji.log
 
 # Configuration files
 /config
 config.yaml
 
 # Environment and setup files
-*.sh
 .venv/

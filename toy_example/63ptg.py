@@ -171,7 +171,7 @@ technical_buy_condition = (
     volume_doubled_condition & 
     # positive_close_condition &
     volume_above_500_condition &
-    price_above_15_condition &
+    # price_above_15_condition &
 
     dmi_buy_condition & 
     kd_buy_condition & 

@@ -71,7 +71,7 @@ conda install gunicorn
 ## 注意事項
 
 + FinLab 套件原碼修改
-目前 finlab 安裝版本為 1.2.21，請手動修改其原始碼：
+目前 finlab 安裝版本為 1.2.23，請手動修改其原始碼：
 到 finlab 套件中 online/order_executor.py 檔案內，找到 execute_orders 函數，將第 679 行的 print 語句改為 logger.info，以便 jobs/order_executor.py 能夠正確抓取下單資訊供後續處理。
 
 + 多券商配置

@@ -129,7 +129,7 @@ dependencies:
       - ciso8601==2.3.2
       - cython==3.0.12
       - filelock==3.4.1
-      - finlab==1.2.21
+      - finlab==1.2.23
       - fugle-trade==1.2.0
       - fugle-trade-core==2.1.0
       - keyring==23.5.0

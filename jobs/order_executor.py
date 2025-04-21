@@ -42,16 +42,8 @@ class OrderExecutor:
 
     def run_strategy_and_sync(self):
         strategy_class_name = self.config_loader.get_user_constant("strategy_class_name")
-
-        # Get or create strategy report
-        report, is_new_report = self.get_or_create_strategy_report(strategy_class_name)
-        
-        # Save HTML report if this is a new report
-        if is_new_report:
-            self.save_finlab_report(report, user_name=self.user_name, broker_name=self.broker_name, 
-                                order_timestamp=self.order_timestamp, 
-                                strategy_class_name=strategy_class_name)
-
+        strategy = self.load_strategy(strategy_class_name)
+        report = strategy.run_strategy()
 
         port = Portfolio({
             'strategy': (report, 1.0),
@@ -87,52 +79,6 @@ class OrderExecutor:
             account_name = self.user_name+"_"+self.broker_name
             account_id = self.account_dao.get_account_id(account_name, broker_name=self.broker_name, user_name=self.user_name)
             self.order_dao.insert_order_logs(order_logs, account_id, self.order_timestamp, view_only=self.view_only)
-
-    def get_or_create_strategy_report(self, strategy_class_name):
-        report_pickle_dir = os.path.join("assets/report_pickle", f"{self.user_name}_{self.broker_name}")
-        datetime_str = self.order_timestamp.strftime("%Y-%m-%d_%H-%M-%S")
-        today_date_str = self.order_timestamp.strftime("%Y-%m-%d")
-        pickle_filename = f"{strategy_class_name}_{datetime_str}.pkl"
-        pickle_path = os.path.join(report_pickle_dir, pickle_filename)
-        
-        # Ensure directory exists
-        if not os.path.exists(report_pickle_dir):
-            os.makedirs(report_pickle_dir)
-        
-        # Check if strategy has already been run today
-        import pickle
-        import glob
-        today_pickle_pattern = os.path.join(report_pickle_dir, f"{strategy_class_name}_{today_date_str}*.pkl")
-        today_pickles = glob.glob(today_pickle_pattern)
-        
-        if today_pickles:
-            # Strategy report for today exists, use the latest one
-            latest_pickle = max(today_pickles)
-            logger.info(f"Found existing {strategy_class_name} report for today: {latest_pickle}")
-            with open(latest_pickle, 'rb') as f:
-                report = pickle.load(f)
-            return report, False
-        else:
-            # No report for today, generate a new one
-            logger.info(f"No {strategy_class_name} report found for today, generating new one...")
-            strategy = self.load_strategy(strategy_class_name)
-            report = strategy.run_strategy()
-            
-            # Save report as pickle
-            with open(pickle_path, 'wb') as f:
-                pickle.dump(report, f)
-            logger.info(f"Report saved to {pickle_path}")
-            
-            return report, True
-
-    def save_finlab_report(self, report, user_name, broker_name, order_timestamp, strategy_class_name, base_directory="assets/report_finlab"):
-        subdirectory = f"{user_name}_{broker_name}"
-        report_directory = os.path.join(base_directory, subdirectory)
-        if not os.path.exists(report_directory):
-            os.makedirs(report_directory)
-        datetime_str = order_timestamp.strftime("%Y-%m-%d_%H-%M-%S")
-        save_report_path = os.path.join(report_directory, f"{strategy_class_name}_{datetime_str}.html")
-        report.display(save_report_path=save_report_path)
         
 
     def load_strategy(self, strategy_class_name):

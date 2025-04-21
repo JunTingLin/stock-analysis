@@ -5,8 +5,7 @@ __pycache__/
 
 # Output directories
 output/
-report_finlab/
-report_pickle/
+assets/
 *.db
 
 # logs

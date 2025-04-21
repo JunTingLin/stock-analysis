@@ -32,6 +32,7 @@
 + Web 與 Dashboard
     + dash：建立交互式 Web 應用
     + dash-bootstrap-components：搭配 Bootstrap 的 UI 組件
+    + Flask-AutoIndex：自動生成目錄列表（僅能用 pip 安裝）
     + gunicorn：WSGI HTTP 伺服器（僅適用於 Unix 系統）
 
 + 其他

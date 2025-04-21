@@ -65,4 +65,5 @@ if __name__ == "__main__":
         logger.exception(e)
 
     # python -m jobs.scheduler --user_name junting --broker_name fugle
+    # python -m jobs.scheduler --user_name junting --broker_name shioaji
         

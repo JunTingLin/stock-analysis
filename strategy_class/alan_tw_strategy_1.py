@@ -7,7 +7,7 @@ class AdjustTWMarketInfo(TWMarket):
         return self.get_price(name, adj=adj).shift(1)
 
 
-class AllenChuangBasicTWStrategy:
+class AlanTwStrategy1:
     def get_trading_price(self, name, adj=True):
         return self.get_price(name, adj=adj).shift(1)
     

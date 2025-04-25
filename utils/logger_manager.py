@@ -3,15 +3,12 @@ import logging
 import re
 
 class LoggerManager:
-    def __init__(self, base_log_directory, current_datetime, user_name, broker_name):
+    def __init__(self, base_log_directory, current_datetime):
         self.base_log_directory = base_log_directory
         self.current_datetime = current_datetime
-        self.user_name = user_name
-        self.broker_name = broker_name
 
     def setup_logging(self):
-        subdirectory = f"{self.user_name}-{self.broker_name}"
-        log_directory = os.path.join(self.base_log_directory, subdirectory)
+        log_directory = self.base_log_directory
         if not os.path.exists(log_directory):
             os.makedirs(log_directory)
 
@@ -62,8 +59,6 @@ if __name__ == "__main__":
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     os.chdir(root_dir)
     config = LoggerManager(base_log_directory=os.path.join(root_dir, "logs"),
-                          current_datetime=datetime.now(),
-                          user_name="junting",
-                          broker_name="fugle")
+                          current_datetime=datetime.now(),)
     log_path = config.setup_logging()
     logging.info(f"Log file created at {log_path}")

@@ -29,12 +29,10 @@ class OrderExecutor:
         self.order_timestamp = datetime.datetime.now()
         self.logger_manager = LoggerManager(
             base_log_directory=base_log_directory,
-            current_datetime=self.order_timestamp,
-            user_name=user_name,
-            broker_name=broker_name
+            current_datetime=self.order_timestamp
         )
         self.log_file = self.logger_manager.setup_logging()
-        logger.info(f"Log file: {self.log_file}")
+        logger.info(f"user_name: {self.user_name}, broker_name: {self.broker_name}")
 
         self.order_dao = OrderDAO()
         self.account_dao = AccountDAO()
@@ -87,7 +85,7 @@ class OrderExecutor:
         elif strategy_class_name == 'PeterWuStrategy':
             from strategy_class.peterwu_tw_strategy import PeterWuStrategy as strategy_class
         elif strategy_class_name == 'AllenChuangBasicTWStrategy':
-            from strategy_class.allenchuang_basic_tw_strategy import AllenChuangBasicTWStrategy as strategy_class
+            from strategy_class.alan_tw_strategy_1 import AllenChuangBasicTWStrategy as strategy_class
         else:
             raise ValueError(f"Unknown strategy class: {strategy_class_name}")
         return strategy_class()
@@ -96,7 +94,7 @@ if __name__ == "__main__":
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     os.chdir(root_dir)
 
-    parser = argparse.ArgumentParser(description="Run OrderManager")
+    parser = argparse.ArgumentParser(description="Run OrderExecutor")
     parser.add_argument("--user_name", required=True, help="User name (e.g., junting)")
     parser.add_argument("--broker_name", required=True, help="Broker name (e.g., fugle)")
     parser.add_argument("--extra_bid_pct", type=float, default=0.0,
@@ -121,4 +119,4 @@ if __name__ == "__main__":
 
     # python -m jobs.order_executor --user_name junting --broker_name fugle --extra_bid_pct 0 --view_only
     # python -m jobs.order_executor --user_name junting --broker_name shioaji --extra_bid_pct 0 --view_only
-    # python -m jobs.order_executor --user_name allen --broker_name fugle --extra_bid_pct 0 --view_only
+    # python -m jobs.order_executor --user_name alan --broker_name shioaji --extra_bid_pct 0 --view_only

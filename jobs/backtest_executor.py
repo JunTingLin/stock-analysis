@@ -63,4 +63,4 @@ if __name__ == "__main__":
     except Exception as e:
         logger.exception(e)
 
-    # python -m jobs.backtest_executor --strategy_class_name TibetanMastiffTWStrategy
+    # python -m jobs.backtest_executor --strategy_class_name AlanTwStrategy1

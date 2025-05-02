@@ -32,21 +32,21 @@ dealer_self_net_buy_ratio_3d_sum = dealer_self_net_buy_ratio.rolling(3).sum()
 
 
 # 外資：取當天、前2天、前3天累積買超比例前幾
-foreign_top_1d_ratio = foreign_net_buy_ratio.rank(axis=1, ascending=False) <= 30
-foreign_top_2d_ratio = foreign_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 30
-foreign_top_3d_ratio = foreign_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 30
+foreign_top_1d_ratio = foreign_net_buy_ratio.rank(axis=1, ascending=False) <= 50
+foreign_top_2d_ratio = foreign_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 50
+foreign_top_3d_ratio = foreign_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 50
 foreign_buy_condition = foreign_top_1d_ratio | foreign_top_2d_ratio | foreign_top_3d_ratio
 
 # 投信：取當天、前2天、前3天累積買超比例前幾
-investment_trust_top_1d_ratio = investment_trust_net_buy_ratio.rank(axis=1, ascending=False) <= 30
-investment_trust_top_2d_ratio = investment_trust_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 30
-investment_trust_top_3d_ratio = investment_trust_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 30
+investment_trust_top_1d_ratio = investment_trust_net_buy_ratio.rank(axis=1, ascending=False) <= 50
+investment_trust_top_2d_ratio = investment_trust_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 50
+investment_trust_top_3d_ratio = investment_trust_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 50
 investment_trust_buy_condition = investment_trust_top_1d_ratio | investment_trust_top_2d_ratio | investment_trust_top_3d_ratio
 
 # 自營商：取當天、前2天、前3天累積買超比例前幾
-dealer_self_top_1d_ratio = dealer_self_net_buy_ratio.rank(axis=1, ascending=False) <= 30
-dealer_self_top_2d_ratio = dealer_self_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 30
-dealer_self_top_3d_ratio = dealer_self_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 30
+dealer_self_top_1d_ratio = dealer_self_net_buy_ratio.rank(axis=1, ascending=False) <= 50
+dealer_self_top_2d_ratio = dealer_self_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 50
+dealer_self_top_3d_ratio = dealer_self_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 50
 dealer_self_buy_condition = dealer_self_top_1d_ratio | dealer_self_top_2d_ratio | dealer_self_top_3d_ratio
 
 # institutional_investors_top_buy_condition = foreign_buy_condition | investment_trust_buy_condition | dealer_self_buy_condition
@@ -67,9 +67,9 @@ net_buy_ratio_2d_sum = net_buy_ratio.rolling(2).sum()
 net_buy_ratio_3d_sum = net_buy_ratio.rolling(3).sum()
 
 # 主力籌碼條件
-main_force_top_1d_buy = net_buy_ratio.rank(axis=1, ascending=False) <= 30
-main_force_top_2d_buy = net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 30
-main_force_top_3d_buy = net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 30
+main_force_top_1d_buy = net_buy_ratio.rank(axis=1, ascending=False) <= 50
+main_force_top_2d_buy = net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 50
+main_force_top_3d_buy = net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 50
 main_force_condition_1d = net_buy_ratio > 0.008
 main_force_condition_2d = net_buy_ratio_2d_sum > 0.015
 main_force_condition_3d = net_buy_ratio_3d_sum > 0.025
@@ -204,7 +204,7 @@ revenue_growth = revenue_3m_avg > revenue_12m_avg
 # operating_margin_increase = (operating_margin_growth > 0.10) \
 #                             & (operating_margin_growth <= 0.25)
 
-operating_margin_increase = (operating_margin > (operating_margin.shift(1) * 1.10)) \
+operating_margin_increase = (operating_margin > (operating_margin.shift(1) * 1.25)) \
                             #  & (operating_margin <= (operating_margin.shift(1) * 1.25))
 
 
@@ -242,7 +242,8 @@ position = buy_signal.hold_until(sell_condition)
 from finlab.backtest import sim
 
 # report = sim(position, resample=None, upload=False, trade_at_price='close')
-report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
+# report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo(), position_limit=0.25)
+report = sim(position, resample=None, upload=False, trade_at_price='open', position_limit=0.25)
 
 
 # ===============================================================================

@@ -15,7 +15,7 @@ with data.universe(market='TSE_OTC'):
     # 發行股數作為總股數
     shares_outstanding = data.get('internal_equity_changes:發行股數')
 
-def build_chip_buy_condition():
+def build_chip_buy_condition(top_n):
     # 計算外資、投信、自營商的買賣超佔發行量比例 (股數)
     foreign_net_buy_ratio = foreign_net_buy_shares / shares_outstanding
     investment_trust_net_buy_ratio = investment_trust_net_buy_shares / shares_outstanding
@@ -33,21 +33,21 @@ def build_chip_buy_condition():
 
 
     # 外資：取當天、前2天、前3天累積買超比例前幾
-    foreign_top_1d_ratio = foreign_net_buy_ratio.rank(axis=1, ascending=False) <= 50
-    foreign_top_2d_ratio = foreign_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 50
-    foreign_top_3d_ratio = foreign_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 50
+    foreign_top_1d_ratio = foreign_net_buy_ratio.rank(axis=1, ascending=False) <= top_n
+    foreign_top_2d_ratio = foreign_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= top_n
+    foreign_top_3d_ratio = foreign_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= top_n
     foreign_buy_condition = foreign_top_1d_ratio | foreign_top_2d_ratio | foreign_top_3d_ratio
 
     # 投信：取當天、前2天、前3天累積買超比例前幾
-    investment_trust_top_1d_ratio = investment_trust_net_buy_ratio.rank(axis=1, ascending=False) <= 50
-    investment_trust_top_2d_ratio = investment_trust_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 50
-    investment_trust_top_3d_ratio = investment_trust_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 50
+    investment_trust_top_1d_ratio = investment_trust_net_buy_ratio.rank(axis=1, ascending=False) <= top_n
+    investment_trust_top_2d_ratio = investment_trust_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= top_n
+    investment_trust_top_3d_ratio = investment_trust_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= top_n
     investment_trust_buy_condition = investment_trust_top_1d_ratio | investment_trust_top_2d_ratio | investment_trust_top_3d_ratio
 
     # 自營商：取當天、前2天、前3天累積買超比例前幾
-    dealer_self_top_1d_ratio = dealer_self_net_buy_ratio.rank(axis=1, ascending=False) <= 50
-    dealer_self_top_2d_ratio = dealer_self_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 50
-    dealer_self_top_3d_ratio = dealer_self_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 50
+    dealer_self_top_1d_ratio = dealer_self_net_buy_ratio.rank(axis=1, ascending=False) <= top_n
+    dealer_self_top_2d_ratio = dealer_self_net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= top_n
+    dealer_self_top_3d_ratio = dealer_self_net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= top_n
     dealer_self_buy_condition = dealer_self_top_1d_ratio | dealer_self_top_2d_ratio | dealer_self_top_3d_ratio
 
     # institutional_investors_top_buy_condition = foreign_buy_condition | investment_trust_buy_condition | dealer_self_buy_condition
@@ -68,9 +68,9 @@ def build_chip_buy_condition():
     net_buy_ratio_3d_sum = net_buy_ratio.rolling(3).sum()
 
     # 主力籌碼條件
-    main_force_top_1d_buy = net_buy_ratio.rank(axis=1, ascending=False) <= 50
-    main_force_top_2d_buy = net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= 50
-    main_force_top_3d_buy = net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= 50
+    main_force_top_1d_buy = net_buy_ratio.rank(axis=1, ascending=False) <= top_n
+    main_force_top_2d_buy = net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= top_n
+    main_force_top_3d_buy = net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= top_n
     main_force_condition_1d = net_buy_ratio > 0.008
     main_force_condition_2d = net_buy_ratio_2d_sum > 0.015
     main_force_condition_3d = net_buy_ratio_3d_sum > 0.025
@@ -187,49 +187,23 @@ def build_technical_buy_condition():
     return technical_buy_condition
 
 with data.universe(market='TSE_OTC'):
-    # 取得月營收及去年同月增減(%)資料
-    monthly_revenue = data.get('monthly_revenue:當月營收')
-    monthly_revenue_yoy = data.get('monthly_revenue:去年同月增減(%)')
     operating_margin = data.get('fundamental_features:營業利益率')
-    gross_margin = data.get('fundamental_features:營業毛利率')
 
-def build_fundamental_buy_condition():
+def build_fundamental_buy_condition(op_growth_threshold):
 
-    # 判斷連續兩個月的 YOY 增長是否均達到 20%
-    revenue_yoy_increase = monthly_revenue_yoy >= 20
-    consecutive_revenue_yoy = revenue_yoy_increase & revenue_yoy_increase.shift(1)
+    operating_margin_increase = (operating_margin > (operating_margin.shift(1) * op_growth_threshold))
 
-    # 判斷近3個月平均營收是否大於過去12個月平均營收
-    revenue_3m_avg = monthly_revenue.rolling(window=3).mean()
-    revenue_12m_avg = monthly_revenue.rolling(window=12).mean()
-    revenue_growth = revenue_3m_avg > revenue_12m_avg
-
-    # 營業利益率比上期增加 10% ~ 25%
-    # operating_margin_growth = (operating_margin - operating_margin.shift(1)) / operating_margin.shift(1)
-    # operating_margin_increase = (operating_margin_growth > 0.10) \
-    #                             & (operating_margin_growth <= 0.25)
-
-    operating_margin_increase = (operating_margin > (operating_margin.shift(1) * 1.25)) \
-                                #  & (operating_margin <= (operating_margin.shift(1) * 1.25))
-
-
-    # growth = (operating_margin - operating_margin.shift(1)) / abs(operating_margin.shift(1))
-    # operating_margin_increase = (growth > 0.25)
-
-    # 營業利益率大於 2%
-    # operating_margin_increase = operating_margin > 2
-
-    # 毛利率的成長率
-    # gross_margin_condition = gross_margin > gross_margin.shift(1) * 1.05
-
-    # 基本面
     fundamental_buy_condition =  operating_margin_increase
 
     return fundamental_buy_condition
 
 
 # 最終的買入訊號
-buy_signal =  build_technical_buy_condition() & build_fundamental_buy_condition()
+buy_signal = ( build_chip_buy_condition(top_n=10) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.001) ) | \
+( build_chip_buy_condition(top_n=30) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.05) ) | \
+( build_chip_buy_condition(top_n=60) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.25) )
+# buy_signal = ( build_chip_buy_condition(top_n=60) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.001) )
+
 
 # 設定起始買入日期
 start_buy_date = '2017-12-31'

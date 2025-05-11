@@ -188,21 +188,38 @@ def build_technical_buy_condition():
 
 with data.universe(market='TSE_OTC'):
     operating_margin = data.get('fundamental_features:營業利益率')
+    rd_ratio_seasonal = data.get('fundamental_features:研究發展費用率').deadline()
+    pm_ratio_seasonal = data.get('fundamental_features:管理費用率').deadline()
+    eq_ratio_seasonal = data.get('fundamental_features:淨值除資產').deadline()
 
 def build_fundamental_buy_condition(op_growth_threshold):
+    # 計算研發/管理費用比
+    rd_pm_seasonal = rd_ratio_seasonal / pm_ratio_seasonal
+
+    daily_index = close.index
+    rd_pm = rd_pm_seasonal.reindex(daily_index, method='ffill')
+    eq_ratio = eq_ratio_seasonal.reindex(daily_index, method='ffill')
+
+    # 取前 100 檔：數值越大排名越前
+    rd_pm_top100 = rd_pm.rank(axis=1, ascending=False) <= 100
+    eq_top100    = eq_ratio.rank(axis=1, ascending=False) <= 100
 
     operating_margin_increase = (operating_margin > (operating_margin.shift(1) * op_growth_threshold))
 
-    fundamental_buy_condition =  operating_margin_increase
+    fundamental_buy_condition = (
+        # operating_margin_increase &
+        # rd_pm_top100
+        eq_top100
+    )
 
     return fundamental_buy_condition
 
 
 # 最終的買入訊號
-buy_signal = ( build_chip_buy_condition(top_n=10) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.001) ) | \
-( build_chip_buy_condition(top_n=30) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.05) ) | \
-( build_chip_buy_condition(top_n=60) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.25) )
-# buy_signal = ( build_chip_buy_condition(top_n=60) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.001) )
+# buy_signal = ( build_chip_buy_condition(top_n=30) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.001) ) | \
+# ( build_chip_buy_condition(top_n=60) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.10) ) | \
+# ( build_chip_buy_condition(top_n=100) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.25) )
+buy_signal = ( build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.25) )
 
 
 # 設定起始買入日期
@@ -231,4 +248,4 @@ from finlab.backtest import sim
 
 # report = sim(position, resample=None, upload=False, trade_at_price='close')
 report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
-# report = sim(position, resample=None, upload=False, trade_at_price='open', position_limit=0.25)
+# report = sim(position, resample=None, upload=False, trade_at_price='open', position_limit=0.25, fee_ratio=0.02, tax_ratio=0)

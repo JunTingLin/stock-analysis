@@ -43,6 +43,8 @@ class BacktestExecutor:
             from strategy_class.peterwu_tw_strategy import PeterWuStrategy as strategy_class
         elif self.strategy_class_name == 'AlanTwStrategy1':
             from strategy_class.alan_tw_strategy_1 import AlanTwStrategy1 as strategy_class
+        elif self.strategy_class_name == 'RAndDManagementStrategy':
+            from strategy_class.r_and_d_management_strategy import RAndDManagementStrategy as strategy_class
         else:
             raise ValueError(f"Unknown strategy class: {self.strategy_class_name}")
         return strategy_class()

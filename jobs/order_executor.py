@@ -59,6 +59,7 @@ class OrderExecutor:
 
         safety_weight = self.config_loader.get_user_constant("rebalance_safety_weight")
         pm.update(port, total_balance=total_balance, rebalance_safety_weight=safety_weight, odd_lot=True)
+        # pm.update(port, total_balance=total_balance, rebalance_safety_weight=safety_weight, odd_lot=True, force_override_difference=True, smooth_transition=False)
         pm.to_local(name=pm_name)
 
         pm.sync(self.account, extra_bid_pct=self.extra_bid_pct, view_only=self.view_only)
@@ -85,7 +86,9 @@ class OrderExecutor:
         elif strategy_class_name == 'PeterWuStrategy':
             from strategy_class.peterwu_tw_strategy import PeterWuStrategy as strategy_class
         elif strategy_class_name == 'AllenChuangBasicTWStrategy':
-            from strategy_class.alan_tw_strategy_1 import AllenChuangBasicTWStrategy as strategy_class
+            from strategy_class.alan_tw_strategy_1 import AlanTwStrategy1 as strategy_class
+        elif strategy_class_name == 'RAndDManagementStrategy':
+            from strategy_class.r_and_d_management_strategy import RAndDManagementStrategy as strategy_class
         else:
             raise ValueError(f"Unknown strategy class: {strategy_class_name}")
         return strategy_class()

@@ -26,11 +26,9 @@ class Scheduler:
         self.logger_manager = LoggerManager(
             base_log_directory=base_log_directory,
             current_datetime=self.fetch_timestamp,
-            user_name=user_name,
-            broker_name=broker_name
         )
         self.log_file = self.logger_manager.setup_logging()
-        logger.info(f"Log file: {self.log_file}")
+        logger.info(f"user_name: {self.user_name}, broker_name: {self.broker_name}")
 
     def run(self):
         inventory_fetcher = InventoryFetcher.create(self.user_name, self.broker_name, self.account, self.fetch_timestamp)

@@ -188,39 +188,36 @@ def build_technical_buy_condition():
 
 with data.universe(market='TSE_OTC'):
     operating_margin = data.get('fundamental_features:營業利益率')
-    rd_ratio_seasonal = data.get('fundamental_features:研究發展費用率').deadline()
-    pm_ratio_seasonal = data.get('fundamental_features:管理費用率').deadline()
-    eq_ratio_seasonal = data.get('fundamental_features:淨值除資產').deadline()
+    rd_ratio = data.get('fundamental_features:研究發展費用率')
+    pm_ratio = data.get('fundamental_features:管理費用率')
+    eq_ratio = data.get('fundamental_features:淨值除資產')
 
 def build_fundamental_buy_condition(op_growth_threshold):
-    # 計算研發/管理費用比
-    rd_pm_seasonal = rd_ratio_seasonal / pm_ratio_seasonal
 
-    daily_index = close.index
-    rd_pm = rd_pm_seasonal.reindex(daily_index, method='ffill')
-    eq_ratio = eq_ratio_seasonal.reindex(daily_index, method='ffill')
+    rd_pm = rd_ratio / pm_ratio
+    eq_price = eq_ratio / close
 
     # 取前 100 檔：數值越大排名越前
-    rd_pm_top100 = rd_pm.rank(axis=1, ascending=False) <= 200
-    eq_top100    = eq_ratio.rank(axis=1, ascending=False) <= 200
+    rd_pm_top100 = rd_pm.rank(axis=1, ascending=False) <= 700
+    eq_top100    = eq_price.rank(axis=1, ascending=False) <= 700
 
     operating_margin_increase = (operating_margin > (operating_margin.shift(1) * op_growth_threshold))
 
     fundamental_buy_condition = (
-        operating_margin_increase
+        # operating_margin_increase
         # rd_pm_top100
-        # eq_top100
+        eq_top100
     )
 
     return fundamental_buy_condition
 
 
 # 最終的買入訊號
-buy_signal = ( build_chip_buy_condition(top_n=20) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.001) ) | \
-( build_chip_buy_condition(top_n=60) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.10) ) | \
-( build_chip_buy_condition(top_n=80) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.20) ) | \
-( build_chip_buy_condition(top_n=100) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.30) )
-# buy_signal = ( build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.25) )
+# buy_signal = ( build_chip_buy_condition(top_n=20) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.001) ) | \
+# ( build_chip_buy_condition(top_n=60) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.10) ) | \
+# ( build_chip_buy_condition(top_n=80) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.20) ) | \
+# ( build_chip_buy_condition(top_n=100) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.30) )
+buy_signal = ( build_technical_buy_condition() &  build_fundamental_buy_condition(1.25) )
 
 
 # 設定起始買入日期

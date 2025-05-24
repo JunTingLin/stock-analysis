@@ -204,20 +204,20 @@ def build_fundamental_buy_condition(op_growth_threshold):
     operating_margin_increase = (operating_margin > (operating_margin.shift(1) * op_growth_threshold))
 
     fundamental_buy_condition = (
-        # operating_margin_increase
+        operating_margin_increase
         # rd_pm_top100
-        eq_top100
+        # eq_top100
     )
 
     return fundamental_buy_condition
 
 
 # 最終的買入訊號
-# buy_signal = ( build_chip_buy_condition(top_n=20) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.001) ) | \
-# ( build_chip_buy_condition(top_n=60) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.10) ) | \
-# ( build_chip_buy_condition(top_n=80) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.20) ) | \
-# ( build_chip_buy_condition(top_n=100) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.30) )
-buy_signal = ( build_technical_buy_condition() &  build_fundamental_buy_condition(1.25) )
+buy_signal = ( build_chip_buy_condition(top_n=20) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.001) ) | \
+( build_chip_buy_condition(top_n=60) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.10) ) | \
+( build_chip_buy_condition(top_n=80) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.20) ) | \
+( build_chip_buy_condition(top_n=100) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.30) )
+# buy_signal = ( build_technical_buy_condition() &  build_fundamental_buy_condition(1.25) )
 
 
 # 設定起始買入日期
@@ -249,5 +249,5 @@ position = buy_signal.hold_until(sell_condition)
 from finlab.backtest import sim
 
 # report = sim(position, resample=None, upload=False, trade_at_price='close')
-report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo(), position_limit=0.333)
+report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 # report = sim(position, resample=None, upload=False, trade_at_price='open', position_limit=0.25, fee_ratio=0.02, tax_ratio=0)

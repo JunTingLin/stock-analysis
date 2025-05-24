@@ -8,9 +8,17 @@ output/
 assets/
 *.db
 
+# Excluded shell scripts
+backtest.sh
+fetch.sh
+order.sh
+
 # logs
 logs/
 shioaji.log
+backtest.log
+fetch.log
+order.log
 
 # Configuration files
 /config

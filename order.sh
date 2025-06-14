@@ -1,13 +1,15 @@
 #!/bin/bash
 
 echo "Activating miniconda environment 'stock-analysis'..."
-source /opt/miniconda3/etc/profile.d/conda.sh
+source /home/junting/miniconda3/etc/profile.d/conda.sh
 conda activate stock-analysis
 
 # Change to project root directory
 cd /home/junting/stock-analysis
 # Set PYTHONPATH to the current directory
 export PYTHONPATH=$(pwd)
+# The version of libstdc++.so.6 on the system is too old
+export LD_PRELOAD=$CONDA_PREFIX/lib/libstdc++.so.6
 
 # Default values
 USER_NAME=""

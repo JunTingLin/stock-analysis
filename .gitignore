@@ -10,8 +10,6 @@ assets/
 
 # Excluded shell scripts
 backtest.sh
-fetch.sh
-order.sh
 
 # logs
 logs/

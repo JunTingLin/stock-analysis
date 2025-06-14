@@ -27,7 +27,7 @@ class RAndDManagementStrategy:
 
         rebalance = eq_ratio.index
 
-        self.report = sim(position.loc['2020':], resample=rebalance)
+        self.report = sim(position.loc['2020':], resample=rebalance, upload=False)
         return self.report
 
     def get_report(self):

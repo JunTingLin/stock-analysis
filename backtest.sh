@@ -5,7 +5,7 @@ source /opt/miniconda3/etc/profile.d/conda.sh
 conda activate stock-analysis
 
 # Change to project root directory
-cd /home/mirlab/stock-analysis
+cd /home/junting/stock-analysis
 # Set PYTHONPATH to the current directory
 export PYTHONPATH=$(pwd)
 

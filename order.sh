@@ -5,13 +5,14 @@ source /opt/miniconda3/etc/profile.d/conda.sh
 conda activate stock-analysis
 
 # Change to project root directory
-cd /home/mirlab/stock-analysis
+cd /home/junting/stock-analysis
 # Set PYTHONPATH to the current directory
 export PYTHONPATH=$(pwd)
 
 # Default values
 USER_NAME=""
 BROKER_NAME=""
+EXTRA_BID_PCT=0  # Default value
 VIEW_ONLY_FLAG=""
 
 # Parse input arguments
@@ -19,6 +20,7 @@ for arg in "$@"; do
     case $arg in
         --user_name=*) USER_NAME="${arg#*=}" ;;
         --broker_name=*) BROKER_NAME="${arg#*=}" ;;
+        --extra_bid_pct=*) EXTRA_BID_PCT="${arg#*=}" ;;
         --view_only) VIEW_ONLY_FLAG="--view_only" ;;
         *) echo "Unknown argument: $arg"; exit 1 ;;
     esac
@@ -30,18 +32,10 @@ if [[ -z "$USER_NAME" || -z "$BROKER_NAME" ]]; then
     exit 1
 fi
 
-# Get current time in HHMM format
+# Get current time in HHMM format (for logging purposes)
 current_time=$(date +"%H%M")
 echo "Current time: $current_time"
 
-# Set extra_bid_pct according to time
-if [ "$current_time" -eq "0930" ]; then
-    EXTRA_BID_PCT=0
-elif [ "$current_time" -eq "1300" ]; then
-    EXTRA_BID_PCT=0.01
-else
-    EXTRA_BID_PCT=0
-fi
 echo "Extra bid percentage: $EXTRA_BID_PCT"
 
 # Run the Python script

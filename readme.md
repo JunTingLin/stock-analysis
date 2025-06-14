@@ -64,6 +64,9 @@ pip install finlab shioaji[speed] fugle-trade
 # 使用 conda 安裝其他依賴（部分從 conda-forge channel）
 conda install -c conda-forge openpyxl keyring ta-lib lxml ipython dash dash-bootstrap-components pyyaml pandas
 
+# 保留最新版 Flask 與 Dash 的相容性
+pip install flask-autoindex
+
 # Unix 系統專用：安裝 gunicorn
 conda install gunicorn
 
@@ -72,8 +75,8 @@ conda install gunicorn
 ## 注意事項
 
 + FinLab 套件原碼修改
-目前 finlab 安裝版本為 1.2.23，請手動修改其原始碼：
-到 finlab 套件中 online/order_executor.py 檔案內，找到 execute_orders 函數，將第 679 行的 print 語句改為 logger.info，以便 jobs/order_executor.py 能夠正確抓取下單資訊供後續處理。
+目前 finlab 安裝版本為 1.3.0，請手動修改其原始碼：
+到 finlab 套件中 online/order_executor.py(ex:`/home/junting/miniconda3/envs/stock-analysis/lib/python3.10/site-packages/finlab/`) 檔案內，找到 execute_orders 函數，將第 690 行的 `print(f'{action_str:<11} {o["stock_id"]:10} X {round(abs(o["quantity"]), 3):<10} @ {price_string:<11} {extra_bid_text} {order_condition_str}')` 語句改為 logger.info，以便 jobs/order_executor.py 能夠正確抓取下單資訊供後續處理。
 
 + 多券商配置
 在根目錄新增 config.yaml ，並正確設定finlab API、使用者、各券商（如玉山、永豐）的連線與交易參數。

@@ -73,9 +73,9 @@ class AlanTwStrategy2:
         main_force_top_1d_buy = net_buy_ratio.rank(axis=1, ascending=False) <= top_n
         main_force_top_2d_buy = net_buy_ratio_2d_sum.rank(axis=1, ascending=False) <= top_n
         main_force_top_3d_buy = net_buy_ratio_3d_sum.rank(axis=1, ascending=False) <= top_n
-        main_force_condition_1d = net_buy_ratio > 0.008
-        main_force_condition_2d = net_buy_ratio_2d_sum > 0.015
-        main_force_condition_3d = net_buy_ratio_3d_sum > 0.025
+        main_force_condition_1d = net_buy_ratio > 0.0008
+        main_force_condition_2d = net_buy_ratio_2d_sum > 0.0015
+        main_force_condition_3d = net_buy_ratio_3d_sum > 0.0025
 
         main_force_buy_condition = ( main_force_top_1d_buy & main_force_condition_1d ) | ( main_force_top_2d_buy & main_force_condition_2d ) | ( main_force_top_3d_buy & main_force_condition_3d )
 

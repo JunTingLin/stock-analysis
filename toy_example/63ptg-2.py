@@ -79,7 +79,13 @@ def build_chip_buy_condition(top_n):
 
     chip_buy_condition = foreign_buy_condition | dealer_self_buy_condition | main_force_buy_condition
 
-    return chip_buy_condition
+    return {
+        'chip_buy_condition': chip_buy_condition,
+        'foreign_buy_condition': foreign_buy_condition,
+        'investment_trust_buy_condition': investment_trust_buy_condition,
+        'dealer_self_buy_condition': dealer_self_buy_condition,
+        'main_force_buy_condition': main_force_buy_condition
+    }
 
 with data.universe(market='TSE_OTC'):
     close = data.get("price:收盤價")
@@ -184,24 +190,39 @@ def build_technical_buy_condition():
         macd_dif_buy_condition &
         new_high_condition
     )
-    return technical_buy_condition
+    
+    return {
+        'technical_buy_condition': technical_buy_condition,
+        'ma_up_buy_condition': ma_up_buy_condition,
+        'price_above_ma_buy_condition': price_above_ma_buy_condition,
+        'bias_buy_condition': bias_buy_condition,
+        'volume_doubled_condition': volume_doubled_condition,
+        'volume_above_500_condition': volume_above_500_condition,
+        'price_above_12_condition': price_above_12_condition,
+        'amount_condition': amount_condition,
+        'dmi_buy_condition': dmi_buy_condition,
+        'kd_buy_condition': kd_buy_condition,
+        'macd_dif_buy_condition': macd_dif_buy_condition,
+        'new_high_condition': new_high_condition
+    }
 
 with data.universe(market='TSE_OTC'):
     operating_margin = data.get('fundamental_features:營業利益率')
-    rd_ratio = data.get('fundamental_features:研究發展費用率')
-    pm_ratio = data.get('fundamental_features:管理費用率')
-    eq_ratio = data.get('fundamental_features:淨值除資產')
 
 def build_fundamental_buy_condition(op_growth_threshold):
 
-    rd_pm = rd_ratio / pm_ratio
-    eq_price = eq_ratio / close
+    # operating_margin_deadline = operating_margin.deadline()
 
-    # 取前 100 檔：數值越大排名越前
-    rd_pm_top100 = rd_pm.rank(axis=1, ascending=False) <= 700
-    eq_top100    = eq_price.rank(axis=1, ascending=False) <= 700
+    last_quarter = operating_margin.index[-1]
+    last_quarter_data = operating_margin.loc[last_quarter]
 
-    operating_margin_increase = (operating_margin > (operating_margin.shift(1) * op_growth_threshold))
+    if last_quarter_data.isna().all():
+        print(f"✅ {last_quarter} 全為 NaN，建議移除")
+
+        operating_margin_cleaned = operating_margin.iloc[:-1]
+        print(f"移除後的最後季度: {operating_margin_cleaned.index[-1]}")
+
+    operating_margin_increase = (operating_margin_cleaned > (operating_margin_cleaned.shift(1) * op_growth_threshold))
 
     fundamental_buy_condition = (
         operating_margin_increase
@@ -209,17 +230,21 @@ def build_fundamental_buy_condition(op_growth_threshold):
         # eq_top100
     )
 
-    return fundamental_buy_condition
+    return {
+        'fundamental_buy_condition': fundamental_buy_condition,
+        'operating_margin_increase': operating_margin_increase,
+    }
 
 
 # 最終的買入訊號
-# buy_signal = ( build_chip_buy_condition(top_n=10) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.10) ) | \
-# ( build_chip_buy_condition(top_n=40) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.20) ) | \
-# ( build_chip_buy_condition(top_n=80) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.30) )
-buy_signal = ( 
-    build_chip_buy_condition(top_n=5) &
-    build_technical_buy_condition() &  
-    build_fundamental_buy_condition(1.20)
+chip_conditions = build_chip_buy_condition(top_n=5)
+tech_conditions = build_technical_buy_condition()
+fund_conditions = build_fundamental_buy_condition(1.20)
+
+buy_signal = (
+    chip_conditions['chip_buy_condition'] &
+    tech_conditions['technical_buy_condition']
+    # fund_conditions['fundamental_buy_condition']
 )
 
 
@@ -254,3 +279,113 @@ from finlab.backtest import sim
 # report = sim(position, resample=None, upload=False, trade_at_price='close')
 report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 # report = sim(position, resample=None, upload=False, trade_at_price='open', position_limit=0.25, fee_ratio=0.02, tax_ratio=0)
+
+
+# ----
+def diagnose_strategy(target_stocks=['8358', '8033'], analysis_days=7, top_n=5):
+
+    print("🔍 診斷策略條件")
+    print("="*80)
+    
+    # 調用策略函數獲取所有條件
+    print("📊 計算籌碼面條件...")
+    chip_conditions = build_chip_buy_condition(top_n)
+    
+    print("📊 計算技術面條件...")
+    tech_conditions = build_technical_buy_condition()
+    
+    print("📊 計算基本面條件...")
+    fund_conditions = build_fundamental_buy_condition(1.20)
+    
+    # 獲取分析日期
+    buy_signal_dates = chip_conditions['chip_buy_condition'].index
+    latest_dates = buy_signal_dates[-analysis_days:]
+    print(f"📅 分析日期: {latest_dates[0].strftime('%Y-%m-%d')} 到 {latest_dates[-1].strftime('%Y-%m-%d')}")
+    
+    # 檢查股票是否存在
+    available_stocks = []
+    for stock in target_stocks:
+        if stock in chip_conditions['chip_buy_condition'].columns:
+            available_stocks.append(stock)
+        else:
+            print(f"⚠️  股票 {stock} 不在數據中")
+    
+    if not available_stocks:
+        print("❌ 沒有可分析的股票")
+        return
+    
+    print(f"📈 分析股票: {available_stocks}")
+    
+    # 顯示籌碼面條件
+    print(f"\n{'='*20} 籌碼面條件 {'='*20}")
+    for name, condition in chip_conditions.items():
+        print(f"\n{name}:")
+        try:
+            result = condition[available_stocks].loc[latest_dates]
+            print(result)
+        except:
+            print("⚠️  數據不可用")
+    
+    # 顯示技術面條件
+    print(f"\n{'='*20} 技術面條件 {'='*20}")
+    for name, condition in tech_conditions.items():
+        print(f"\n{name}:")
+        try:
+            result = condition[available_stocks].loc[latest_dates]
+            print(result)
+        except:
+            print("⚠️  數據不可用")
+    
+    # 顯示基本面條件 (處理季度數據)
+    print(f"\n{'='*20} 基本面條件 {'='*20}")
+    for name, condition in fund_conditions.items():
+        print(f"\n{name} (最近一季):")
+        try:
+            if hasattr(condition.index, 'str') or 'Q' in str(condition.index[-1]):
+                # 季度數據
+                latest_quarter = condition.index[-1]
+                result = condition[available_stocks].loc[[latest_quarter]]
+                print(f"季度: {latest_quarter}")
+                print(result)
+            else:
+                # 日度數據
+                result = condition[available_stocks].loc[latest_dates]
+                print(result)
+        except:
+            print("⚠️  數據不可用")
+    
+    # 最終組合條件
+    print(f"\n{'='*20} 最終組合條件 {'='*20}")
+    
+    final_chip = chip_conditions['chip_buy_condition']
+    final_tech = tech_conditions['technical_buy_condition'] 
+    final_fund = fund_conditions['fundamental_buy_condition']
+    
+    print(f"\n🎯 籌碼面總條件:")
+    try:
+        result = final_chip[available_stocks].loc[latest_dates]
+        print(result)
+    except:
+        print("⚠️  數據不可用")
+    
+    print(f"\n🎯 技術面總條件:")
+    try:
+        result = final_tech[available_stocks].loc[latest_dates]
+        print(result)
+    except:
+        print("⚠️  數據不可用")
+    
+    print(f"\n🎯 基本面總條件 (應用最近一季到所有日期):")
+    try:
+        # 對於季度基本面數據，顯示如何應用到日度
+        latest_quarter = final_fund.index[-1]
+        quarter_result = final_fund[available_stocks].loc[[latest_quarter]]
+        print(f"季度 {latest_quarter} 結果:")
+        print(quarter_result)
+        print("(此結果會應用到分析期間的所有日期)")
+    except:
+        print("⚠️  數據不可用")
+
+# 使用方法
+print("🚀 開始診斷...")
+diagnose_strategy(['8358', '8033'], 7, 5)

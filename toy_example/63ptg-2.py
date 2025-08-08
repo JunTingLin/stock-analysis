@@ -282,7 +282,7 @@ report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 
 
 # ----
-def diagnose_strategy(target_stocks=['8358', '8033'], analysis_days=7, top_n=5):
+def diagnose_strategy(target_stocks, analysis_days, top_n, start_date):
 
     print("🔍 診斷策略條件")
     print("="*80)
@@ -297,10 +297,32 @@ def diagnose_strategy(target_stocks=['8358', '8033'], analysis_days=7, top_n=5):
     print("📊 計算基本面條件...")
     fund_conditions = build_fundamental_buy_condition(1.20)
     
-    # 獲取分析日期
+    # 獲取分析日期 - 從指定日期開始往後取analysis_days天
     buy_signal_dates = chip_conditions['chip_buy_condition'].index
-    latest_dates = buy_signal_dates[-analysis_days:]
-    print(f"📅 分析日期: {latest_dates[0].strftime('%Y-%m-%d')} 到 {latest_dates[-1].strftime('%Y-%m-%d')}")
+    start_date = pd.to_datetime(start_date)
+    
+    # 找到起始日期在index中的位置
+    if start_date in buy_signal_dates:
+        start_idx = buy_signal_dates.get_loc(start_date)
+        end_idx = min(start_idx + analysis_days, len(buy_signal_dates))
+        latest_dates = buy_signal_dates[start_idx:end_idx]
+    else:
+        # 如果指定的日期不在index中，找到最接近且大於等於該日期的日期
+        valid_dates = buy_signal_dates[buy_signal_dates >= start_date]
+        if len(valid_dates) == 0:
+            print(f"❌ 指定的起始日期 {start_date.strftime('%Y-%m-%d')} 超出數據範圍")
+            print(f"   數據範圍: {buy_signal_dates[0].strftime('%Y-%m-%d')} 到 {buy_signal_dates[-1].strftime('%Y-%m-%d')}")
+            return
+        
+        closest_date = valid_dates[0]
+        start_idx = buy_signal_dates.get_loc(closest_date)
+        end_idx = min(start_idx + analysis_days, len(buy_signal_dates))
+        latest_dates = buy_signal_dates[start_idx:end_idx]
+        
+        if closest_date != start_date:
+            print(f"⚠️  指定日期 {start_date.strftime('%Y-%m-%d')} 不在交易日中，使用最接近的交易日 {closest_date.strftime('%Y-%m-%d')}")
+    
+    print(f"📅 分析日期: {latest_dates[0].strftime('%Y-%m-%d')} 到 {latest_dates[-1].strftime('%Y-%m-%d')} (共{len(latest_dates)}天)")
     
     # 檢查股票是否存在
     available_stocks = []
@@ -386,6 +408,5 @@ def diagnose_strategy(target_stocks=['8358', '8033'], analysis_days=7, top_n=5):
     except:
         print("⚠️  數據不可用")
 
-# 使用方法
 print("🚀 開始診斷...")
-diagnose_strategy(['8358', '8033'], 7, 5)
+diagnose_strategy(['8033'], analysis_days=10, top_n=5, start_date='2025-07-17')

@@ -121,15 +121,22 @@ def build_technical_buy_condition():
     bias_120 = (adj_close - ma120) / ma120
     bias_240 = (adj_close - ma240) / ma240
 
+    bias_5_condition = (bias_5 <= 0.12) & (bias_5 >= 0.02)
+    bias_10_condition = (bias_10 <= 0.15) & (bias_10 >= 0.05)
+    bias_20_condition = (bias_20 <= 0.20) & (bias_20 >= 0.05)
+    bias_60_condition = (bias_60 <= 0.20) & (bias_60 >= 0.05)
+    bias_120_condition = (bias_120 <= 0.25) & (bias_120 >= 0.10)
+    bias_240_condition = (bias_240 <= 0.25) & (bias_240 >= 0.10)
+
 
     # 設定進場乖離率
     bias_buy_condition = (
-                        (bias_5 <= 0.12) & (bias_5 >= 0.02) &
-                        (bias_10 <= 0.15) & (bias_10 >= 0.05) &
-                        (bias_20 <= 0.20) & (bias_20 >= 0.05) &
-                        (bias_60 <= 0.20) & (bias_60 >= 0.05) & 
-                        (bias_120 <= 0.25) & (bias_120 >= 0.10) &
-                        (bias_240 <= 0.25) & (bias_240 >= 0.10)
+                        bias_5_condition &
+                        bias_10_condition &
+                        bias_20_condition &
+                        bias_60_condition & 
+                        bias_120_condition &
+                        bias_240_condition
                         )
 
     # 今收盤 > 今開盤，且今收盤 > 昨收盤
@@ -203,7 +210,24 @@ def build_technical_buy_condition():
         'dmi_buy_condition': dmi_buy_condition,
         'kd_buy_condition': kd_buy_condition,
         'macd_dif_buy_condition': macd_dif_buy_condition,
-        'new_high_condition': new_high_condition
+        'new_high_condition': new_high_condition,
+
+        'bias_values': {
+            'bias_5': bias_5,
+            'bias_10': bias_10,
+            'bias_20': bias_20,
+            'bias_60': bias_60,
+            'bias_120': bias_120,
+            'bias_240': bias_240
+        },
+        'bias_conditions': {
+            'bias_5_condition': bias_5_condition,
+            'bias_10_condition': bias_10_condition,
+            'bias_20_condition': bias_20_condition,
+            'bias_60_condition': bias_60_condition,
+            'bias_120_condition': bias_120_condition,
+            'bias_240_condition': bias_240_condition
+        }
     }
 
 with data.universe(market='TSE_OTC'):
@@ -221,6 +245,8 @@ def build_fundamental_buy_condition(op_growth_threshold):
 
         operating_margin_cleaned = operating_margin.iloc[:-1]
         print(f"移除後的最後季度: {operating_margin_cleaned.index[-1]}")
+    else:
+        operating_margin_cleaned = operating_margin
 
     operating_margin_increase = (operating_margin_cleaned > (operating_margin_cleaned.shift(1) * op_growth_threshold))
 
@@ -243,8 +269,8 @@ fund_conditions = build_fundamental_buy_condition(1.20)
 
 buy_signal = (
     chip_conditions['chip_buy_condition'] &
-    tech_conditions['technical_buy_condition']
-    # fund_conditions['fundamental_buy_condition']
+    tech_conditions['technical_buy_condition'] &
+    fund_conditions['fundamental_buy_condition']
 )
 
 
@@ -348,15 +374,61 @@ def diagnose_strategy(target_stocks, analysis_days, top_n, start_date):
         except:
             print("⚠️  數據不可用")
     
-    # 顯示技術面條件
+    # 顯示技術面條件（排除 bias 詳細分析）
     print(f"\n{'='*20} 技術面條件 {'='*20}")
+    excluded_keys = ['bias_values', 'bias_conditions']
     for name, condition in tech_conditions.items():
-        print(f"\n{name}:")
+        if name not in excluded_keys:
+            print(f"\n{name}:")
+            try:
+                result = condition[available_stocks].loc[latest_dates]
+                print(result)
+            except:
+                print("⚠️  數據不可用")
+    
+    # 🎯 新增：詳細的 Bias 分析區塊
+    print(f"\n{'='*20} 🔍 BIAS 乖離率詳細分析 {'='*20}")
+    
+    # # 顯示 bias 實際數值
+    # print(f"\n📊 Bias 數值 (百分比格式):")
+    # bias_values = tech_conditions['bias_values']
+    # for bias_name, bias_data in bias_values.items():
+    #     print(f"\n{bias_name}:")
+    #     try:
+    #         result = bias_data[available_stocks].loc[latest_dates]
+    #         # 轉換成百分比格式顯示
+    #         result_percent = result * 100
+    #         print(result_percent.round(2))
+    #     except:
+    #         print("⚠️  數據不可用")
+    
+    # 顯示各個 bias 條件的 True/False 狀況
+    print(f"\n✅ Bias 條件判斷 (True/False):")
+    bias_conditions = tech_conditions['bias_conditions']
+    bias_ranges = {
+        'bias_5_condition': '(2% ≤ bias_5 ≤ 12%)',
+        'bias_10_condition': '(5% ≤ bias_10 ≤ 15%)',
+        'bias_20_condition': '(5% ≤ bias_20 ≤ 20%)',
+        'bias_60_condition': '(5% ≤ bias_60 ≤ 20%)',
+        'bias_120_condition': '(10% ≤ bias_120 ≤ 25%)',
+        'bias_240_condition': '(10% ≤ bias_240 ≤ 25%)'
+    }
+    
+    for condition_name, condition_data in bias_conditions.items():
+        print(f"\n{condition_name} {bias_ranges[condition_name]}:")
         try:
-            result = condition[available_stocks].loc[latest_dates]
+            result = condition_data[available_stocks].loc[latest_dates]
             print(result)
         except:
             print("⚠️  數據不可用")
+    
+    # 顯示整體 bias_buy_condition
+    print(f"\n🎯 整體 bias_buy_condition (所有條件都滿足):")
+    try:
+        result = tech_conditions['bias_buy_condition'][available_stocks].loc[latest_dates]
+        print(result)
+    except:
+        print("⚠️  數據不可用")
     
     # 顯示基本面條件 (處理季度數據)
     print(f"\n{'='*20} 基本面條件 {'='*20}")
@@ -409,4 +481,4 @@ def diagnose_strategy(target_stocks, analysis_days, top_n, start_date):
         print("⚠️  數據不可用")
 
 print("🚀 開始診斷...")
-diagnose_strategy(['8033'], analysis_days=10, top_n=5, start_date='2025-07-17')
+diagnose_strategy(['8358'], analysis_days=10, top_n=5, start_date='2025-07-04')

@@ -166,7 +166,9 @@ def build_technical_buy_condition():
         k, d = data.indicator('STOCH', fastk_period=9, slowk_period=3, slowd_period=3, adjust_price=True)
 
     # KD 指標條件：%K 和 %D 都向上
-    kd_buy_condition = (k > k.shift(1)) & (d > d.shift(1))
+    k_up_condition = k > k.shift(1)
+    d_up_condition = d > d.shift(1)
+    kd_buy_condition = k_up_condition & d_up_condition
 
     with data.universe(market='TSE_OTC'):
         # 計算 MACD 指標
@@ -227,6 +229,16 @@ def build_technical_buy_condition():
             'bias_60_condition': bias_60_condition,
             'bias_120_condition': bias_120_condition,
             'bias_240_condition': bias_240_condition
+        },
+
+        'kd_values': {
+            'k_value': k,
+            'd_value': d
+        },
+        'kd_conditions': {
+            'k_up_condition': k_up_condition,
+            'd_up_condition': d_up_condition,
+            'kd_buy_condition': kd_buy_condition
         }
     }
 
@@ -363,9 +375,9 @@ def diagnose_strategy(target_stocks, analysis_days, top_n, start_date, fundament
         except:
             print("⚠️  數據不可用")
     
-    # 顯示技術面條件（排除 bias 詳細分析）
+    # 顯示技術面條件（排除 bias 和 kd 詳細分析）
     print(f"\n{'='*20} 技術面條件 {'='*20}")
-    excluded_keys = ['bias_values', 'bias_conditions']
+    excluded_keys = ['bias_values', 'bias_conditions', 'kd_values', 'kd_conditions']
     for name, condition in tech_conditions.items():
         if name not in excluded_keys:
             print(f"\n{name}:")
@@ -418,6 +430,37 @@ def diagnose_strategy(target_stocks, analysis_days, top_n, start_date, fundament
         print(result)
     except:
         print("⚠️  數據不可用")
+
+        # 🆕 詳細的 KD 指標分析區塊
+    print(f"\n{'='*20} 📈 KD 指標詳細分析 {'='*20}")
+    
+    # 顯示 KD 實際數值
+    print(f"\n📊 KD 指標數值:")
+    kd_values = tech_conditions['kd_values']
+    for kd_name, kd_data in kd_values.items():
+        print(f"\n{kd_name}:")
+        try:
+            result = kd_data[available_stocks].loc[latest_dates]
+            print(result.round(2))
+        except:
+            print("⚠️  數據不可用")
+    
+    # 顯示各個 KD 條件的 True/False 狀況
+    print(f"\n✅ KD 條件判斷 (True/False):")
+    kd_conditions = tech_conditions['kd_conditions']
+    kd_descriptions = {
+        'k_up_condition': '(%K 向上: K > K前一日)',
+        'd_up_condition': '(%D 向上: D > D前一日)', 
+        'kd_buy_condition': '(KD買入條件: K向上 且 D向上)'
+    }
+    
+    for condition_name, condition_data in kd_conditions.items():
+        print(f"\n{condition_name} {kd_descriptions[condition_name]}:")
+        try:
+            result = condition_data[available_stocks].loc[latest_dates]
+            print(result)
+        except:
+            print("⚠️  數據不可用")
     
     # 顯示基本面條件 (處理季度數據)
     print(f"\n{'='*20} 基本面條件 {'='*20}")

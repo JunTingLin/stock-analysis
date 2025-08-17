@@ -2,6 +2,7 @@ from finlab import data
 from finlab.markets.tw import TWMarket
 import pandas as pd
 import numpy as np
+from taiwan_kd import taiwan_kd_fast
 
 class AdjustTWMarketInfo(TWMarket):
     def get_trading_price(self, name, adj=True):
@@ -89,6 +90,8 @@ def build_chip_buy_condition(top_n):
 
 with data.universe(market='TSE_OTC'):
     close = data.get("price:收盤價")
+    high = data.get("price:最高價")
+    low = data.get("price:最低價")
     adj_close = data.get('etl:adj_close')
     adj_open = data.get('etl:adj_open')
     volume = data.get('price:成交股數')
@@ -161,9 +164,24 @@ def build_technical_buy_condition():
     # DMI條件
     dmi_buy_condition = (plus_di > 24) & (minus_di < 21)
 
-    with data.universe(market='TSE_OTC'):
-        # 計算 KD 指標
-        k, d = data.indicator('STOCH', fastk_period=9, slowk_period=3, slowd_period=3, adjust_price=True)
+    # 計算 KD 指標
+    # with data.universe(market='TSE_OTC'):
+    #     k, d = data.indicator('STOCH',
+    #                         fastk_period=9, 
+    #                         slowk_period=3, 
+    #                         slowk_matype=1,
+    #                         slowd_period=3,
+    #                         slowd_matype=1, 
+    #                         adjust_price=True
+    #                         )
+    k, d = taiwan_kd_fast(
+        high_df=high,
+        low_df=low,
+        close_df=close,
+        fastk_period=9,
+        alpha=1/3
+    )
+    
 
     # KD 指標條件：%K 和 %D 都向上
     k_up_condition = k > k.shift(1)

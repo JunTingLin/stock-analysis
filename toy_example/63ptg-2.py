@@ -237,18 +237,7 @@ def build_fundamental_buy_condition(op_growth_threshold):
 
     # operating_margin_deadline = operating_margin.deadline()
 
-    last_quarter = operating_margin.index[-1]
-    last_quarter_data = operating_margin.loc[last_quarter]
-
-    if last_quarter_data.isna().all():
-        print(f"✅ {last_quarter} 全為 NaN，建議移除")
-
-        operating_margin_cleaned = operating_margin.iloc[:-1]
-        print(f"移除後的最後季度: {operating_margin_cleaned.index[-1]}")
-    else:
-        operating_margin_cleaned = operating_margin
-
-    operating_margin_increase = (operating_margin_cleaned > (operating_margin_cleaned.shift(1) * op_growth_threshold))
+    operating_margin_increase = (operating_margin > (operating_margin.shift(1) * op_growth_threshold))
 
     fundamental_buy_condition = (
         operating_margin_increase
@@ -308,7 +297,7 @@ report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 
 
 # ----
-def diagnose_strategy(target_stocks, analysis_days, top_n, start_date):
+def diagnose_strategy(target_stocks, analysis_days, top_n, start_date, fundamental_quarter):
 
     print("🔍 診斷策略條件")
     print("="*80)
@@ -389,18 +378,18 @@ def diagnose_strategy(target_stocks, analysis_days, top_n, start_date):
     # 🎯 新增：詳細的 Bias 分析區塊
     print(f"\n{'='*20} 🔍 BIAS 乖離率詳細分析 {'='*20}")
     
-    # # 顯示 bias 實際數值
-    # print(f"\n📊 Bias 數值 (百分比格式):")
-    # bias_values = tech_conditions['bias_values']
-    # for bias_name, bias_data in bias_values.items():
-    #     print(f"\n{bias_name}:")
-    #     try:
-    #         result = bias_data[available_stocks].loc[latest_dates]
-    #         # 轉換成百分比格式顯示
-    #         result_percent = result * 100
-    #         print(result_percent.round(2))
-    #     except:
-    #         print("⚠️  數據不可用")
+    # 顯示 bias 實際數值
+    print(f"\n📊 Bias 數值 (百分比格式):")
+    bias_values = tech_conditions['bias_values']
+    for bias_name, bias_data in bias_values.items():
+        print(f"\n{bias_name}:")
+        try:
+            result = bias_data[available_stocks].loc[latest_dates]
+            # 轉換成百分比格式顯示
+            result_percent = result * 100
+            print(result_percent.round(2))
+        except:
+            print("⚠️  數據不可用")
     
     # 顯示各個 bias 條件的 True/False 狀況
     print(f"\n✅ Bias 條件判斷 (True/False):")
@@ -432,21 +421,35 @@ def diagnose_strategy(target_stocks, analysis_days, top_n, start_date):
     
     # 顯示基本面條件 (處理季度數據)
     print(f"\n{'='*20} 基本面條件 {'='*20}")
+    
+    # 處理用戶指定的季度
+    print(f"📊 使用指定季度: {fundamental_quarter}")
+    try:
+        # 檢查指定的季度是否存在於數據中
+        fundamental_data = fund_conditions['fundamental_buy_condition']
+        available_quarters = fundamental_data.index.tolist()
+        
+        if fundamental_quarter in available_quarters:
+            target_quarter = fundamental_quarter
+            print(f"✅ 找到指定季度: {target_quarter}")
+        else:
+            print(f"❌ 指定季度 {fundamental_quarter} 不存在於數據中")
+            print(f"📋 可用的季度: {available_quarters}")
+            print("❌ 請重新指定一個有效的季度")
+            return  # 直接退出，不繼續分析
+    except Exception as e:
+        print(f"❌ 處理指定季度時發生錯誤: {e}")
+        print("❌ 請檢查季度格式是否正確 (例如: '2025-Q1')")
+        return  # 直接退出，不繼續分析
+    
+    # 顯示基本面各個條件
     for name, condition in fund_conditions.items():
-        print(f"\n{name} (最近一季):")
+        print(f"\n{name} (季度: {target_quarter}):")
         try:
-            if hasattr(condition.index, 'str') or 'Q' in str(condition.index[-1]):
-                # 季度數據
-                latest_quarter = condition.index[-1]
-                result = condition[available_stocks].loc[[latest_quarter]]
-                print(f"季度: {latest_quarter}")
-                print(result)
-            else:
-                # 日度數據
-                result = condition[available_stocks].loc[latest_dates]
-                print(result)
-        except:
-            print("⚠️  數據不可用")
+            result = condition[available_stocks].loc[[target_quarter]]
+            print(result)
+        except Exception as e:
+            print(f"⚠️  數據不可用: {e}")
     
     # 最終組合條件
     print(f"\n{'='*20} 最終組合條件 {'='*20}")
@@ -469,16 +472,13 @@ def diagnose_strategy(target_stocks, analysis_days, top_n, start_date):
     except:
         print("⚠️  數據不可用")
     
-    print(f"\n🎯 基本面總條件 (應用最近一季到所有日期):")
+    print(f"\n🎯 基本面總條件 (季度: {target_quarter}):")
     try:
-        # 對於季度基本面數據，顯示如何應用到日度
-        latest_quarter = final_fund.index[-1]
-        quarter_result = final_fund[available_stocks].loc[[latest_quarter]]
-        print(f"季度 {latest_quarter} 結果:")
+        quarter_result = final_fund[available_stocks].loc[[target_quarter]]
         print(quarter_result)
-        print("(此結果會應用到分析期間的所有日期)")
+        print(f"(此 {target_quarter} 季度結果會應用到分析期間的所有日期)")
     except:
         print("⚠️  數據不可用")
 
 print("🚀 開始診斷...")
-diagnose_strategy(['8358'], analysis_days=10, top_n=5, start_date='2025-07-04')
+diagnose_strategy(['8358'], analysis_days=10, top_n=5, start_date='2025-07-04', fundamental_quarter='2025-Q1')

@@ -87,7 +87,7 @@ with data.universe(market='TSE_OTC'):
     adj_open = data.get('etl:adj_open')
     volume = data.get('price:成交股數')
 
-def build_technical_buy_condition():
+def build_technical_buy_condition(new_high_days=120):
 
     # 計算均線
     ma3 = adj_close.rolling(3).mean()
@@ -163,9 +163,8 @@ def build_technical_buy_condition():
     macd_dif_buy_condition = dif > dif.shift(1)
 
     # 創新高
-    high_120 = adj_close.rolling(window=120).max()
-    new_high_120_condition = adj_close >= high_120
-    new_high_condition = new_high_120_condition
+    high_period = adj_close.rolling(window=new_high_days).max()
+    new_high_condition = adj_close >= high_period
 
     # 技術面
     technical_buy_condition = (
@@ -213,11 +212,11 @@ def build_fundamental_buy_condition(op_growth_threshold):
 
 
 # 最終的買入訊號
-# buy_signal = ( build_chip_buy_condition(top_n=5) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.001) ) | \
-# ( build_chip_buy_condition(top_n=10) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.10) ) | \
-# ( build_chip_buy_condition(top_n=40) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.20) ) | \
-# ( build_chip_buy_condition(top_n=60) & build_technical_buy_condition() &  build_fundamental_buy_condition(op_growth_threshold=1.30) )
-buy_signal = (  build_chip_buy_condition(top_n=80) & build_technical_buy_condition() &  build_fundamental_buy_condition(1.20) )
+buy_signal = ( build_chip_buy_condition(top_n=120) & build_technical_buy_condition(new_high_days=120) &  build_fundamental_buy_condition(op_growth_threshold=1.30) ) | \
+( build_chip_buy_condition(top_n=60) & build_technical_buy_condition(new_high_days=120) &  build_fundamental_buy_condition(op_growth_threshold=1.20) ) | \
+( build_chip_buy_condition(top_n=40) & build_technical_buy_condition(new_high_days=120) &  build_fundamental_buy_condition(op_growth_threshold=1.10) )
+( build_chip_buy_condition(top_n=10) & build_technical_buy_condition(new_high_days=120) &  build_fundamental_buy_condition(op_growth_threshold=1.001) )
+# buy_signal = (  build_chip_buy_condition(top_n=10) & build_technical_buy_condition(new_high_days=120) &  build_fundamental_buy_condition(1.001) )
 
 
 # 設定起始買入日期

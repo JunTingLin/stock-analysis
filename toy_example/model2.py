@@ -230,7 +230,34 @@ def build_technical_buy_condition():
         'dmi_buy_condition': dmi_buy_condition,
         'kd_buy_condition': kd_buy_condition,
         'macd_dif_buy_condition': macd_dif_buy_condition,
-        'new_high_condition': new_high_condition
+        'new_high_condition': new_high_condition,
+
+        'bias_values': {
+            'bias_5': bias_5,
+            'bias_10': bias_10,
+            'bias_20': bias_20,
+            'bias_60': bias_60,
+            'bias_120': bias_120,
+            'bias_240': bias_240
+        },
+        'bias_conditions': {
+            'bias_5_condition': bias_5_condition,
+            'bias_10_condition': bias_10_condition,
+            'bias_20_condition': bias_20_condition,
+            'bias_60_condition': bias_60_condition,
+            'bias_120_condition': bias_120_condition,
+            'bias_240_condition': bias_240_condition
+        },
+
+        'kd_values': {
+            'k_value': k,
+            'd_value': d
+        },
+        'kd_conditions': {
+            'k_up_condition': k_up_condition,
+            'd_up_condition': d_up_condition,
+            'kd_buy_condition': kd_buy_condition
+        }
     }
 
 with data.universe(market='TSE_OTC'):
@@ -249,7 +276,7 @@ def build_fundamental_buy_condition(op_growth_threshold):
     }
 
 
-# 最終的買入訊號 (使用第二份的多組條件邏輯)
+# 最終的買入訊號
 buy_signal = (
     (build_chip_buy_condition(top_n=20)['chip_buy_condition'] & 
      build_technical_buy_condition()['technical_buy_condition'] & 
@@ -287,101 +314,35 @@ position = buy_signal.hold_until(sell_condition)
 
 # 執行回測
 from finlab.backtest import sim
+from strategy_diagnostics import diagnose_strategy
 
 report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 
-
-def diagnose_strategy(target_stocks, analysis_days, start_date):
+# 使用獨立的診斷函數
+def run_diagnosis(target_stocks, analysis_days, start_date, fundamental_quarter=None):
+    """運行策略診斷的包裝函數"""
     
-    print("🔍 診斷策略條件 - 技術面分析")
-    print("="*80)
+    print("🚀 開始診斷...")
+    print("📊 計算籌碼面條件...")
+    chip_conditions = build_chip_buy_condition(20)
     
-    # 計算技術面條件
     print("📊 計算技術面條件...")
     tech_conditions = build_technical_buy_condition()
     
-    # 獲取分析日期
-    buy_signal_dates = tech_conditions['technical_buy_condition'].index
-    start_date = pd.to_datetime(start_date)
+    print("📊 計算基本面條件...")
+    fund_conditions = build_fundamental_buy_condition(1.001)
     
-    # 找到起始日期在index中的位置
-    if start_date in buy_signal_dates:
-        start_idx = buy_signal_dates.get_loc(start_date)
-        end_idx = min(start_idx + analysis_days, len(buy_signal_dates))
-        latest_dates = buy_signal_dates[start_idx:end_idx]
-    else:
-        # 找到最接近且大於等於該日期的日期
-        valid_dates = buy_signal_dates[buy_signal_dates >= start_date]
-        if len(valid_dates) == 0:
-            print(f"❌ 指定的起始日期 {start_date.strftime('%Y-%m-%d')} 超出數據範圍")
-            print(f"   數據範圍: {buy_signal_dates[0].strftime('%Y-%m-%d')} 到 {buy_signal_dates[-1].strftime('%Y-%m-%d')}")
-            return
-        
-        closest_date = valid_dates[0]
-        start_idx = buy_signal_dates.get_loc(closest_date)
-        end_idx = min(start_idx + analysis_days, len(buy_signal_dates))
-        latest_dates = buy_signal_dates[start_idx:end_idx]
-        
-        if closest_date != start_date:
-            print(f"⚠️  使用最接近的交易日 {closest_date.strftime('%Y-%m-%d')}")
-    
-    print(f"📅 分析日期: {latest_dates[0].strftime('%Y-%m-%d')} 到 {latest_dates[-1].strftime('%Y-%m-%d')} (共{len(latest_dates)}天)")
-    
-    # 檢查股票是否存在
-    available_stocks = []
-    for stock in target_stocks:
-        if stock in tech_conditions['technical_buy_condition'].columns:
-            available_stocks.append(stock)
-        else:
-            print(f"⚠️  股票 {stock} 不在數據中")
-    
-    if not available_stocks:
-        print("❌ 沒有可分析的股票")
-        return
-    
-    print(f"📈 分析股票: {available_stocks}")
-    
-    # 顯示技術面各項條件 (True/False)
-    print(f"\n{'='*20} 技術面條件判斷 (True/False) {'='*20}")
-    
-    condition_descriptions = {
-        'ma_up_buy_condition': '均線上升 (MA5,10,20,60 > 前一日)',
-        'price_above_ma_buy_condition': '價格在均線之上 (Close > MA5,10,20,60)',
-        'bias_buy_condition': '乖離率符合範圍',
-        'volume_doubled_condition': '成交量 > 昨日2倍',
-        'volume_above_500_condition': '成交張數 > 500張',
-        'price_above_12_condition': '股價 > 12元',
-        'amount_condition': '成交金額 > 3000萬',
-        'dmi_buy_condition': 'DMI條件 (+DI>24, -DI<21)',
-        'kd_buy_condition': 'KD向上 (K,D > 前一日)',
-        'macd_dif_buy_condition': 'MACD DIF向上',
-        'new_high_condition': '創120日新高 (100%)'
-    }
-    
-    # 按順序顯示每個條件
-    for condition_name in ['ma_up_buy_condition', 'price_above_ma_buy_condition', 
-                           'bias_buy_condition', 'volume_doubled_condition',
-                           'volume_above_500_condition', 'price_above_12_condition',
-                           'amount_condition', 'dmi_buy_condition', 'kd_buy_condition',
-                           'macd_dif_buy_condition', 'new_high_condition']:
-        
-        if condition_name in tech_conditions:
-            print(f"\n📌 {condition_descriptions[condition_name]}:")
-            try:
-                result = tech_conditions[condition_name][available_stocks].loc[latest_dates]
-                print(result)
-            except:
-                print("⚠️  數據不可用")
-    
-    # 最終技術面總條件
-    print(f"\n{'='*20} 技術面總條件 {'='*20}")
-    print(f"\n🎯 技術面總條件 (所有條件都滿足):")
-    try:
-        result = tech_conditions['technical_buy_condition'][available_stocks].loc[latest_dates]
-        print(result)
-    except:
-        print("⚠️  數據不可用")
+    # 調用獨立的診斷函數
+    diagnose_strategy(
+        target_stocks=target_stocks,
+        analysis_days=analysis_days,
+        chip_conditions=chip_conditions,
+        tech_conditions=tech_conditions,
+        fund_conditions=fund_conditions,
+        start_date=start_date,
+        fundamental_quarter=fundamental_quarter
+    )
 
 # 使用範例
-print("🚀 開始診斷...")
-diagnose_strategy(['8081'], analysis_days=10, start_date='2025-08-10')
+# run_diagnosis(['8081'], analysis_days=10, start_date='2025-08-10', fundamental_quarter='2025-Q2')
+run_diagnosis(['2402'], analysis_days=10, start_date='2025-08-07', fundamental_quarter='2025-Q2')

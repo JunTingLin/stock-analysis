@@ -90,10 +90,10 @@ def build_chip_buy_condition(top_n):
 
 with data.universe(market='TSE_OTC'):
     close = data.get("price:收盤價")
-    high = data.get("price:最高價")
-    low = data.get("price:最低價")
     adj_close = data.get('etl:adj_close')
     adj_open = data.get('etl:adj_open')
+    adj_high = data.get('etl:adj_high')
+    adj_low = data.get('etl:adj_low')
     volume = data.get('price:成交股數')
 
 def build_technical_buy_condition():
@@ -175,9 +175,9 @@ def build_technical_buy_condition():
                                 adjust_price=True
                                 )
     # k, d = taiwan_kd_fast(
-    #     high_df=high,
-    #     low_df=low,
-    #     close_df=close,
+    #     high_df=adj_high,
+    #     low_df=adj_low,
+    #     close_df=adj_close,
     #     fastk_period=9,
     #     alpha=1/3
     # )
@@ -314,11 +314,14 @@ position = buy_signal.hold_until(sell_condition)
 
 # 執行回測
 from finlab.backtest import sim
-from strategy_diagnostics import diagnose_strategy
-
 report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 
-# 使用獨立的診斷函數
+# -- 
+
+from strategy_diagnostics import diagnose_strategy
+from bias_analysis import create_bias_analyzer
+
+
 def run_diagnosis(target_stocks, analysis_days, start_date, fundamental_quarter=None):
     """運行策略診斷的包裝函數"""
     
@@ -343,6 +346,43 @@ def run_diagnosis(target_stocks, analysis_days, start_date, fundamental_quarter=
         fundamental_quarter=fundamental_quarter
     )
 
-# 使用範例
-# run_diagnosis(['8081'], analysis_days=10, start_date='2025-08-10', fundamental_quarter='2025-Q2')
-run_diagnosis(['2402'], analysis_days=10, start_date='2025-08-07', fundamental_quarter='2025-Q2')
+
+def run_bias_analysis(report):
+    """
+    執行BIAS分析
+
+    Parameters:
+    -----------
+    report : backtest report
+        回測報告
+
+    """
+    print("\n🔍 開始進行 BIAS 分析...")
+
+    # 獲取交易數據
+    trades = report.get_trades()
+
+    print("📊 算技術面條件...")
+    tech_conditions = build_technical_buy_condition()
+
+    # 提取bias數據
+    bias_dict = tech_conditions['bias_values']
+
+    # 執行分析
+    analyzer = create_bias_analyzer()
+    results = analyzer.analyze_all_bias(bias_dict, trades)
+
+    return {
+        'analysis_results': results,
+        'trades_data': trades,
+        'bias_data': bias_dict
+    }
+
+
+if __name__ == "__main__":
+    # 基本的策略診斷
+    # run_diagnosis(['8081'], analysis_days=10, start_date='2025-08-10', fundamental_quarter='2025-Q2')
+    # run_diagnosis(['2402'], analysis_days=10, start_date='2025-08-07', fundamental_quarter='2025-Q2')
+
+    # 執行BIAS分析
+    bias_results = run_bias_analysis(report)

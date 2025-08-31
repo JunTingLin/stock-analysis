@@ -257,6 +257,11 @@ def build_technical_buy_condition():
             'k_up_condition': k_up_condition,
             'd_up_condition': d_up_condition,
             'kd_buy_condition': kd_buy_condition
+        },
+        
+        'price_data': {
+            'adj_close': adj_close,
+            'high_120': high_120
         }
     }
 
@@ -381,8 +386,8 @@ def run_bias_analysis(report):
 
 if __name__ == "__main__":
     # 基本的策略診斷
-    # run_diagnosis(['8081'], analysis_days=10, start_date='2025-08-10', fundamental_quarter='2025-Q2')
+    run_diagnosis(['8081'], analysis_days=10, start_date='2025-08-10', fundamental_quarter='2025-Q2')
     # run_diagnosis(['2402'], analysis_days=10, start_date='2025-08-07', fundamental_quarter='2025-Q2')
 
     # 執行BIAS分析
-    bias_results = run_bias_analysis(report)
+    # bias_results = run_bias_analysis(report)

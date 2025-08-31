@@ -1,4 +1,108 @@
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from finlab import data
+
+def plot_adj_close_and_high_120_trends(target_stocks, analysis_days, start_date, tech_conditions):
+    """
+    繪製 adj_close 和 high_120 的趨勢圖
+    
+    參數:
+    - target_stocks: 要分析的股票代碼列表
+    - analysis_days: 要分析的天數
+    - start_date: 起始分析日期
+    - tech_conditions: 技術面條件字典，包含 price_data
+    """
+    
+    print(f"🎨 正在繪製 adj_close 和 high_120 趨勢圖...")
+    
+    # 從 tech_conditions 中獲取價格數據
+    if 'price_data' not in tech_conditions:
+        print("❌ tech_conditions 中沒有 price_data，無法繪圖")
+        return
+        
+    adj_close = tech_conditions['price_data']['adj_close']
+    high_120 = tech_conditions['price_data']['high_120']
+    
+    # 處理日期範圍
+    start_date = pd.to_datetime(start_date)
+    all_dates = adj_close.index
+    
+    # 找到起始日期位置
+    if start_date in all_dates:
+        start_idx = all_dates.get_loc(start_date)
+        end_idx = min(start_idx + analysis_days, len(all_dates))
+        date_range = all_dates[start_idx:end_idx]
+    else:
+        # 找到最接近的日期
+        valid_dates = all_dates[all_dates >= start_date]
+        if len(valid_dates) == 0:
+            print(f"❌ 指定的起始日期超出數據範圍")
+            return
+        
+        closest_date = valid_dates[0]
+        start_idx = all_dates.get_loc(closest_date)
+        end_idx = min(start_idx + analysis_days, len(all_dates))
+        date_range = all_dates[start_idx:end_idx]
+    
+    # 檢查股票是否存在
+    available_stocks = []
+    for stock in target_stocks:
+        if stock in adj_close.columns:
+            available_stocks.append(stock)
+        else:
+            print(f"⚠️  股票 {stock} 不在數據中")
+    
+    if not available_stocks:
+        print("❌ 沒有可繪圖的股票")
+        return
+    
+    # 為每支股票繪製圖表
+    for stock in available_stocks:
+        plt.figure(figsize=(15, 8))
+        
+        # 獲取該股票的數據
+        stock_adj_close = adj_close[stock].loc[date_range]
+        stock_high_120 = high_120[stock].loc[date_range]
+        
+        # 繪製 adj_close
+        plt.plot(date_range, stock_adj_close, label='Adjusted Close', linewidth=2, color='blue')
+        
+        # 繪製 high_120
+        plt.plot(date_range, stock_high_120, label='120-Day High', linewidth=2, color='red', linestyle='--')
+        
+        # 標記創新高的點
+        new_high_points = stock_adj_close >= stock_high_120
+        new_high_dates = date_range[new_high_points]
+        new_high_prices = stock_adj_close[new_high_points]
+        
+        if len(new_high_dates) > 0:
+            plt.scatter(new_high_dates, new_high_prices, color='orange', s=50, zorder=5, label=f'New Highs ({len(new_high_dates)} points)')
+        
+        # 設定圖表格式
+        plt.title(f'{stock} - Price Trend Analysis\nPeriod: {date_range[0].strftime("%Y-%m-%d")} to {date_range[-1].strftime("%Y-%m-%d")}', 
+                  fontsize=14, fontweight='bold')
+        plt.xlabel('Date', fontsize=12)
+        plt.ylabel('Price', fontsize=12)
+        plt.legend(fontsize=10)
+        plt.grid(True, alpha=0.3)
+        
+        # 格式化 x 軸日期
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
+        plt.xticks(rotation=45)
+        
+        # 緊湊佈局
+        plt.tight_layout()
+        
+        # 顯示圖表
+        plt.show()
+        
+        # 輸出創新高統計
+        print(f"📊 {stock} 創新高統計:")
+        print(f"   - 分析天數: {len(date_range)}")
+        print(f"   - 創新高天數: {len(new_high_dates)}")
+        
 
 def diagnose_strategy(target_stocks, analysis_days, chip_conditions, tech_conditions, fund_conditions, start_date, fundamental_quarter=None):
     """
@@ -235,3 +339,7 @@ def diagnose_strategy(target_stocks, analysis_days, chip_conditions, tech_condit
             print(result)
         except:
             print("⚠️  數據不可用")
+    
+    # 繪製 adj_close 和 high_120 趨勢圖
+    print(f"\n{'='*20} 📈 價格趨勢分析 {'='*20}")
+    plot_adj_close_and_high_120_trends(available_stocks, analysis_days, start_date, tech_conditions)

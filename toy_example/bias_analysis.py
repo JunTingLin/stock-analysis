@@ -93,12 +93,24 @@ class BiasAnalyzer:
         min_bias = bias_values.min()
         max_bias = bias_values.max()
         
+        # 先列印出極端高回報值，了解數據分佈
+        high_returns = trade_returns[trade_returns > 50]  # 篩選超過50%的高回報
+        if not high_returns.empty:
+            print("\n高回報值統計:")
+            print(f"高回報(>50%)的交易數量: {len(high_returns)}")
+            print(f"最高回報值: {high_returns.max():.2f}%")
+            print(f"高回報交易占總交易比例: {(len(high_returns) / len(trade_returns) * 100):.2f}%")
+        
         # 創建適當的區間
         bins = np.arange(0, max_bias + 0.05, 0.05)  # 每5%一個區間
         
         bias_return_df = pd.DataFrame({bias_name: bias_values, "Return (%)": trade_returns})
         bias_return_df[f"{bias_name}_Bins"] = pd.cut(bias_return_df[bias_name], bins=bins)
-        average_return_per_bin = bias_return_df.groupby(f"{bias_name}_Bins")["Return (%)"].mean()
+        
+        # 計算每個區間的平均回報和交易數量
+        grouped = bias_return_df.groupby(f"{bias_name}_Bins")
+        average_return_per_bin = grouped["Return (%)"].mean()
+        counts_per_bin = grouped.size()
 
         # 繪製直方圖
         plt.figure(figsize=(12, 6))
@@ -114,6 +126,20 @@ class BiasAnalyzer:
         # 輸出統計數據
         print(f"\nAverage Return per {bias_name} Interval:")
         print(average_return_per_bin.round(2))
+        
+        print(f"\nNumber of Trades per {bias_name} Interval:")
+        print(counts_per_bin)
+        
+        # 添加一個圖表顯示每個區間的交易數量
+        plt.figure(figsize=(12, 6))
+        counts_per_bin.plot(kind="bar", color="blue", alpha=0.7)
+        plt.title(f"Number of Trades per {bias_name} Interval")
+        plt.xlabel(f"{bias_name} Interval")
+        plt.ylabel("Number of Trades")
+        plt.grid(True)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.show()
         
         return average_return_per_bin
 

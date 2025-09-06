@@ -52,7 +52,7 @@ def build_technical_buy_condition():
     price_above_12_condition = close > 12
 
     # 成交量大於昨日的2倍
-    volume_doubled_condition = volume > (volume.shift(1) * 2)
+    volume_condition = volume > volume.shift(1)
 
     # 今日成交張數 > 500 張
     volume_above_500_condition = volume > 500 * 1000
@@ -83,9 +83,9 @@ def build_technical_buy_condition():
     macd_dif_buy_condition = dif > dif.shift(1)
 
     # 創新高
-    high_120 = adj_close.rolling(window=120).max()
-    new_high_120_condition = adj_close >= high_120
-    new_high_condition = new_high_120_condition
+    high_60 = adj_close.rolling(window=60).max()
+    new_high_60_condition = adj_close >= high_60
+    new_high_condition = new_high_60_condition
 
     # 技術面
     technical_buy_condition = (
@@ -93,7 +93,7 @@ def build_technical_buy_condition():
         # ma5_above_others_condition &
         price_above_ma_buy_condition & 
         bias_buy_condition & 
-        volume_doubled_condition & 
+        volume_condition & 
         # positive_close_condition &
         volume_above_500_condition &
         price_above_12_condition &
@@ -119,19 +119,21 @@ rebalance = eq_price.index
 
 buy_signal = eq_price[(
     build_technical_buy_condition()
-    & (rd_pm.deadline().rank(axis=1, pct=True) > 0.3)
-).reindex(rebalance)].is_largest(1)
+    & (rd_pm.deadline().rank(axis=1, pct=True) > 0.5)
+).reindex(rebalance)].is_largest(50)
 
 
 def build_sell_condition():
     ma3 = adj_close.rolling(3).mean()
+    ma5 = adj_close.rolling(5).mean()
+    ma20 = adj_close.rolling(20).mean()
     dif, macd , _  = data.indicator('MACD', fastperiod=12, slowperiod=26, signalperiod=9, adjust_price=True)
 
     # 法一: 短線出場
-    sell_condition = (ma3 < ma3.shift(1)) & (dif < dif.shift(1))
+    # sell_condition = (ma3 < ma3.shift(1)) & (dif < dif.shift(1))
 
     # 法二: 中線出場
-    # sell_condition = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (macd < macd.shift(1)) & (adj_close < ma20)
+    sell_condition = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (macd < macd.shift(1)) & (adj_close < ma20).sustain(2)
 
 
     return sell_condition
@@ -140,5 +142,6 @@ sell_condition = build_sell_condition()
 position = buy_signal.hold_until(sell_condition)
 
 
-# rebalance = eq_ratio.index
+rebalance = eq_ratio.index
 report = backtest.sim(position.loc['2020':])
+# report = backtest.sim(buy_signal.loc['2020':], resample=rebalance)

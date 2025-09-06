@@ -58,8 +58,8 @@ class OrderExecutor:
             raise ValueError(f"{self.user_name}'s total balance is not positive. Please check your {self.broker_name} account balance.")
 
         safety_weight = self.config_loader.get_user_constant("rebalance_safety_weight")
-        pm.update(port, total_balance=total_balance, rebalance_safety_weight=safety_weight, odd_lot=True)
-        # pm.update(port, total_balance=total_balance, rebalance_safety_weight=safety_weight, odd_lot=True, force_override_difference=True, smooth_transition=False)
+        # pm.update(port, total_balance=total_balance, rebalance_safety_weight=safety_weight, odd_lot=True)
+        pm.update(port, total_balance=total_balance, rebalance_safety_weight=safety_weight, odd_lot=True, force_override_difference=True, smooth_transition=False)
         pm.to_local(name=pm_name)
 
         pm.sync(self.account, extra_bid_pct=self.extra_bid_pct, view_only=self.view_only)

@@ -2,6 +2,7 @@ from finlab import data
 from finlab.markets.tw import TWMarket
 import pandas as pd
 import numpy as np
+from taiwan_kd import taiwan_kd_fast
 
 class AdjustTWMarketInfo(TWMarket):
     def get_trading_price(self, name, adj=True):
@@ -79,15 +80,23 @@ def build_chip_buy_condition(top_n):
 
     chip_buy_condition = foreign_buy_condition | dealer_self_buy_condition | main_force_buy_condition
 
-    return chip_buy_condition
+    return {
+        'chip_buy_condition': chip_buy_condition,
+        'foreign_buy_condition': foreign_buy_condition,
+        'investment_trust_buy_condition': investment_trust_buy_condition,
+        'dealer_self_buy_condition': dealer_self_buy_condition,
+        'main_force_buy_condition': main_force_buy_condition
+    }
 
 with data.universe(market='TSE_OTC'):
     close = data.get("price:收盤價")
     adj_close = data.get('etl:adj_close')
     adj_open = data.get('etl:adj_open')
+    adj_high = data.get('etl:adj_high')
+    adj_low = data.get('etl:adj_low')
     volume = data.get('price:成交股數')
 
-def build_technical_buy_condition(new_high_days=120):
+def build_technical_buy_condition():
 
     # 計算均線
     ma3 = adj_close.rolling(3).mean()
@@ -115,15 +124,22 @@ def build_technical_buy_condition(new_high_days=120):
     bias_120 = (adj_close - ma120) / ma120
     bias_240 = (adj_close - ma240) / ma240
 
+    bias_5_condition = (bias_5 <= 0.12) & (bias_5 >= 0.02)
+    bias_10_condition = (bias_10 <= 0.15) & (bias_10 >= 0.05)
+    bias_20_condition = (bias_20 <= 0.20) & (bias_20 >= 0.05)
+    bias_60_condition = (bias_60 <= 0.20) & (bias_60 >= 0.05)
+    bias_120_condition = (bias_120 <= 0.25) & (bias_120 >= 0.10)
+    bias_240_condition = (bias_240 <= 0.25) & (bias_240 >= 0.10)
+
 
     # 設定進場乖離率
     bias_buy_condition = (
-                        (bias_5 <= 0.12) & (bias_5 >= 0.02) &
-                        (bias_10 <= 0.15) & (bias_10 >= 0.05) &
-                        (bias_20 <= 0.20) & (bias_20 >= 0.05) &
-                        (bias_60 <= 0.20) & (bias_60 >= 0.05) & 
-                        (bias_120 <= 0.25) & (bias_120 >= 0.10) &
-                        (bias_240 <= 0.25) & (bias_240 >= 0.10)
+                        bias_5_condition &
+                        bias_10_condition &
+                        bias_20_condition &
+                        bias_60_condition & 
+                        bias_120_condition &
+                        bias_240_condition
                         )
 
     # 今收盤 > 今開盤，且今收盤 > 昨收盤
@@ -148,12 +164,29 @@ def build_technical_buy_condition(new_high_days=120):
     # DMI條件
     dmi_buy_condition = (plus_di > 24) & (minus_di < 21)
 
-    with data.universe(market='TSE_OTC'):
-        # 計算 KD 指標
-        k, d = data.indicator('STOCH', fastk_period=9, slowk_period=3, slowd_period=3, adjust_price=True)
+    # 計算 KD 指標
+    # with data.universe(market='TSE_OTC'):
+    #     k, d = data.indicator('STOCH',
+    #                             fastk_period=9, 
+    #                             slowk_period=3, 
+    #                             slowk_matype=0,
+    #                             slowd_period=3,
+    #                             slowd_matype=0,
+    #                             adjust_price=True
+    #                             )
+    k, d = taiwan_kd_fast(
+        high_df=adj_high,
+        low_df=adj_low,
+        close_df=adj_close,
+        fastk_period=9,
+        alpha=1/3
+    )
+    
 
     # KD 指標條件：%K 和 %D 都向上
-    kd_buy_condition = (k > k.shift(1)) & (d > d.shift(1))
+    k_up_condition = k > k.shift(1)
+    d_up_condition = d > d.shift(1)
+    kd_buy_condition = k_up_condition & d_up_condition
 
     with data.universe(market='TSE_OTC'):
         # 計算 MACD 指標
@@ -163,8 +196,9 @@ def build_technical_buy_condition(new_high_days=120):
     macd_dif_buy_condition = dif > dif.shift(1)
 
     # 創新高
-    high_period = adj_close.rolling(window=new_high_days).max()
-    new_high_condition = adj_close >= high_period
+    high_120 = adj_close.rolling(window=120).max()
+    new_high_120_condition = adj_close >= high_120
+    new_high_condition = new_high_120_condition
 
     # 技術面
     technical_buy_condition = (
@@ -183,22 +217,55 @@ def build_technical_buy_condition(new_high_days=120):
         macd_dif_buy_condition &
         new_high_condition
     )
-    return technical_buy_condition
+    
+    return {
+        'technical_buy_condition': technical_buy_condition,
+        'ma_up_buy_condition': ma_up_buy_condition,
+        'price_above_ma_buy_condition': price_above_ma_buy_condition,
+        'bias_buy_condition': bias_buy_condition,
+        'volume_doubled_condition': volume_doubled_condition,
+        'volume_above_500_condition': volume_above_500_condition,
+        'price_above_12_condition': price_above_12_condition,
+        'amount_condition': amount_condition,
+        'dmi_buy_condition': dmi_buy_condition,
+        'kd_buy_condition': kd_buy_condition,
+        'macd_dif_buy_condition': macd_dif_buy_condition,
+        'new_high_condition': new_high_condition,
+
+        'bias_values': {
+            'bias_5': bias_5,
+            'bias_10': bias_10,
+            'bias_20': bias_20,
+            'bias_60': bias_60,
+            'bias_120': bias_120,
+            'bias_240': bias_240
+        },
+        'bias_conditions': {
+            'bias_5_condition': bias_5_condition,
+            'bias_10_condition': bias_10_condition,
+            'bias_20_condition': bias_20_condition,
+            'bias_60_condition': bias_60_condition,
+            'bias_120_condition': bias_120_condition,
+            'bias_240_condition': bias_240_condition
+        },
+
+        'kd_values': {
+            'k_value': k,
+            'd_value': d
+        },
+        'kd_conditions': {
+            'k_up_condition': k_up_condition,
+            'd_up_condition': d_up_condition,
+            'kd_buy_condition': kd_buy_condition
+        }
+    }
 
 with data.universe(market='TSE_OTC'):
     operating_margin = data.get('fundamental_features:營業利益率')
-    rd_ratio = data.get('fundamental_features:研究發展費用率')
-    pm_ratio = data.get('fundamental_features:管理費用率')
-    eq_ratio = data.get('fundamental_features:淨值除資產')
 
 def build_fundamental_buy_condition(op_growth_threshold):
 
-    rd_pm = rd_ratio / pm_ratio
-    eq_price = eq_ratio / close
-
-    # 取前 100 檔：數值越大排名越前
-    rd_pm_top100 = rd_pm.rank(axis=1, ascending=False) <= 700
-    eq_top100    = eq_price.rank(axis=1, ascending=False) <= 700
+    # operating_margin_deadline = operating_margin.deadline()
 
     operating_margin_increase = (operating_margin > (operating_margin.shift(1) * op_growth_threshold))
 
@@ -208,15 +275,22 @@ def build_fundamental_buy_condition(op_growth_threshold):
         # eq_top100
     )
 
-    return fundamental_buy_condition
+    return {
+        'fundamental_buy_condition': fundamental_buy_condition,
+        'operating_margin_increase': operating_margin_increase,
+    }
 
 
 # 最終的買入訊號
-buy_signal = ( build_chip_buy_condition(top_n=120) & build_technical_buy_condition(new_high_days=120) &  build_fundamental_buy_condition(op_growth_threshold=1.30) ) | \
-( build_chip_buy_condition(top_n=60) & build_technical_buy_condition(new_high_days=120) &  build_fundamental_buy_condition(op_growth_threshold=1.20) ) | \
-( build_chip_buy_condition(top_n=40) & build_technical_buy_condition(new_high_days=120) &  build_fundamental_buy_condition(op_growth_threshold=1.10) )
-( build_chip_buy_condition(top_n=10) & build_technical_buy_condition(new_high_days=120) &  build_fundamental_buy_condition(op_growth_threshold=1.001) )
-# buy_signal = (  build_chip_buy_condition(top_n=10) & build_technical_buy_condition(new_high_days=120) &  build_fundamental_buy_condition(1.001) )
+chip_conditions = build_chip_buy_condition(top_n=100)
+tech_conditions = build_technical_buy_condition()
+fund_conditions = build_fundamental_buy_condition(1.25)
+
+buy_signal = (
+    chip_conditions['chip_buy_condition'] &
+    tech_conditions['technical_buy_condition'] &
+    fund_conditions['fundamental_buy_condition']
+)
 
 
 # 設定起始買入日期
@@ -246,7 +320,36 @@ position = buy_signal.hold_until(sell_condition)
 
 # 執行回測
 from finlab.backtest import sim
+from strategy_diagnostics import diagnose_strategy
 
 # report = sim(position, resample=None, upload=False, trade_at_price='close')
 report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 # report = sim(position, resample=None, upload=False, trade_at_price='open', position_limit=0.25, fee_ratio=0.02, tax_ratio=0)
+
+# 使用獨立的診斷函數
+def run_diagnosis(target_stocks, analysis_days, top_n, start_date, fundamental_quarter):
+    """運行策略診斷的包裝函數"""
+    
+    print("🚀 開始診斷...")
+    print("📊 計算籌碼面條件...")
+    chip_conditions = build_chip_buy_condition(top_n)
+    
+    print("📊 計算技術面條件...")
+    tech_conditions = build_technical_buy_condition()
+    
+    print("📊 計算基本面條件...")
+    fund_conditions = build_fundamental_buy_condition(1.20)
+    
+    # 調用獨立的診斷函數
+    diagnose_strategy(
+        target_stocks=target_stocks,
+        analysis_days=analysis_days,
+        chip_conditions=chip_conditions,
+        tech_conditions=tech_conditions,
+        fund_conditions=fund_conditions,
+        start_date=start_date,
+        fundamental_quarter=fundamental_quarter
+    )
+
+# 使用範例
+# run_diagnosis(['2402'], analysis_days=10, top_n=5, start_date='2025-08-07', fundamental_quarter='2025-Q2')

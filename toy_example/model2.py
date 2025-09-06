@@ -165,22 +165,22 @@ def build_technical_buy_condition():
     dmi_buy_condition = (plus_di > 24) & (minus_di < 21)
 
     # 計算 KD 指標
-    with data.universe(market='TSE_OTC'):
-        k, d = data.indicator('STOCH',
-                                fastk_period=9, 
-                                slowk_period=3, 
-                                slowk_matype=0,
-                                slowd_period=3,
-                                slowd_matype=0,
-                                adjust_price=True
-                                )
-    # k, d = taiwan_kd_fast(
-    #     high_df=adj_high,
-    #     low_df=adj_low,
-    #     close_df=adj_close,
-    #     fastk_period=9,
-    #     alpha=1/3
-    # )
+    # with data.universe(market='TSE_OTC'):
+    #     k, d = data.indicator('STOCH',
+    #                             fastk_period=9, 
+    #                             slowk_period=3, 
+    #                             slowk_matype=0,
+    #                             slowd_period=3,
+    #                             slowd_matype=0,
+    #                             adjust_price=True
+    #                             )
+    k, d = taiwan_kd_fast(
+        high_df=adj_high,
+        low_df=adj_low,
+        close_df=adj_close,
+        fastk_period=9,
+        alpha=1/3
+    )
     
 
     # KD 指標條件：%K 和 %D 都向上
@@ -384,10 +384,10 @@ def run_bias_analysis(report):
     }
 
 
-if __name__ == "__main__":
-    # 基本的策略診斷
-    run_diagnosis(['8081'], analysis_days=10, start_date='2025-08-10', fundamental_quarter='2025-Q2')
-    # run_diagnosis(['2402'], analysis_days=10, start_date='2025-08-07', fundamental_quarter='2025-Q2')
+# if __name__ == "__main__":
+#     # 基本的策略診斷
+#     run_diagnosis(['8081'], analysis_days=10, start_date='2025-08-10', fundamental_quarter='2025-Q2')
+#     run_diagnosis(['2402'], analysis_days=10, start_date='2025-08-07', fundamental_quarter='2025-Q2')
 
-    # 執行BIAS分析
-    # bias_results = run_bias_analysis(report)
+#     # 執行BIAS分析
+#     bias_results = run_bias_analysis(report)

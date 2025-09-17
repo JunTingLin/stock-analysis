@@ -33,7 +33,13 @@ def create_app():
     server = Flask(__name__)
 
     # 創建AutoIndex實例並指向assets資料夾
-    auto_index = AutoIndex(server, browse_root=assets_path, add_url_rules=False)
+    auto_index = AutoIndex(
+        server,
+        browse_root=assets_path,
+        add_url_rules=False,
+        sort_by='last_modified',
+        order='desc'
+    )
 
     # 添加路由規則
     @server.route('/assets/')

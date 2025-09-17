@@ -1,7 +1,7 @@
 from finlab import data
 from finlab.markets.tw import TWMarket
 from finlab.backtest import sim
-from taiwan_kd import taiwan_kd_fast
+from .taiwan_kd import taiwan_kd_fast
 
 class AdjustTWMarketInfo(TWMarket):
     def get_trading_price(self, name, adj=True):

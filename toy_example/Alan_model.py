@@ -98,7 +98,8 @@ with data.universe(market='TSE_OTC'):
 
 def build_technical_buy_condition(bias_5_range=(0.03, 0.13), bias_10_range=(0.05, 0.16),
                                   bias_20_range=(0.05, 0.21), bias_60_range=(0.08, 0.20),
-                                  bias_120_range=(0.05, 0.26), bias_240_range=(0.08, 0.26)):
+                                  bias_120_range=(0.05, 0.26), bias_240_range=(0.08, 0.26),
+                                  new_high_days=120):
 
     # 計算均線
     ma3 = adj_close.rolling(3).mean()
@@ -197,10 +198,10 @@ def build_technical_buy_condition(bias_5_range=(0.03, 0.13), bias_10_range=(0.05
     # MACD DIF 向上
     macd_dif_buy_condition = dif > dif.shift(1)
 
-    # 創新高
-    high_120 = adj_close.rolling(window=120).max()
-    new_high_120_condition = adj_close >= high_120
-    new_high_condition = new_high_120_condition
+    # 創新高 - 根據指定天數計算
+    high_n = adj_close.rolling(window=new_high_days).max()
+    new_high_condition = adj_close >= high_n
+
 
     # 技術面
     technical_buy_condition = (
@@ -263,8 +264,9 @@ def build_technical_buy_condition(bias_5_range=(0.03, 0.13), bias_10_range=(0.05
         
         'price_data': {
             'adj_close': adj_close,
-            'high_120': high_120
-        }
+            'high_n': high_n,
+        },
+
     }
 
 with data.universe(market='TSE_OTC'):
@@ -314,14 +316,29 @@ buy_signal = (
     # |
 
     # C: top_n=25, 營益率 15%, BIAS: 3~13, 5~16, 8~21, 8~20, 5~29, 8~32
-    (build_chip_buy_condition(top_n=25)['chip_buy_condition'] &
+    # (build_chip_buy_condition(top_n=25)['chip_buy_condition'] &
+    #  build_technical_buy_condition(
+    #      bias_5_range=(0.03, 0.13),
+    #      bias_10_range=(0.05, 0.16),
+    #      bias_20_range=(0.08, 0.21),
+    #      bias_60_range=(0.08, 0.20),
+    #      bias_120_range=(0.05, 0.29),
+    #      bias_240_range=(0.08, 0.32)
+    #  )['technical_buy_condition'] &
+    #  build_fundamental_buy_condition(1.15)['fundamental_buy_condition'])
+
+    # |
+
+    # E: top_n=40, 營益率 15%, BIAS: 3~13, 5~16, 8~21, 8~20, 5~29, 8~32, 創480天新高
+    (build_chip_buy_condition(top_n=40)['chip_buy_condition'] &
      build_technical_buy_condition(
          bias_5_range=(0.03, 0.13),
          bias_10_range=(0.05, 0.16),
          bias_20_range=(0.08, 0.21),
          bias_60_range=(0.08, 0.20),
          bias_120_range=(0.05, 0.29),
-         bias_240_range=(0.08, 0.32)
+         bias_240_range=(0.08, 0.32),
+         new_high_days=480
      )['technical_buy_condition'] &
      build_fundamental_buy_condition(1.15)['fundamental_buy_condition'])
 )
@@ -349,6 +366,18 @@ report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 # report = sim(position, resample=None, upload=False, trade_at_price='open')
 # report = sim(position, resample=None, upload=False, trade_at_price='open', position_limit=0.25)
 
+# fee_ratio = 0.001425
+# tax_ratio = 0.003
+# slippage = 0.01
+# report = sim(
+#     position, 
+#     resample=None, 
+#     upload=False, 
+#     market=AdjustTWMarketInfo(), 
+#     fee_ratio=slippage + fee_ratio,  # 買賣各扣: 滑價 2.5% + 手續費 0.1425%
+#     tax_ratio=tax_ratio,  # 賣出時扣: 交易稅 0.3% 
+#     position_limit=0.25
+#     )
 
 # 查看回測結果
 

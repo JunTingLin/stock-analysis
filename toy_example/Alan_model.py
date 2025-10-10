@@ -96,7 +96,9 @@ with data.universe(market='TSE_OTC'):
     adj_low = data.get('etl:adj_low')
     volume = data.get('price:成交股數')
 
-def build_technical_buy_condition():
+def build_technical_buy_condition(bias_5_range=(0.03, 0.13), bias_10_range=(0.05, 0.16),
+                                  bias_20_range=(0.05, 0.21), bias_60_range=(0.08, 0.20),
+                                  bias_120_range=(0.05, 0.26), bias_240_range=(0.08, 0.26)):
 
     # 計算均線
     ma3 = adj_close.rolling(3).mean()
@@ -124,12 +126,12 @@ def build_technical_buy_condition():
     bias_120 = (adj_close - ma120) / ma120
     bias_240 = (adj_close - ma240) / ma240
 
-    bias_5_condition = (bias_5 <= 0.13) & (bias_5 >= 0.03)
-    bias_10_condition = (bias_10 <= 0.16) & (bias_10 >= 0.05)
-    bias_20_condition = (bias_20 <= 0.21) & (bias_20 >= 0.08)
-    bias_60_condition = (bias_60 <= 0.20) & (bias_60 >= 0.08)
-    bias_120_condition = (bias_120 <= 0.26) & (bias_120 >= 0.08)
-    bias_240_condition = (bias_240 <= 0.26) & (bias_240 >= 0.08)
+    bias_5_condition = (bias_5 >= bias_5_range[0]) & (bias_5 <= bias_5_range[1])
+    bias_10_condition = (bias_10 >= bias_10_range[0]) & (bias_10 <= bias_10_range[1])
+    bias_20_condition = (bias_20 >= bias_20_range[0]) & (bias_20 <= bias_20_range[1])
+    bias_60_condition = (bias_60 >= bias_60_range[0]) & (bias_60 <= bias_60_range[1])
+    bias_120_condition = (bias_120 >= bias_120_range[0]) & (bias_120 <= bias_120_range[1])
+    bias_240_condition = (bias_240 >= bias_240_range[0]) & (bias_240 <= bias_240_range[1])
 
 
     # 設定進場乖離率
@@ -257,6 +259,11 @@ def build_technical_buy_condition():
             'k_up_condition': k_up_condition,
             'd_up_condition': d_up_condition,
             'kd_buy_condition': kd_buy_condition
+        },
+        
+        'price_data': {
+            'adj_close': adj_close,
+            'high_120': high_120
         }
     }
 
@@ -264,15 +271,10 @@ with data.universe(market='TSE_OTC'):
     operating_margin = data.get('fundamental_features:營業利益率')
 
 def build_fundamental_buy_condition(op_growth_threshold):
-
-    # operating_margin_deadline = operating_margin.deadline()
-
     operating_margin_increase = (operating_margin > (operating_margin.shift(1) * op_growth_threshold))
 
     fundamental_buy_condition = (
         operating_margin_increase
-        # rd_pm_top100
-        # eq_top100
     )
 
     return {
@@ -281,37 +283,59 @@ def build_fundamental_buy_condition(op_growth_threshold):
     }
 
 
-# 最終的買入訊號
-chip_conditions = build_chip_buy_condition(top_n=15)
-tech_conditions = build_technical_buy_condition()
-fund_conditions = build_fundamental_buy_condition(1.001)
-
+# 最終的買入訊號 - A|B|C 組合
 buy_signal = (
-    chip_conditions['chip_buy_condition'] &
-    tech_conditions['technical_buy_condition'] &
-    fund_conditions['fundamental_buy_condition']
-)
+    # # A: top_n=15, 營益率 0.1%, BIAS: 3~13, 5~16, 8~21, 8~20, 8~26, 8~26
+    # (build_chip_buy_condition(top_n=15)['chip_buy_condition'] &
+    #  build_technical_buy_condition(
+    #      bias_5_range=(0.03, 0.13),
+    #      bias_10_range=(0.05, 0.16),
+    #      bias_20_range=(0.08, 0.21),
+    #      bias_60_range=(0.08, 0.20),
+    #      bias_120_range=(0.08, 0.26),
+    #      bias_240_range=(0.08, 0.26)
+    #  )['technical_buy_condition'] &
+    #  build_fundamental_buy_condition(1.001)['fundamental_buy_condition']) 
+     
+    # |
 
+    # # B: top_n=40, 營益率 25%, BIAS: 3~13, 5~16, 8~21, 8~20, 8~26, 8~26
+    # (build_chip_buy_condition(top_n=40)['chip_buy_condition'] &
+    #  build_technical_buy_condition(
+    #      bias_5_range=(0.03, 0.13),
+    #      bias_10_range=(0.05, 0.16),
+    #      bias_20_range=(0.08, 0.21),
+    #      bias_60_range=(0.08, 0.20),
+    #      bias_120_range=(0.08, 0.26),
+    #      bias_240_range=(0.08, 0.26)
+    #  )['technical_buy_condition'] &
+    #  build_fundamental_buy_condition(1.25)['fundamental_buy_condition']) 
+     
+    # |
+
+    # C: top_n=25, 營益率 15%, BIAS: 3~13, 5~16, 8~21, 8~20, 5~29, 8~32
+    (build_chip_buy_condition(top_n=25)['chip_buy_condition'] &
+     build_technical_buy_condition(
+         bias_5_range=(0.03, 0.13),
+         bias_10_range=(0.05, 0.16),
+         bias_20_range=(0.08, 0.21),
+         bias_60_range=(0.08, 0.20),
+         bias_120_range=(0.05, 0.29),
+         bias_240_range=(0.08, 0.32)
+     )['technical_buy_condition'] &
+     build_fundamental_buy_condition(1.15)['fundamental_buy_condition'])
+)
 
 # 設定起始買入日期
 start_buy_date = '2017-12-31'
 buy_signal = buy_signal.loc[start_buy_date:]
 
-# volume_ma = volume.average(10)
-# buy_signal = volume_ma * buy_signal
-# buy_signal = buy_signal.is_largest(5)
-
 def build_sell_condition():
     ma3 = adj_close.rolling(3).mean()
-    ma10 = adj_close.rolling(10).mean()
     dif, macd , _  = data.indicator('MACD', fastperiod=12, slowperiod=26, signalperiod=9, adjust_price=True)
 
     # 法一: 短線出場
     sell_condition = (ma3 < ma3.shift(1)) & (dif < dif.shift(1))
-
-    # 法二: 中線出場 - 收盤<10日均線，並且MACD雙線向下
-    # sell_condition = (adj_close < ma10) & (dif < dif.shift(1)) & (macd < macd.shift(1))
-
 
     return sell_condition
 
@@ -321,25 +345,48 @@ position = buy_signal.hold_until(sell_condition)
 
 # 執行回測
 from finlab.backtest import sim
-from strategy_diagnostics import diagnose_strategy
-
-# report = sim(position, resample=None, upload=False, trade_at_price='open')
 report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
-# report = sim(position, resample=None, upload=False, trade_at_price='open', position_limit=0.25, fee_ratio=0.02, tax_ratio=0)
+# report = sim(position, resample=None, upload=False, trade_at_price='open')
+# report = sim(position, resample=None, upload=False, trade_at_price='open', position_limit=0.25)
 
-# 使用獨立的診斷函數
-def run_diagnosis(target_stocks, analysis_days, top_n, start_date, fundamental_quarter):
+
+# 查看回測結果
+
+# 取得所有績效指標
+metrics = report.get_metrics()
+# 年化報酬
+annual_return = metrics['profitability']['annualReturn']
+# 最大回檔
+max_drawdown = metrics['risk']['maxDrawdown']
+# 總交易次數
+total_trades = report.get_trades().shape[0]
+# 打印結果
+print("=" * 50)
+print("策略績效指標")
+print("=" * 50)
+print(f"年化報酬率: {annual_return:.2%}")
+print(f"最大回檔: {max_drawdown:.2%}")
+print(f"總交易次數: {total_trades} 筆")
+print("=" * 50)
+
+# -- 
+
+from strategy_diagnostics import diagnose_strategy
+from bias_analysis import create_bias_analyzer
+
+
+def run_diagnosis(target_stocks, analysis_days, start_date, fundamental_quarter=None):
     """運行策略診斷的包裝函數"""
     
     print("🚀 開始診斷...")
     print("📊 計算籌碼面條件...")
-    chip_conditions = build_chip_buy_condition(top_n)
+    chip_conditions = build_chip_buy_condition(20)
     
     print("📊 計算技術面條件...")
     tech_conditions = build_technical_buy_condition()
     
     print("📊 計算基本面條件...")
-    fund_conditions = build_fundamental_buy_condition(1.20)
+    fund_conditions = build_fundamental_buy_condition(1.001)
     
     # 調用獨立的診斷函數
     diagnose_strategy(
@@ -352,5 +399,43 @@ def run_diagnosis(target_stocks, analysis_days, top_n, start_date, fundamental_q
         fundamental_quarter=fundamental_quarter
     )
 
-# 使用範例
-# run_diagnosis(['2402'], analysis_days=10, top_n=5, start_date='2025-08-07', fundamental_quarter='2025-Q2')
+
+def run_bias_analysis(report):
+    """
+    執行BIAS分析
+
+    Parameters:
+    -----------
+    report : backtest report
+        回測報告
+
+    """
+    print("\n🔍 開始進行 BIAS 分析...")
+
+    # 獲取交易數據
+    trades = report.get_trades()
+
+    print("📊 算技術面條件...")
+    tech_conditions = build_technical_buy_condition()
+
+    # 提取bias數據
+    bias_dict = tech_conditions['bias_values']
+
+    # 執行分析
+    analyzer = create_bias_analyzer()
+    results = analyzer.analyze_all_bias(bias_dict, trades)
+
+    return {
+        'analysis_results': results,
+        'trades_data': trades,
+        'bias_data': bias_dict
+    }
+
+
+# if __name__ == "__main__":
+#     # 基本的策略診斷
+#     run_diagnosis(['8081'], analysis_days=10, start_date='2025-08-10', fundamental_quarter='2025-Q2')
+#     run_diagnosis(['2402'], analysis_days=10, start_date='2025-08-07', fundamental_quarter='2025-Q2')
+
+#     # 執行BIAS分析
+#     bias_results = run_bias_analysis(report)

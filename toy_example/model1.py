@@ -124,12 +124,12 @@ def build_technical_buy_condition():
     bias_120 = (adj_close - ma120) / ma120
     bias_240 = (adj_close - ma240) / ma240
 
-    bias_5_condition = (bias_5 <= 0.12) & (bias_5 >= 0.02)
-    bias_10_condition = (bias_10 <= 0.15) & (bias_10 >= 0.05)
-    bias_20_condition = (bias_20 <= 0.20) & (bias_20 >= 0.05)
-    bias_60_condition = (bias_60 <= 0.20) & (bias_60 >= 0.05)
-    bias_120_condition = (bias_120 <= 0.25) & (bias_120 >= 0.10)
-    bias_240_condition = (bias_240 <= 0.25) & (bias_240 >= 0.10)
+    bias_5_condition = (bias_5 <= 0.13) & (bias_5 >= 0.03)
+    bias_10_condition = (bias_10 <= 0.16) & (bias_10 >= 0.05)
+    bias_20_condition = (bias_20 <= 0.21) & (bias_20 >= 0.08)
+    bias_60_condition = (bias_60 <= 0.20) & (bias_60 >= 0.08)
+    bias_120_condition = (bias_120 <= 0.26) & (bias_120 >= 0.08)
+    bias_240_condition = (bias_240 <= 0.26) & (bias_240 >= 0.08)
 
 
     # 設定進場乖離率
@@ -282,9 +282,9 @@ def build_fundamental_buy_condition(op_growth_threshold):
 
 
 # 最終的買入訊號
-chip_conditions = build_chip_buy_condition(top_n=100)
+chip_conditions = build_chip_buy_condition(top_n=15)
 tech_conditions = build_technical_buy_condition()
-fund_conditions = build_fundamental_buy_condition(1.25)
+fund_conditions = build_fundamental_buy_condition(1.001)
 
 buy_signal = (
     chip_conditions['chip_buy_condition'] &
@@ -303,13 +303,14 @@ buy_signal = buy_signal.loc[start_buy_date:]
 
 def build_sell_condition():
     ma3 = adj_close.rolling(3).mean()
+    ma10 = adj_close.rolling(10).mean()
     dif, macd , _  = data.indicator('MACD', fastperiod=12, slowperiod=26, signalperiod=9, adjust_price=True)
 
     # 法一: 短線出場
     sell_condition = (ma3 < ma3.shift(1)) & (dif < dif.shift(1))
 
-    # 法二: 中線出場
-    # sell_condition = (ma5 < ma5.shift(1)) & (dif < dif.shift(1)) & (macd < macd.shift(1)) & (adj_close < ma20)
+    # 法二: 中線出場 - 收盤<10日均線，並且MACD雙線向下
+    # sell_condition = (adj_close < ma10) & (dif < dif.shift(1)) & (macd < macd.shift(1))
 
 
     return sell_condition
@@ -322,7 +323,7 @@ position = buy_signal.hold_until(sell_condition)
 from finlab.backtest import sim
 from strategy_diagnostics import diagnose_strategy
 
-# report = sim(position, resample=None, upload=False, trade_at_price='close')
+# report = sim(position, resample=None, upload=False, trade_at_price='open')
 report = sim(position, resample=None, upload=False, market=AdjustTWMarketInfo())
 # report = sim(position, resample=None, upload=False, trade_at_price='open', position_limit=0.25, fee_ratio=0.02, tax_ratio=0)
 

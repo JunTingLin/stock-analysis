@@ -96,7 +96,9 @@ with data.universe(market='TSE_OTC'):
     adj_low = data.get('etl:adj_low')
     volume = data.get('price:成交股數')
 
-def build_technical_buy_condition():
+def build_technical_buy_condition(bias_5_range=(0.03, 0.13), bias_10_range=(0.05, 0.16),
+                                  bias_20_range=(0.05, 0.21), bias_60_range=(0.08, 0.20),
+                                  bias_120_range=(0.05, 0.26), bias_240_range=(0.08, 0.26)):
 
     # 計算均線
     ma3 = adj_close.rolling(3).mean()
@@ -124,12 +126,12 @@ def build_technical_buy_condition():
     bias_120 = (adj_close - ma120) / ma120
     bias_240 = (adj_close - ma240) / ma240
 
-    bias_5_condition = (bias_5 <= 0.12) & (bias_5 >= 0.02)
-    bias_10_condition = (bias_10 <= 0.15) & (bias_10 >= 0.05)
-    bias_20_condition = (bias_20 <= 0.20) & (bias_20 >= 0.05)
-    bias_60_condition = (bias_60 <= 0.20) & (bias_60 >= 0.05)
-    bias_120_condition = (bias_120 <= 0.25) & (bias_120 >= 0.10)
-    bias_240_condition = (bias_240 <= 0.25) & (bias_240 >= 0.10)
+    bias_5_condition = (bias_5 >= bias_5_range[0]) & (bias_5 <= bias_5_range[1])
+    bias_10_condition = (bias_10 >= bias_10_range[0]) & (bias_10 <= bias_10_range[1])
+    bias_20_condition = (bias_20 >= bias_20_range[0]) & (bias_20 <= bias_20_range[1])
+    bias_60_condition = (bias_60 >= bias_60_range[0]) & (bias_60 <= bias_60_range[1])
+    bias_120_condition = (bias_120 >= bias_120_range[0]) & (bias_120 <= bias_120_range[1])
+    bias_240_condition = (bias_240 >= bias_240_range[0]) & (bias_240 <= bias_240_range[1])
 
 
     # 設定進場乖離率
@@ -281,23 +283,43 @@ def build_fundamental_buy_condition(op_growth_threshold):
     }
 
 
-# 最終的買入訊號
+# 最終的買入訊號 - A|B|C 組合
 buy_signal = (
-    (build_chip_buy_condition(top_n=20)['chip_buy_condition'] & 
-     build_technical_buy_condition()['technical_buy_condition'] & 
+    # A: top_n=15, 營益率 0.1%, BIAS: 3~13, 5~16, 5~21, 8~20, 8~26, 8~26
+    (build_chip_buy_condition(top_n=15)['chip_buy_condition'] &
+     build_technical_buy_condition(
+         bias_5_range=(0.03, 0.13),
+         bias_10_range=(0.05, 0.16),
+         bias_20_range=(0.05, 0.21),
+         bias_60_range=(0.08, 0.20),
+         bias_120_range=(0.08, 0.26),
+         bias_240_range=(0.08, 0.26)
+     )['technical_buy_condition'] &
      build_fundamental_buy_condition(1.001)['fundamental_buy_condition']) |
-    
-    (build_chip_buy_condition(top_n=60)['chip_buy_condition'] & 
-     build_technical_buy_condition()['technical_buy_condition'] & 
-     build_fundamental_buy_condition(1.10)['fundamental_buy_condition']) |
-    
-    (build_chip_buy_condition(top_n=80)['chip_buy_condition'] & 
-     build_technical_buy_condition()['technical_buy_condition'] & 
-     build_fundamental_buy_condition(1.20)['fundamental_buy_condition']) |
-    
-    (build_chip_buy_condition(top_n=100)['chip_buy_condition'] & 
-     build_technical_buy_condition()['technical_buy_condition'] & 
-     build_fundamental_buy_condition(1.30)['fundamental_buy_condition'])
+
+    # B: top_n=40, 營益率 25%, BIAS: 3~13, 5~16, 8~21, 8~20, 8~26, 8~26
+    (build_chip_buy_condition(top_n=40)['chip_buy_condition'] &
+     build_technical_buy_condition(
+         bias_5_range=(0.03, 0.13),
+         bias_10_range=(0.05, 0.16),
+         bias_20_range=(0.08, 0.21),
+         bias_60_range=(0.08, 0.20),
+         bias_120_range=(0.08, 0.26),
+         bias_240_range=(0.08, 0.26)
+     )['technical_buy_condition'] &
+     build_fundamental_buy_condition(1.25)['fundamental_buy_condition']) |
+
+    # C: top_n=25, 營益率 15%, BIAS: 3~13, 5~16, 8~21, 8~20, 5~29, 8~32
+    (build_chip_buy_condition(top_n=25)['chip_buy_condition'] &
+     build_technical_buy_condition(
+         bias_5_range=(0.03, 0.13),
+         bias_10_range=(0.05, 0.16),
+         bias_20_range=(0.08, 0.21),
+         bias_60_range=(0.08, 0.20),
+         bias_120_range=(0.05, 0.29),
+         bias_240_range=(0.08, 0.32)
+     )['technical_buy_condition'] &
+     build_fundamental_buy_condition(1.15)['fundamental_buy_condition'])
 )
 
 # 設定起始買入日期

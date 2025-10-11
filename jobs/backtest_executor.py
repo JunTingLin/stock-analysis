@@ -41,10 +41,10 @@ class BacktestExecutor:
             from strategy_class.tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy as strategy_class
         elif self.strategy_class_name == 'PeterWuStrategy':
             from strategy_class.peterwu_tw_strategy import PeterWuStrategy as strategy_class
-        elif self.strategy_class_name == 'AlanTwStrategy1':
-            from strategy_class.alan_tw_strategy_1 import AlanTwStrategy1 as strategy_class
-        elif self.strategy_class_name == 'AlanTwStrategy2':
-            from strategy_class.alan_tw_strategy_2 import AlanTwStrategy2 as strategy_class
+        elif self.strategy_class_name == 'AlanTWStrategy1':
+            from strategy_class.alan_tw_strategy_1 import AlanTWStrategy1 as strategy_class
+        elif self.strategy_class_name == 'AlanTWStrategy2':
+            from strategy_class.alan_tw_strategy_2 import AlanTWStrategy2 as strategy_class
         elif self.strategy_class_name == 'AlanTWStrategyC':
             from strategy_class.alan_tw_strategy_C import AlanTWStrategyC as strategy_class
         elif self.strategy_class_name == 'AlanTWStrategyE':

@@ -25,7 +25,7 @@ done
 # Check if required parameters are provided
 if [[ -z "$STRATEGY_CLASS_NAME" ]]; then
     echo "Error: --strategy_class_name must be provided."
-    echo "Available strategies: TibetanMastiffTWStrategy, PeterWuStrategy, AlanTwStrategy1, AlanTwStrategy2, AlanTWStrategyC, AlanTWStrategyE, RAndDManagementStrategy"
+    echo "Available strategies: TibetanMastiffTWStrategy, PeterWuStrategy, AlanTWStrategy1, AlanTWStrategy2, AlanTWStrategyC, AlanTWStrategyE, RAndDManagementStrategy"
     exit 1
 fi
 

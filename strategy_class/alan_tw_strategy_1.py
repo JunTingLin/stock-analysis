@@ -8,7 +8,7 @@ class AdjustTWMarketInfo(TWMarket):
         return self.get_price(name, adj=adj).shift(1)
 
 
-class AlanTwStrategy1:
+class AlanTWStrategy1:
     
     def __init__(self):
         self.report = None

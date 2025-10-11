@@ -13,7 +13,7 @@ from finlab.markets.tw import TWMarket
 from finlab.backtest import sim
 import pandas as pd
 import numpy as np
-from taiwan_kd import taiwan_kd_fast
+from .taiwan_kd import taiwan_kd_fast
 
 
 class AdjustTWMarketInfo(TWMarket):

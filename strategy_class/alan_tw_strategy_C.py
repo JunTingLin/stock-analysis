@@ -33,45 +33,30 @@ class AlanTWStrategyC:
         sell_signal: 賣出訊號
     """
 
-    def __init__(self,
-                 top_n=25,
-                 op_growth_threshold=1.15,
-                 bias_5_range=(0.03, 0.13),
-                 bias_10_range=(0.05, 0.16),
-                 bias_20_range=(0.08, 0.21),
-                 bias_60_range=(0.08, 0.20),
-                 bias_120_range=(0.05, 0.29),
-                 bias_240_range=(0.08, 0.32),
-                 start_date='2017-12-31',
-                 slippage=0.0,
-                 position_limit=None):
+    def __init__(self):
         """
         初始化策略參數
 
-        Parameters:
-            top_n: 籌碼面排名前N名
-            op_growth_threshold: 營業利益率成長門檻
-            bias_5_range: 5日乖離率範圍
-            bias_10_range: 10日乖離率範圍
-            bias_20_range: 20日乖離率範圍
-            bias_60_range: 60日乖離率範圍
-            bias_120_range: 120日乖離率範圍
-            bias_240_range: 240日乖離率範圍
-            start_date: 回測起始日期
-            slippage: 滑價成本（小數形式，例如 0.01 = 1%）
-            position_limit: 單檔持股上限（例如 0.25 = 25%）
+        注意：所有參數都在此處硬編碼，若需調整請直接修改此處數值
         """
-        self.top_n = top_n
-        self.op_growth_threshold = op_growth_threshold
-        self.bias_5_range = bias_5_range
-        self.bias_10_range = bias_10_range
-        self.bias_20_range = bias_20_range
-        self.bias_60_range = bias_60_range
-        self.bias_120_range = bias_120_range
-        self.bias_240_range = bias_240_range
-        self.start_date = start_date
-        self.slippage = slippage
-        self.position_limit = position_limit
+        # 籌碼面參數
+        self.top_n = 25
+
+        # 基本面參數
+        self.op_growth_threshold = 1.15
+
+        # 技術面參數 - 乖離率範圍
+        self.bias_5_range = (0.03, 0.13)
+        self.bias_10_range = (0.05, 0.16)
+        self.bias_20_range = (0.08, 0.21)
+        self.bias_60_range = (0.08, 0.20)
+        self.bias_120_range = (0.05, 0.29)
+        self.bias_240_range = (0.08, 0.32)
+
+        # 回測參數
+        self.start_date = '2017-12-31'
+        self.slippage = 0.0
+        self.position_limit = 0.25
 
         self.report = None
         self.position = None
@@ -371,10 +356,5 @@ class AlanTWStrategyC:
 
 # Example usage:
 if __name__ == "__main__":
-    # 不含滑價的回測
     strategy = AlanTWStrategyC()
     report = strategy.run_strategy()
-
-    # 含滑價的回測
-    # strategy_with_slippage = AlanTWStrategyC(slippage=0.01, position_limit=0.25)
-    # report_with_slippage = strategy_with_slippage.run_strategy()

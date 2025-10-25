@@ -5,6 +5,7 @@ import os
 from utils.logger_manager import LoggerManager
 from utils.authentication import Authenticator
 from utils.config_loader import ConfigLoader
+from utils.reservation_handler import ReservationHandlerFactory
 from finlab.portfolio import Portfolio, PortfolioSyncManager
 from dao import OrderDAO, AccountDAO
 from utils.stock_mapper import StockMapper
@@ -62,6 +63,13 @@ class OrderExecutor:
         pm.update(port, total_balance=total_balance, rebalance_safety_weight=safety_weight, odd_lot=True, force_override_difference=True, smooth_transition=False)
         pm.to_local(name=pm_name)
 
+        # 顯示警示股（會寫入 log）
+        pm.order_executor.show_alerting_stocks()
+
+        # 處理警示股圈存
+        if not self.view_only:
+            self._handle_alerting_stocks_reservation()
+
         pm.sync(self.account, extra_bid_pct=self.extra_bid_pct, view_only=self.view_only)
         logger.info("Portfolio synced")
 
@@ -78,7 +86,18 @@ class OrderExecutor:
             account_name = self.user_name+"_"+self.broker_name
             account_id = self.account_dao.get_account_id(account_name, broker_name=self.broker_name, user_name=self.user_name)
             self.order_dao.insert_order_logs(order_logs, account_id, self.order_timestamp, view_only=self.view_only)
-        
+
+
+    def _handle_alerting_stocks_reservation(self):
+        """處理警示股圈存（使用策略模式支援多券商）"""
+        # 從 log 提取警示股資訊
+        alerting_stocks = self.logger_manager.extract_alerting_stocks(self.log_file)
+
+        # 建立對應券商的圈存處理器
+        handler = ReservationHandlerFactory.create(self.broker_name, self.account)
+
+        # 執行圈存
+        handler.handle_alerting_stocks(alerting_stocks)
 
     def load_strategy(self, strategy_class_name):
         if strategy_class_name == 'TibetanMastiffTWStrategy':

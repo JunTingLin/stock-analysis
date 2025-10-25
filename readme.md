@@ -76,7 +76,21 @@ conda install gunicorn
 
 + FinLab 套件原碼修改
 目前 finlab 安裝版本為 1.3.0，請手動修改其原始碼：
-到 finlab 套件中 online/order_executor.py(ex:`/home/junting/miniconda3/envs/stock-analysis/lib/python3.10/site-packages/finlab/`) 檔案內，找到 execute_orders 函數，將第 690 行的 `print(f'{action_str:<11} {o["stock_id"]:10} X {round(abs(o["quantity"]), 3):<10} @ {price_string:<11} {extra_bid_text} {order_condition_str}')` 語句改為 logger.info，以便 jobs/order_executor.py 能夠正確抓取下單資訊供後續處理。
+    1. **下單日誌修改**：到 finlab 套件中 `online/order_executor.py`（例如：`C:\Users\junting\anaconda3\envs\stock-analysis\lib\site-packages\finlab\online\order_executor.py`）檔案內，找到 `execute_orders` 函數，將第 690 行的 `print(f'{action_str:<11} {o["stock_id"]:10} X {round(abs(o["quantity"]), 3):<10} @ {price_string:<11} {extra_bid_text} {order_condition_str}')` 語句改為 `logger.info`，以便 `jobs/order_executor.py` 能夠正確抓取下單資訊供後續處理。
+
+    2. **警示股日誌修改**：在同一個檔案 `online/order_executor.py` 中，找到 `show_alerting_stocks` 函數（約第 538-568 行），將第 563、567 行的 `print` 語句改為 `logger.info`：
+        - 第 563 行：將 `print(f"買入 {sid} {quantity[sid]:>5} 張 - 總價約 {total_amount:>15.2f}")` 改為 `logger.info(f"買入 {sid} {quantity[sid]:>5} 張 - 總價約 {total_amount:>15.2f}")`
+        - 第 567 行：將 `print(f"賣出 {sid} {quantity[sid]:>5} 張 - 總價約 {total_amount:>15.2f}")` 改為 `logger.info(f"賣出 {sid} {quantity[sid]:>5} 張 - 總價約 {total_amount:>15.2f}")`
+
+        這樣可以讓警示股資訊寫入 log，方便後續進行圈存處理。
+
++ 警示股自動圈存功能
+    + 系統會自動檢測下單部位中的警示股、處置股、全額交割股
+    + 針對永豐券商（shioaji）自動執行圈存：
+        + 買入：使用 `reserve_earmarking` 進行預收款項
+        + 賣出：使用 `reserve_stock` 進行預收股票
+    + 採用策略模式設計（`utils/reservation_handler.py`），未來可擴展支援其他券商
+    + Fugle 券商目前不支援圈存 API，會記錄警告訊息提醒手動處理
 
 + 多券商配置
 在根目錄新增 config.yaml ，並正確設定finlab API、使用者、各券商（如玉山、永豐）的連線與交易參數。

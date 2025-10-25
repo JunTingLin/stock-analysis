@@ -54,6 +54,31 @@ class LoggerManager:
                     order_logs.append(d)
         return order_logs
 
+    def extract_alerting_stocks(self, log_filepath):
+        """
+        從 log 檔案中提取警示股資訊
+
+        預期格式:
+        買入 8101 0.429 張 - 總價約         2672.67
+        賣出 2330 1.500 張 - 總價約        45000.00
+
+        Returns:
+            list: 警示股資訊列表，每個元素包含 action, stock_id, quantity, total_amount
+        """
+        alerting_stocks = []
+        pattern = re.compile(
+            r"(?P<action>買入|賣出)\s+(?P<stock_id>\d{4,6})\s+(?P<quantity>[\d\.]+)\s+張\s+-\s+總價約\s+(?P<total_amount>[\d\.]+)"
+        )
+        with open(log_filepath, "r", encoding="utf-8") as f:
+            for line in f:
+                match = pattern.search(line)
+                if match:
+                    d = match.groupdict()
+                    d["quantity"] = float(d["quantity"])
+                    d["total_amount"] = float(d["total_amount"])
+                    alerting_stocks.append(d)
+        return alerting_stocks
+
 if __name__ == "__main__":
     from datetime import datetime
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

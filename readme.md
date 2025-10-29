@@ -41,63 +41,217 @@
 + 其他
     + IPython：互動式 Python 介面
     + pyyaml：讀取配置文件
+# 程式專案設定檔配置&自動排程v3.1
+
+## 程式下載
+1. 進入ubuntu，切換到使用者根目錄下`/home/<user>`，此篇範例為`home/junting/`
+2. `git clone https://github.com/JunTingLin/stock-analysis.git`
 
 
-## 安裝
+## python 環境建置
+:::warning
+這裡使用miniconda建置環境，假如想使用.venv建置可自行參考repo的套件依賴安裝
+:::
 
-建議使用 conda 環境（推薦方式）
-1. 建立並啟用環境
-```bash
-conda create -n stock-analysis python=3.10.16
-conda activate stock-analysis
+1. 更新包管理器並安裝所需工具
+```
+sudo apt update
+sudo apt install wget bzip2 -y
 ```
 
-2. 更新環境
-已有提供的 conda 環境 YAML 檔([environment_linux.yml](./environment_linux.yml), [environment_window.yml](./environment_window.yml))，可使用下列指令更新環境：
-```bash
+2. 下載並運行 Miniconda 安裝腳本
+```
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+```
++ 這邊會請您閱讀條款，一直按Enter之後選擇Yes
++ 它會詢問miniconda 安裝位置，預設是`/home/<user>/miniconda3`
++ 它詢問您是否希望自動初始化 conda，這將在啟動時自動激活 conda 基本環境並改變命令提示符，這裡我是選擇No，自己配置會比較清楚
+
+3. 初始化 Conda
++ 先手動激活 conda。`source ~/miniconda3/etc/profile.d/conda.sh`
++ 這指令會修改您的 shell 配置文件（如 ~/.bashrc ），以便在每次打開終端時自動加載 conda。`conda init`
+
+4. 創建並配置 Conda 環境
+```
+conda create -n stock-analysis python=3.10.16
+conda activate stock-analysis
+cd stock-analysis
 conda env update --file environment_linux.yml --name stock-analysis
 ```
 
-或者逐一安裝
-
+5. 驗證環境配置
 ```
-# 安裝僅提供 pip 的套件
-pip install finlab shioaji[speed] fugle-trade
-
-# 使用 conda 安裝其他依賴（部分從 conda-forge channel）
-conda install -c conda-forge openpyxl keyring ta-lib lxml ipython dash dash-bootstrap-components pyyaml pandas
-
-# 保留最新版 Flask 與 Dash 的相容性
-pip install flask-autoindex
-
-# Unix 系統專用：安裝 gunicorn
-conda install gunicorn
-
+conda activate stock-analysis
+conda list
 ```
 
-## 注意事項
+## 前置設定要求
+1. 憑證檔案準備
+根據使用的券商，準備對應的憑證檔案：
+Shioaji（永豐金證券）：
++ 憑證檔案：.pfx 格式
++ 建議路徑：/home/<user>/stock-analysis/config/<user>_Sinopac.pfx
++ 取得方式：從永豐金證券-[金鑰與憑證申請](https://sinotrade.github.io/zh/tutor/prepare/token/)
 
-+ FinLab 套件原碼修改
-目前 finlab 安裝版本為 1.3.0，請手動修改其原始碼：
-    1. **下單日誌修改**：到 finlab 套件中 `online/order_executor.py`（例如：`C:\Users\junting\anaconda3\envs\stock-analysis\lib\site-packages\finlab\online\order_executor.py`）檔案內，找到 `execute_orders` 函數，將第 690 行的 `print(f'{action_str:<11} {o["stock_id"]:10} X {round(abs(o["quantity"]), 3):<10} @ {price_string:<11} {extra_bid_text} {order_condition_str}')` 語句改為 `logger.info`，以便 `jobs/order_executor.py` 能夠正確抓取下單資訊供後續處理。
+2. config.yaml 配置
+在專案根目錄建立 config.yaml，包含以下設定：
+必要欄位說明:
+```
+# 全域環境變數
+env:
+  FINLAB_API_TOKEN: "your_finlab_token"  # FinLab API Token
 
-    2. **警示股日誌修改**：在同一個檔案 `online/order_executor.py` 中，找到 `show_alerting_stocks` 函數（約第 538-568 行），將第 563、567 行的 `print` 語句改為 `logger.info`：
-        - 第 563 行：將 `print(f"買入 {sid} {quantity[sid]:>5} 張 - 總價約 {total_amount:>15.2f}")` 改為 `logger.info(f"買入 {sid} {quantity[sid]:>5} 張 - 總價約 {total_amount:>15.2f}")`
-        - 第 567 行：將 `print(f"賣出 {sid} {quantity[sid]:>5} 張 - 總價約 {total_amount:>15.2f}")` 改為 `logger.info(f"賣出 {sid} {quantity[sid]:>5} 張 - 總價約 {total_amount:>15.2f}")`
+# 使用者配置
+users:
+  <user_name>:  # 例如：junting, alan
+    <broker_name>:  # 例如：fugle, shioaji
+      env:
+        # 券商 API 認證資訊（依券商不同）
+        # Fugle 範例：
+        FUGLE_MARKET_API_KEY: "your_api_key"
+        FUGLE_ACCOUNT: "your_account"
+        FUGLE_ACCOUNT_PASSWORD: "your_password"
+        FUGLE_CERT_PASSWORD: "your_cert_password"
+        FUGLE_CONFIG_PATH: "/path/to/config.ini"
+        PYTHON_KEYRING_BACKEND: "keyrings.cryptfile.cryptfile.CryptFileKeyring"
 
-        這樣可以讓警示股資訊寫入 log，方便後續進行圈存處理。
+        # Shioaji 範例：
+        SHIOAJI_API_KEY: "your_api_key"
+        SHIOAJI_SECRET_KEY: "your_secret_key"
+        SHIOAJI_CERT_PERSON_ID: "your_id"
+        SHIOAJI_CERT_PATH: "/path/to/cert.pfx"
+        SHIOAJI_CERT_PASSWORD: "your_cert_password"
 
-+ 警示股自動圈存功能
-    + 系統會自動檢測下單部位中的警示股、處置股、全額交割股
-    + 針對永豐券商（shioaji）自動執行圈存：
-        + 買入：使用 `reserve_earmarking` 進行預收款項
-        + 賣出：使用 `reserve_stock` 進行預收股票
-    + 採用策略模式設計（`utils/reservation_handler.py`），未來可擴展支援其他券商
-    + Fugle 券商目前不支援圈存 API，會記錄警告訊息提醒手動處理
+      constant:
+        rebalance_safety_weight: 0.1  # 再平衡安全權重（0.0-1.0）
+        strategy_class_name: "YourStrategyClassName"  # 策略類別名稱
+```
+config.yaml 範例：
+```
+env:
+  FINLAB_API_TOKEN: "PG323UEltzZHHyhR4wg+OIGmrII..."
 
-+ 多券商配置
-在根目錄新增 config.yaml ，並正確設定finlab API、使用者、各券商（如玉山、永豐）的連線與交易參數。
+users:
+  junting:
+    shioaji:
+      env:
+        SHIOAJI_API_KEY: "4rJhFzsocEFDtCBb75Mku2..."
+        SHIOAJI_SECRET_KEY: "425iBxJdmR1rEsn47kee66..."
+        SHIOAJI_CERT_PERSON_ID: "A123456789"
+        SHIOAJI_CERT_PATH: "/home/junting/stock-analysis/config/junting_Sinopac.pfx"
+        SHIOAJI_CERT_PASSWORD: "A123456789"
+      constant:
+        rebalance_safety_weight: 0.3
+        strategy_class_name: "RAndDManagementStrategy"
+```
+    
+
+## 啟動Dashboard (linux systemd)
+1. 創建一個新的 systemd 服務單元文件。`sudo vim /etc/systemd/system/flask_stock.service`
+
+2. 在文件中添加以下內容:
+```
+[Unit]
+Description=Flask Server Stock Analysis
+After=network.target
+
+[Service]
+User=junting
+WorkingDirectory=/home/junting/stock-analysis
+Environment="PATH=/home/junting/miniconda3/envs/stock-analysis/bin"
+ExecStart=/home/junting/miniconda3/envs/stock-analysis/bin/gunicorn -w 4 -b 0.0.0.0:5000 dashboard:server
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+:::warning
+注意: 這裡User和路徑內的<user>請自行替換
+:::
+
+3. 啟動並啟用服務
+```
+sudo systemctl start flask_stock # 啟動
+sudo systemctl enable flask_stock # 開機自動啟動
+```
+    
+4. 檢查 systemd 服務的狀態。`sudo systemctl status flask_stock`
+
+-- 補充--
+    
+5. 重新啟動服務
+```
+sudo systemctl daemon-reload
+sudo systemctl restart flask_stock
+```
+6. 停止服務
+```
+sudo systemctl stop flask_stock
+sudo systemctl disable flask_stock
+```
+    
 
 
-## 部署
-[股票自動交易手冊](https://hackmd.io/@RPTu-Li-R66a9lr4Fb9qEg/BJpNu1QSC/%2FSy7PQ0BB0)
+
+    
+## 啟動自動排程 (linux cronjob)
+
+1. 在終端中，執行以下命令來編輯 crontab 配置。`crontab -e`
+    
+2. 添加定時任務
+`0 20 * * * /path/to/your/order.sh`
++ `0 20 `表示每天的 20:00（晚上八點）。
++ `* * * `表示每天的每個月的每個月份。
++ `/path/to/your/order.sh` 是您腳本的完整路徑。
+    
+3. Example
+    
+CronJob 1 - fetch.sh
+```
+30 20 * * * /home/junting/stock-analysis/fetch.sh --user_name=junting --broker_name=shioaji >> /home/junting/stock-analysis/fetch.log 2>&1
+```
+參數說明：
+| 參數 | 必需 | 預設值 | 說明 |
+|------|------|--------|------|
+| `--user_name` | 是 | 無 | 使用者名稱，需與 `config.yaml` 一致 |
+| `--broker_name` | 是 | 無 | 券商名稱（`fugle` 或 `shioaji`） |
+    
+CronJob 2 - backtest.sh 
+```
+00 20 * * * /home/junting/stock-analysis/backtest.sh --strategy_class_name=RAndDManagementStrategy >> /home/junting/stock-analysis/backtest.log 2>&1
+```
+**參數說明：**
+
+| 參數 | 必需 | 預設值 | 說明 |
+|------|------|--------|------|
+| `--strategy_class_name` | 是 | 無 | 策略類別名稱（例如：`RAndDManagementStrategy`） |
+
+    
+CronJob 3 - order.sh
+```
+00 08 * * * /home/junting/stock-analysis/order.sh --user_name=junting --broker_name=shioaji >> /home/junting/stock-analysis/order.log 2>&1
+        
+00 13 * * * /home/junting/stock-analysis/order.sh --user_name=junting --broker_name=shioaji --extra_bid_pct=0.01 >> /home/junting/stock-analysis/order.log 2>&1
+```
+ **參數說明：**
+
+| 參數 | 必需 | 預設值 | 說明 |
+|------|------|--------|------|
+| `--user_name` | 是 | 無 | 使用者名稱，需與 `config.yaml` 一致 |
+| `--broker_name` | 是 | 無 | 券商名稱（`fugle` 或 `shioaji`） |
+| `--extra_bid_pct` | 否 | 0 | 額外加價百分比（例如：0.01 代表加價 1%） |
+| `--view_only` | 否 | false | 僅查看模式，不實際下單 |
+
+
+4. 檢查 Crontab 列表。`crontab -l`
+        
+
+## 可用策略類別名稱列表
+| 策略類別名稱 | 檔案位置 | 說明 |
+|-------------|---------|------|
+| `AlanTWStrategyC` | [alan_tw_strategy_C.py](strategy_class/alan_tw_strategy_C.py) | Alan 策略 C |
+| `AlanTWStrategyE` | [alan_tw_strategy_E.py](strategy_class/alan_tw_strategy_E.py) | Alan 策略 E |
+| `PeterWuStrategy` | [peterwu_tw_strategy.py](strategy_class/peterwu_tw_strategy.py) | Peter Wu 策略 |
+| `RAndDManagementStrategy` | [r_and_d_management_strategy.py](strategy_class/r_and_d_management_strategy.py) | Finlab官方-研發管理策略 |
+| `TibetanMastiffTWStrategy` | [tibetanmastiff_tw_strategy.py](strategy_class/tibetanmastiff_tw_strategy.py) | Finlab-藏敖策略 |

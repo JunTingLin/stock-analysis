@@ -10,11 +10,14 @@
 + 自動化下單
     + crontab排程自動執行交易，透過玉山富果 API、Shioaji永豐API 進行下單。
 + 批次任務與 Dashboard
-    + Cronjob 1 - 下單流程: FinLab 資料 → 策略回測 → 下單（調整持倉） → 紀錄 → 資料庫
-    + Cronjob 2 - 帳務資料抓取: 獲取成交明細、庫存明細、銀行餘額、交割款 → 紀錄 → 資料庫
+    + Cronjob 1 - fetech.sh 帳務資料抓取: 獲取成交明細、庫存明細、銀行餘額、交割款 → 紀錄 → 資料庫
+    + Cronjob 2 - backtest.sh 回測獨立報表: FinLab 資料 → 策略回測 → 產生html報告 → File Browser(root/assets/)
+    + Cronjob 3 - order.sh 下單流程: FinLab 資料 → 策略回測 → 下單（調整持倉） → 紀錄 → 資料庫
     + Web Dashboard: 展示下單資訊、帳戶資金水位變化圖、每月實際回報率圖以及 FinLab 回測報告。
 
-![image](https://github.com/user-attachments/assets/b640a032-bd2f-4278-8429-b617804cf4f9)
+<img width="1917" height="1075" alt="image" src="https://github.com/user-attachments/assets/b5adbb8c-740b-4269-bd68-f93cf3c5a873" />
+
+
 
 ## 依賴
 

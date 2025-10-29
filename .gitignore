@@ -5,13 +5,18 @@ __pycache__/
 
 # Output directories
 output/
-report_finlab/
-report_pickle/
+assets/
 *.db
+
+# Excluded shell scripts
+backtest.sh
 
 # logs
 logs/
 shioaji.log
+backtest.log
+fetch.log
+order.log
 
 # Configuration files
 /config

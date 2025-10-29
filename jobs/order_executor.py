@@ -5,6 +5,7 @@ import os
 from utils.logger_manager import LoggerManager
 from utils.authentication import Authenticator
 from utils.config_loader import ConfigLoader
+from utils.reservation_handler import ReservationHandlerFactory
 from finlab.portfolio import Portfolio, PortfolioSyncManager
 from dao import OrderDAO, AccountDAO
 from utils.stock_mapper import StockMapper
@@ -29,12 +30,10 @@ class OrderExecutor:
         self.order_timestamp = datetime.datetime.now()
         self.logger_manager = LoggerManager(
             base_log_directory=base_log_directory,
-            current_datetime=self.order_timestamp,
-            user_name=user_name,
-            broker_name=broker_name
+            current_datetime=self.order_timestamp
         )
         self.log_file = self.logger_manager.setup_logging()
-        logger.info(f"Log file: {self.log_file}")
+        logger.info(f"user_name: {self.user_name}, broker_name: {self.broker_name}")
 
         self.order_dao = OrderDAO()
         self.account_dao = AccountDAO()
@@ -42,16 +41,8 @@ class OrderExecutor:
 
     def run_strategy_and_sync(self):
         strategy_class_name = self.config_loader.get_user_constant("strategy_class_name")
-
-        # Get or create strategy report
-        report, is_new_report = self.get_or_create_strategy_report(strategy_class_name)
-        
-        # Save HTML report if this is a new report
-        if is_new_report:
-            self.save_finlab_report(report, user_name=self.user_name, broker_name=self.broker_name, 
-                                order_timestamp=self.order_timestamp, 
-                                strategy_class_name=strategy_class_name)
-
+        strategy = self.load_strategy(strategy_class_name)
+        report = strategy.run_strategy()
 
         port = Portfolio({
             'strategy': (report, 1.0),
@@ -68,8 +59,16 @@ class OrderExecutor:
             raise ValueError(f"{self.user_name}'s total balance is not positive. Please check your {self.broker_name} account balance.")
 
         safety_weight = self.config_loader.get_user_constant("rebalance_safety_weight")
-        pm.update(port, total_balance=total_balance, rebalance_safety_weight=safety_weight, odd_lot=True)
+        # pm.update(port, total_balance=total_balance, rebalance_safety_weight=safety_weight, odd_lot=True)
+        pm.update(port, total_balance=total_balance, rebalance_safety_weight=safety_weight, odd_lot=True, force_override_difference=True, smooth_transition=False)
         pm.to_local(name=pm_name)
+
+        # 顯示警示股（會寫入 log）
+        pm.order_executor.show_alerting_stocks()
+
+        # 處理警示股圈存
+        if not self.view_only:
+            self._handle_alerting_stocks_reservation()
 
         pm.sync(self.account, extra_bid_pct=self.extra_bid_pct, view_only=self.view_only)
         logger.info("Portfolio synced")
@@ -88,60 +87,29 @@ class OrderExecutor:
             account_id = self.account_dao.get_account_id(account_name, broker_name=self.broker_name, user_name=self.user_name)
             self.order_dao.insert_order_logs(order_logs, account_id, self.order_timestamp, view_only=self.view_only)
 
-    def get_or_create_strategy_report(self, strategy_class_name):
-        report_pickle_dir = os.path.join("assets/report_pickle", f"{self.user_name}_{self.broker_name}")
-        datetime_str = self.order_timestamp.strftime("%Y-%m-%d_%H-%M-%S")
-        today_date_str = self.order_timestamp.strftime("%Y-%m-%d")
-        pickle_filename = f"{strategy_class_name}_{datetime_str}.pkl"
-        pickle_path = os.path.join(report_pickle_dir, pickle_filename)
-        
-        # Ensure directory exists
-        if not os.path.exists(report_pickle_dir):
-            os.makedirs(report_pickle_dir)
-        
-        # Check if strategy has already been run today
-        import pickle
-        import glob
-        today_pickle_pattern = os.path.join(report_pickle_dir, f"{strategy_class_name}_{today_date_str}*.pkl")
-        today_pickles = glob.glob(today_pickle_pattern)
-        
-        if today_pickles:
-            # Strategy report for today exists, use the latest one
-            latest_pickle = max(today_pickles)
-            logger.info(f"Found existing {strategy_class_name} report for today: {latest_pickle}")
-            with open(latest_pickle, 'rb') as f:
-                report = pickle.load(f)
-            return report, False
-        else:
-            # No report for today, generate a new one
-            logger.info(f"No {strategy_class_name} report found for today, generating new one...")
-            strategy = self.load_strategy(strategy_class_name)
-            report = strategy.run_strategy()
-            
-            # Save report as pickle
-            with open(pickle_path, 'wb') as f:
-                pickle.dump(report, f)
-            logger.info(f"Report saved to {pickle_path}")
-            
-            return report, True
 
-    def save_finlab_report(self, report, user_name, broker_name, order_timestamp, strategy_class_name, base_directory="assets/report_finlab"):
-        subdirectory = f"{user_name}_{broker_name}"
-        report_directory = os.path.join(base_directory, subdirectory)
-        if not os.path.exists(report_directory):
-            os.makedirs(report_directory)
-        datetime_str = order_timestamp.strftime("%Y-%m-%d_%H-%M-%S")
-        save_report_path = os.path.join(report_directory, f"{strategy_class_name}_{datetime_str}.html")
-        report.display(save_report_path=save_report_path)
-        
+    def _handle_alerting_stocks_reservation(self):
+        """處理警示股圈存（使用策略模式支援多券商）"""
+        # 從 log 提取警示股資訊
+        alerting_stocks = self.logger_manager.extract_alerting_stocks(self.log_file)
+
+        # 建立對應券商的圈存處理器
+        handler = ReservationHandlerFactory.create(self.broker_name, self.account)
+
+        # 執行圈存
+        handler.handle_alerting_stocks(alerting_stocks)
 
     def load_strategy(self, strategy_class_name):
         if strategy_class_name == 'TibetanMastiffTWStrategy':
             from strategy_class.tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy as strategy_class
         elif strategy_class_name == 'PeterWuStrategy':
             from strategy_class.peterwu_tw_strategy import PeterWuStrategy as strategy_class
-        elif strategy_class_name == 'AllenChuangBasicTWStrategy':
-            from strategy_class.allenchuang_basic_tw_strategy import AllenChuangBasicTWStrategy as strategy_class
+        elif strategy_class_name == 'AlanTWStrategyC':
+            from strategy_class.alan_tw_strategy_C import AlanTWStrategyC as strategy_class
+        elif strategy_class_name  == 'AlanTWStrategyE':
+            from strategy_class.alan_tw_strategy_E import AlanTWStrategyE as strategy_class
+        elif strategy_class_name == 'RAndDManagementStrategy':
+            from strategy_class.r_and_d_management_strategy import RAndDManagementStrategy as strategy_class
         else:
             raise ValueError(f"Unknown strategy class: {strategy_class_name}")
         return strategy_class()
@@ -150,7 +118,7 @@ if __name__ == "__main__":
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     os.chdir(root_dir)
 
-    parser = argparse.ArgumentParser(description="Run OrderManager")
+    parser = argparse.ArgumentParser(description="Run OrderExecutor")
     parser.add_argument("--user_name", required=True, help="User name (e.g., junting)")
     parser.add_argument("--broker_name", required=True, help="Broker name (e.g., fugle)")
     parser.add_argument("--extra_bid_pct", type=float, default=0.0,
@@ -175,4 +143,4 @@ if __name__ == "__main__":
 
     # python -m jobs.order_executor --user_name junting --broker_name fugle --extra_bid_pct 0 --view_only
     # python -m jobs.order_executor --user_name junting --broker_name shioaji --extra_bid_pct 0 --view_only
-    # python -m jobs.order_executor --user_name allen --broker_name fugle --extra_bid_pct 0 --view_only
+    # python -m jobs.order_executor --user_name alan --broker_name shioaji --extra_bid_pct 0 --view_only

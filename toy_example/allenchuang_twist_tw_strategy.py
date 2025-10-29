@@ -90,7 +90,7 @@ total_score_adjusted = total_score_adjusted + kd_up.astype(int)
 fig, ax1 = plt.subplots(figsize=(12, 6))
 
 # 第一個 Y 軸：total_score_adjusted
-ax1.plot(total_score_adjusted.index, total_score_adjusted, label='Total Score', color='blue')
+ax1.plot(total_score_adjusted.index, total_score_adjusted, label='Total Score', color='blue', alpha=0.7)
 ax1.set_ylabel('Total Score', color='blue')
 ax1.tick_params(axis='y', labelcolor='blue')
 ax1.set_xlabel('Date')
@@ -100,9 +100,12 @@ ax1.axhline(0, color='red', linestyle='--', linewidth=1, label='Zero Line')
 
 # 第二個 Y 軸：TAIEX 指數
 ax2 = ax1.twinx()
-ax2.plot(taiex_data.index, taiex_data['close'], label='TAIEX Index', color='green', alpha=0.7)
-ax2.set_ylabel('TAIEX Index', color='green')
-ax2.tick_params(axis='y', labelcolor='green')
+ax2.plot(taiex_data.index, taiex_data['close'], label='TAIEX Index', color='gray', alpha=1.0)
+ax2.set_ylabel('TAIEX Index', color='gray')
+ax2.tick_params(axis='y', labelcolor='gray')
+
+# 添加 x 軸範圍：僅顯示 2025-04-01 之後的資料
+# ax1.set_xlim(pd.to_datetime('2025-03-01'), taiex_data.index[-1])
 
 # 標題和圖例
 fig.suptitle('Comparison of TAIEX Index and Total Score Adjusted Trend')
@@ -156,15 +159,18 @@ print(f"低檔轉折準確率: {low_turn_accuracy:.2%}")
 
 # 繪製轉折點與大盤指數
 plt.figure(figsize=(12, 6))
-plt.plot(result.index, result['close'], label='TAIEX Close', color='blue')
+plt.plot(result.index, result['close'], label='TAIEX Close', color='gray')
 
 # 標記低檔轉折
 plt.scatter(result.index[result['low_turn']], result['close'][result['low_turn']],
-            label='Low Turn (Positive)', color='green', marker='^', alpha=0.8)
+            label='Low Turn (Positive)', color='green', marker='^', alpha=1.0)
 
 # 標記高檔轉折
 plt.scatter(result.index[result['high_turn']], result['close'][result['high_turn']],
-            label='High Turn (Negative)', color='red', marker='v', alpha=0.8)
+            label='High Turn (Negative)', color='red', marker='v', alpha=1.0)
+
+# 加入 x 軸設定
+# plt.xlim(pd.to_datetime('2025-03-01'), taiex_data.index[-1])
 
 # 加入圖例與標題
 plt.title(f"TAIEX with High and Low Turns (n={n}, m={m})")

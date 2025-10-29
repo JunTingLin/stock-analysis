@@ -7,6 +7,7 @@ from finlab.online.base_account import Account
 from finlab.online.fugle_account import FugleAccount
 from finlab.online.sinopac_account import SinopacAccount
 from utils.stock_mapper import StockMapper
+import shioaji as sj
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +100,7 @@ class ShioajiInventoryFetcher(InventoryFetcherBase):
     
     def fetch_raw_data(self):
         logger.info("Fetching data from Shioaji API")
-        raw_inventory = self.account.api.list_positions(self.account.api.stock_account)
+        raw_inventory = self.account.api.list_positions(self.account.api.stock_account, unit=sj.constant.Unit.Share)
         return raw_inventory
     
     def process_data(self, raw_data):

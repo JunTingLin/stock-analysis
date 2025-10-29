@@ -12,37 +12,30 @@ export PYTHONPATH=$(pwd)
 export LD_PRELOAD=$CONDA_PREFIX/lib/libstdc++.so.6
 
 # Default values
-USER_NAME=""
-BROKER_NAME=""
-EXTRA_BID_PCT=0  # Default value
-VIEW_ONLY_FLAG=""
+STRATEGY_CLASS_NAME=""
 
 # Parse input arguments
 for arg in "$@"; do
     case $arg in
-        --user_name=*) USER_NAME="${arg#*=}" ;;
-        --broker_name=*) BROKER_NAME="${arg#*=}" ;;
-        --extra_bid_pct=*) EXTRA_BID_PCT="${arg#*=}" ;;
-        --view_only) VIEW_ONLY_FLAG="--view_only" ;;
+        --strategy_class_name=*) STRATEGY_CLASS_NAME="${arg#*=}" ;;
         *) echo "Unknown argument: $arg"; exit 1 ;;
     esac
 done
 
 # Check if required parameters are provided
-if [[ -z "$USER_NAME" || -z "$BROKER_NAME" ]]; then
-    echo "Error: --user_name and --broker_name must be provided."
+if [[ -z "$STRATEGY_CLASS_NAME" ]]; then
+    echo "Error: --strategy_class_name must be provided."
+    echo "Available strategies: TibetanMastiffTWStrategy, PeterWuStrategy, AlanTWStrategy1, AlanTWStrategy2, AlanTWStrategyC, AlanTWStrategyE, RAndDManagementStrategy"
     exit 1
 fi
 
-# Get current time in HHMM format (for logging purposes)
-current_time=$(date +"%H%M")
-echo "Current time: $current_time"
-
-echo "Extra bid percentage: $EXTRA_BID_PCT"
+# Display the strategy being executed
+echo "Executing backtest for strategy: $STRATEGY_CLASS_NAME"
+echo "Timestamp: $(date)"
 
 # Run the Python script
-echo "Running Python script 'order_executor.py'..."
-python jobs/order_executor.py --user_name "$USER_NAME" --broker_name "$BROKER_NAME" --extra_bid_pct "$EXTRA_BID_PCT" $VIEW_ONLY_FLAG
+echo "Running Python script 'backtest_executor.py'..."
+python -m jobs.backtest_executor --strategy_class_name "$STRATEGY_CLASS_NAME"
 
 # Deactivate conda environment
 echo "Deactivating conda environment..."

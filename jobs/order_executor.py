@@ -6,9 +6,13 @@ from utils.logger_manager import LoggerManager
 from utils.authentication import Authenticator
 from utils.config_loader import ConfigLoader
 from utils.reservation_handler import ReservationHandlerFactory
+from utils.finlab_patcher import apply_finlab_patches  # 自動修補 finlab
 from finlab.portfolio import Portfolio, PortfolioSyncManager
 from dao import OrderDAO, AccountDAO
 from utils.stock_mapper import StockMapper
+
+# 在導入 finlab 後立即應用補丁
+apply_finlab_patches()
 
 logger = logging.getLogger(__name__)
 

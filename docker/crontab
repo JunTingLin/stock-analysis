@@ -1,0 +1,16 @@
+# Crontab for stock-analysis scheduler
+# 格式: 分 時 日 月 週 指令
+
+# 每天 20:30 - 抓取當日持股和帳戶資訊
+30 20 * * * cd /app && /opt/conda/envs/stock-analysis/bin/python -m jobs.fetch_account --user_name=junting --broker_name=shioaji >> /app/logs/fetch.log 2>&1
+
+# 每天 20:00 - 執行回測
+0 20 * * * cd /app && /opt/conda/envs/stock-analysis/bin/python -m jobs.backtest --strategy_class_name=RAndDManagementStrategy >> /app/logs/backtest.log 2>&1
+
+# 每天 08:00 - 早盤下單
+0 8 * * * cd /app && /opt/conda/envs/stock-analysis/bin/python -m jobs.order_executor --user_name=junting --broker_name=shioaji >> /app/logs/order.log 2>&1
+
+# 每天 13:00 - 尾盤下單 (加價 1%)
+0 13 * * * cd /app && /opt/conda/envs/stock-analysis/bin/python -m jobs.order_executor --user_name=junting --broker_name=shioaji --extra_bid_pct=0.01 >> /app/logs/order.log 2>&1
+
+# 空行必須保留 (cron 要求)

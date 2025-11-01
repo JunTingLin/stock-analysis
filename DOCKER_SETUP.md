@@ -28,6 +28,7 @@
 # Linux 安裝 Docker
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
+# sudo sh get-docker.sh --version 28.1 # for ubuntu 20.04
 sudo systemctl start docker
 sudo systemctl enable docker
 ```
@@ -36,10 +37,8 @@ sudo systemctl enable docker
 
 ```bash
 docker --version
-# 應顯示: Docker version 24.x.x
 
-docker-compose --version
-# 應顯示: Docker Compose version v2.x.x
+docker compose version
 ```
 
 ### 3. 準備憑證檔案
@@ -156,10 +155,10 @@ cp /path/to/your_cert.pfx config/
 
 ```bash
 # 啟動所有服務 (Dashboard + 排程)
-docker-compose up -d --build
+docker compose up -d --build
 
 # 查看啟動狀態
-docker-compose ps
+docker compose ps
 ```
 
 **預期輸出:**
@@ -282,16 +281,16 @@ python -m jobs.order_executor --user_name=junting --broker_name=shioaji --view_o
 
 ```bash
 # 啟動服務
-docker-compose up -d --build
+docker compose up -d --build
 
 # 停止服務
-docker-compose down
+docker compose down
 
 # 重新啟動服務
-docker-compose restart
+docker compose restart
 
 # 查看服務狀態
-docker-compose ps
+docker compose ps
 
 # 查看資源使用
 docker stats stock-analysis-app stock-scheduler
@@ -301,16 +300,16 @@ docker stats stock-analysis-app stock-scheduler
 
 ```bash
 # 查看所有日誌 (即時)
-docker-compose logs -f
+docker compose logs -f
 
 # 只看 Dashboard 日誌
-docker-compose logs -f stock-analysis
+docker compose logs -f stock-analysis
 
 # 只看排程日誌
-docker-compose logs -f stock-scheduler
+docker compose logs -f stock-scheduler
 
 # 查看最近 100 行
-docker-compose logs --tail=100
+docker compose logs --tail=100
 
 # 查看本地日誌檔案
 tail -f logs/order.log
@@ -347,21 +346,21 @@ docker exec -it stock-analysis-app python -m jobs.scheduler \
 git pull
 
 # 2. 重新建立並啟動
-docker-compose up -d --build
+docker compose up -d --build
 
 # 3. 確認更新成功
-docker-compose ps
-docker-compose logs --tail=50
+docker compose ps
+docker compose logs --tail=50
 ```
 
 ### 清理資源
 
 ```bash
 # 停止並移除容器
-docker-compose down
+docker compose down
 
 # 移除容器 + 未使用的映像
-docker-compose down --rmi local
+docker compose down --rmi local
 
 # 清理所有未使用的 Docker 資源 (謹慎使用!)
 docker system prune -a

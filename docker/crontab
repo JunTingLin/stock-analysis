@@ -5,7 +5,7 @@
 30 20 * * * cd /app && /opt/conda/envs/stock-analysis/bin/python -m jobs.scheduler --user_name=junting --broker_name=shioaji >> /app/logs/fetch.log 2>&1
 
 # 每天 20:00 - 執行回測
-0 20 * * * cd /app && /opt/conda/envs/stock-analysis/bin/python -m jobs.backtest_executor --strategy_class_name=RAndDManagementStrategy >> /app/logs/backtest.log 2>&1
+0 20 * * * cd /app && /opt/conda/envs/stock-analysis/bin/python -m jobs.backtest_executor --strategy_class_name=AlanTWStrategyACE >> /app/logs/backtest.log 2>&1
 
 # 每天 08:00 - 早盤下單
 0 8 * * * cd /app && /opt/conda/envs/stock-analysis/bin/python -m jobs.order_executor --user_name=junting --broker_name=shioaji >> /app/logs/order.log 2>&1

@@ -43,4 +43,4 @@
     + pyyaml：讀取配置文件
 
 ## 手冊
-[程式專案設定檔配置&自動排程v3.1](https://hackmd.io/BAcR53mVTB2SFalMp2BHSA) 
+[Stock Analysis - Docker 部署指南 (客戶版)](https://hackmd.io/@RPTu-Li-R66a9lr4Fb9qEg/SkQDaPzyWg)

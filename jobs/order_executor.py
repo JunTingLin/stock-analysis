@@ -109,10 +109,8 @@ class OrderExecutor:
             from strategy_class.tibetanmastiff_tw_strategy import TibetanMastiffTWStrategy as strategy_class
         elif strategy_class_name == 'PeterWuStrategy':
             from strategy_class.peterwu_tw_strategy import PeterWuStrategy as strategy_class
-        elif strategy_class_name == 'AlanTWStrategyC':
-            from strategy_class.alan_tw_strategy_C import AlanTWStrategyC as strategy_class
-        elif strategy_class_name  == 'AlanTWStrategyE':
-            from strategy_class.alan_tw_strategy_E import AlanTWStrategyE as strategy_class
+        elif strategy_class_name == 'AlanTWStrategyACE':
+            from strategy_class.alan_tw_strategy_ACE import AlanTWStrategyACE as strategy_class
         elif strategy_class_name == 'RAndDManagementStrategy':
             from strategy_class.r_and_d_management_strategy import RAndDManagementStrategy as strategy_class
         else:

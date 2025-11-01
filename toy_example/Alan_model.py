@@ -287,19 +287,19 @@ def build_fundamental_buy_condition(op_growth_threshold):
 
 # 最終的買入訊號 - A|B|C 組合
 buy_signal = (
-    # # A: top_n=15, 營益率 0.1%, BIAS: 3~13, 5~16, 8~21, 8~20, 8~26, 8~26
-    # (build_chip_buy_condition(top_n=15)['chip_buy_condition'] &
-    #  build_technical_buy_condition(
-    #      bias_5_range=(0.03, 0.13),
-    #      bias_10_range=(0.05, 0.16),
-    #      bias_20_range=(0.08, 0.21),
-    #      bias_60_range=(0.08, 0.20),
-    #      bias_120_range=(0.08, 0.26),
-    #      bias_240_range=(0.08, 0.26)
-    #  )['technical_buy_condition'] &
-    #  build_fundamental_buy_condition(1.001)['fundamental_buy_condition']) 
+    # A: top_n=20, 營益率 0.1%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~26, 8~26
+    (build_chip_buy_condition(top_n=20)['chip_buy_condition'] &
+     build_technical_buy_condition(
+         bias_5_range=(0.03, 0.13),
+         bias_10_range=(0.05, 0.16),
+         bias_20_range=(0.08, 0.19),
+         bias_60_range=(0.08, 0.20),
+         bias_120_range=(0.05, 0.26),
+         bias_240_range=(0.08, 0.26)
+     )['technical_buy_condition'] &
+     build_fundamental_buy_condition(1.001)['fundamental_buy_condition']) 
      
-    # |
+    |
 
     # # B: top_n=40, 營益率 25%, BIAS: 3~13, 5~16, 8~21, 8~20, 8~26, 8~26
     # (build_chip_buy_condition(top_n=40)['chip_buy_condition'] &
@@ -315,29 +315,29 @@ buy_signal = (
      
     # |
 
-    # C: top_n=25, 營益率 15%, BIAS: 3~13, 5~16, 8~21, 8~20, 5~29, 8~32
-    # (build_chip_buy_condition(top_n=25)['chip_buy_condition'] &
-    #  build_technical_buy_condition(
-    #      bias_5_range=(0.03, 0.13),
-    #      bias_10_range=(0.05, 0.16),
-    #      bias_20_range=(0.08, 0.21),
-    #      bias_60_range=(0.08, 0.20),
-    #      bias_120_range=(0.05, 0.29),
-    #      bias_240_range=(0.08, 0.32)
-    #  )['technical_buy_condition'] &
-    #  build_fundamental_buy_condition(1.15)['fundamental_buy_condition'])
+    # C: top_n=25, 營益率 15%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~27, 8~31
+    (build_chip_buy_condition(top_n=25)['chip_buy_condition'] &
+     build_technical_buy_condition(
+         bias_5_range=(0.03, 0.13),
+         bias_10_range=(0.05, 0.16),
+         bias_20_range=(0.08, 0.19),
+         bias_60_range=(0.08, 0.20),
+         bias_120_range=(0.05, 0.27),
+         bias_240_range=(0.08, 0.31)
+     )['technical_buy_condition'] &
+     build_fundamental_buy_condition(1.15)['fundamental_buy_condition'])
 
-    # |
+    |
 
-    # E: top_n=40, 營益率 15%, BIAS: 3~13, 5~16, 8~21, 8~20, 5~29, 8~32, 創480天新高
+    # E: top_n=40, 營益率 15%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~35, 8~35, 創480天新高
     (build_chip_buy_condition(top_n=40)['chip_buy_condition'] &
      build_technical_buy_condition(
          bias_5_range=(0.03, 0.13),
          bias_10_range=(0.05, 0.16),
-         bias_20_range=(0.08, 0.21),
+         bias_20_range=(0.08, 0.19),
          bias_60_range=(0.08, 0.20),
-         bias_120_range=(0.05, 0.29),
-         bias_240_range=(0.08, 0.32),
+         bias_120_range=(0.05, 0.35),
+         bias_240_range=(0.08, 0.35),
          new_high_days=480
      )['technical_buy_condition'] &
      build_fundamental_buy_condition(1.15)['fundamental_buy_condition'])

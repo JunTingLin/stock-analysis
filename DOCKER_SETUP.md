@@ -87,7 +87,7 @@ users:
 
       constant:
         rebalance_safety_weight: 0.3  # 再平衡安全權重 (0.0-1.0)
-        strategy_class_name: "RAndDManagementStrategy"  # 策略類別名稱 (見附錄)
+        strategy_class_name: "AlanTWStrategyACE"  # 策略類別名稱 (見附錄)
 ```
 
 **參數說明:**
@@ -188,6 +188,8 @@ stock-analysis/
 │   └── backtest.log        # 回測日誌
 ├── data_prod.db             ← 💾 資料庫 (自動建立)
 ├── assets/                  ← 📈 回測報告 HTML
+├── finlab_db/               ← 🗄️ FinLab 資料快取 (自動建立)
+│   └── workspace/          # 持倉快照 (pm.to_local)
 ├── docker-compose.yml       ← ⚙️ Docker 配置
 └── Dockerfile
 ```
@@ -204,8 +206,16 @@ stock-analysis/
 | 本地路徑 | 容器路徑 | 用途 | 模式 |
 |---------|---------|------|------|
 | `./config/` | `/app/config/` | 配置檔和憑證 | 只讀 `:ro` |
+| `./config.yaml` | `/app/config.yaml` | 主配置檔 | 只讀 `:ro` |
 | `./logs/` | `/app/logs/` | 日誌輸出 | 讀寫 |
 | `./data_prod.db` | `/app/data_prod.db` | SQLite 資料庫 | 讀寫 |
+| `./assets/` | `/app/assets/` | 回測報告 HTML | 讀寫 |
+| `./finlab_db/` | `/root/finlab_db/` | FinLab 資料快取 | 讀寫 |
+
+**重要說明:**
+- `finlab_db/` 目錄用於存放 FinLab 的持倉快照 (`pm.to_local`) 和資料快取
+- 此目錄會自動建立,無需手動處理
+- 重啟容器後資料會保留,不會遺失
 
 ---
 
@@ -218,7 +228,7 @@ stock-analysis/
 30 20 * * * cd /app && python -m jobs.scheduler --user_name=junting --broker_name=shioaji
 
 # 2. 每天 20:00 - 執行回測
-0 20 * * * cd /app && python -m jobs.backtest_executor --strategy_class_name=RAndDManagementStrategy
+0 20 * * * cd /app && python -m jobs.backtest_executor --strategy_class_name=AlanTWStrategyACE
 
 # 3. 每天 08:00 - 早盤下單
 0 8 * * * cd /app && python -m jobs.order_executor --user_name=junting --broker_name=shioaji
@@ -320,21 +330,18 @@ tail -f logs/backtest.log
 ### 手動執行指令
 
 ```bash
-# 進入容器
-docker exec -it stock-analysis-app bash
-
 # 手動執行下單 (測試模式)
-docker exec -it stock-analysis-app python -m jobs.order_executor \
+docker exec -it stock-scheduler python -m jobs.order_executor \
   --user_name=junting \
   --broker_name=shioaji \
   --view_only
 
 # 手動執行回測
-docker exec -it stock-analysis-app python -m jobs.backtest_executor \
-  --strategy_class_name=RAndDManagementStrategy
+docker exec -it stock-scheduler python -m jobs.backtest_executor \
+  --strategy_class_name=AlanTWStrategyACE
 
 # 手動抓取帳務資料
-docker exec -it stock-analysis-app python -m jobs.scheduler \
+docker exec -it stock-scheduler python -m jobs.scheduler \
   --user_name=junting \
   --broker_name=shioaji
 ```

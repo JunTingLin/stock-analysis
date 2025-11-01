@@ -63,17 +63,18 @@ class OrderExecutor:
             raise ValueError(f"{self.user_name}'s total balance is not positive. Please check your {self.broker_name} account balance.")
 
         safety_weight = self.config_loader.get_user_constant("rebalance_safety_weight")
-        # pm.update(port, total_balance=total_balance, rebalance_safety_weight=safety_weight, odd_lot=True)
         pm.update(port, total_balance=total_balance, rebalance_safety_weight=safety_weight, odd_lot=True, force_override_difference=True, smooth_transition=False)
         pm.to_local(name=pm_name)
 
-        # 顯示警示股（會寫入 log）
-        pm.order_executor.show_alerting_stocks()
+        # 創建 order_executor（不實際下單，只用來顯示警示股）
+        order_executor = pm.create_order_executor(self.account)
+        order_executor.show_alerting_stocks()
 
         # 處理警示股圈存
         if not self.view_only:
             self._handle_alerting_stocks_reservation()
 
+        # 執行同步下單（會打印完整下單資訊）
         pm.sync(self.account, extra_bid_pct=self.extra_bid_pct, view_only=self.view_only)
         logger.info("Portfolio synced")
 

@@ -1,12 +1,14 @@
 
 import datetime
 import logging
+import traceback
 from zoneinfo import ZoneInfo
 from jobs.balance_fetcher import BalanceFetcherBase
 from jobs.inventory_fetcher import InventoryFetcher
 from utils.authentication import Authenticator
 from utils.config_loader import ConfigLoader
 from utils.logger_manager import LoggerManager
+from utils.notifier import create_notification_manager
 
 logger = logging.getLogger(__name__)
 
@@ -41,16 +43,20 @@ class Scheduler:
 if __name__ == "__main__":
     import argparse
     import os
-    
+
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     os.chdir(root_dir)
-    
+
     parser = argparse.ArgumentParser(description="Fetch inventory data from broker API")
     parser.add_argument("--user_name", required=True, help="User name (e.g., junting)")
     parser.add_argument("--broker_name", required=True, help="Broker name (e.g., fugle or shioaji)")
-    
+
     args = parser.parse_args()
     logger.info(f"args: {args}")
+
+    # 初始化通知管理器
+    config_loader = ConfigLoader(os.path.join(root_dir, "config.yaml"))
+    notifier = create_notification_manager(config_loader.config.get('notification', {}), logger)
 
     try:
         scheduler = Scheduler(
@@ -62,6 +68,15 @@ if __name__ == "__main__":
         scheduler.run()
     except Exception as e:
         logger.exception(e)
+
+        # 發送錯誤通知
+        notifier.send_error(
+            task_name="帳務資料抓取",
+            error_message=str(e),
+            user_name=args.user_name,
+            broker_name=args.broker_name,
+            error_traceback=traceback.format_exc()
+        )
 
     # python -m jobs.scheduler --user_name junting --broker_name fugle
     # python -m jobs.scheduler --user_name junting --broker_name shioaji

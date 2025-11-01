@@ -1,8 +1,10 @@
 import argparse
 import logging
 import os
+import traceback
 from utils.config_loader import ConfigLoader
 from utils.logger_manager import LoggerManager
+from utils.notifier import create_notification_manager
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -60,10 +62,21 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logger.info(f"args: {args}")
 
+    # 初始化通知管理器
+    config_loader = ConfigLoader(os.path.join(root_dir, "config.yaml"))
+    notifier = create_notification_manager(config_loader.config.get('notification', {}), logger)
+
     try:
         backtest_executor = BacktestExecutor(strategy_class_name=args.strategy_class_name)
         backtest_executor.run_strategy_and_save()
     except Exception as e:
         logger.exception(e)
+
+        # 發送錯誤通知
+        notifier.send_error(
+            task_name="回測執行",
+            error_message=str(e),
+            error_traceback=traceback.format_exc()
+        )
 
     # python -m jobs.backtest_executor --strategy_class_name AlanTwStrategy1

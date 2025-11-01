@@ -2,12 +2,14 @@ import argparse
 import datetime
 import logging
 import os
+import traceback
 from zoneinfo import ZoneInfo
 from utils.logger_manager import LoggerManager
 from utils.authentication import Authenticator
 from utils.config_loader import ConfigLoader
 from utils.reservation_handler import ReservationHandlerFactory
 from utils.finlab_patcher import apply_finlab_patches  # 自動修補 finlab
+from utils.notifier import create_notification_manager
 from finlab.portfolio import Portfolio, PortfolioSyncManager
 from dao import OrderDAO, AccountDAO
 from utils.stock_mapper import StockMapper
@@ -132,6 +134,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logger.info(f"args: {args}")
 
+    # 初始化通知管理器
+    config_loader = ConfigLoader(os.path.join(root_dir, "config.yaml"))
+    notifier = create_notification_manager(config_loader.config.get('notification', {}), logger)
+
     try:
         order_executor = OrderExecutor(
             user_name=args.user_name,
@@ -144,6 +150,16 @@ if __name__ == "__main__":
         order_executor.run_strategy_and_sync()
     except Exception as e:
         logger.exception(e)
+
+        # 發送錯誤通知
+        task_name = "尾盤下單" if args.extra_bid_pct > 0 else "早盤下單"
+        notifier.send_error(
+            task_name=task_name,
+            error_message=str(e),
+            user_name=args.user_name,
+            broker_name=args.broker_name,
+            error_traceback=traceback.format_exc()
+        )
 
     # python -m jobs.order_executor --user_name junting --broker_name fugle --extra_bid_pct 0 --view_only
     # python -m jobs.order_executor --user_name junting --broker_name shioaji --extra_bid_pct 0 --view_only

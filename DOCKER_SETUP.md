@@ -73,6 +73,13 @@ cd stock-analysis
 env:
   FINLAB_API_TOKEN: "你的_FinLab_API_Token"  # 從 FinLab 取得
 
+# Telegram
+notification:
+  enabled: true
+  telegram:
+    bot_token: "0123456789:AAHWqhMEKnw5...."
+    chat_id: "0123456789"
+
 # 使用者配置
 users:
   你的名字:  # 例如: junting, alan
@@ -400,6 +407,3 @@ users:
 ```
 
 ---
-
-
-

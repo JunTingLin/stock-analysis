@@ -7,10 +7,13 @@ services:
     volumes:
       # 掛載配置檔 (客戶只需編輯這個)
       - ./config:/app/config:ro
+      - ./config.yaml:/app/config.yaml:ro
       # 掛載日誌 (持久化)
       - ./logs:/app/logs
       # 掛載資料庫 (持久化)
       - ./data_prod.db:/app/data_prod.db
+      # 掛載回測報告目錄 (持久化)
+      - ./assets:/app/assets
     environment:
       - TZ=Asia/Taipei
     ports:
@@ -31,14 +34,23 @@ services:
     restart: unless-stopped
     volumes:
       - ./config:/app/config:ro
+      - ./config.yaml:/app/config.yaml:ro
       - ./logs:/app/logs
       - ./data_prod.db:/app/data_prod.db
+      - ./assets:/app/assets
+      # 掛載 crontab (這樣修改後只需 restart,不用 rebuild)
+      - ./docker/crontab:/etc/cron.d/stock-cron:ro
     environment:
       - TZ=Asia/Taipei
     networks:
       - stock-network
-    # cron 已在 Dockerfile 安裝並配置好
-    command: ["cron", "-f"]
+    # 啟動時載入 crontab 並啟動 cron
+    # 註: crontab 檔案必須是 LF 格式,不能是 CRLF
+    command: >
+      bash -c "
+      crontab /etc/cron.d/stock-cron &&
+      cron -f
+      "
 
 networks:
   stock-network:

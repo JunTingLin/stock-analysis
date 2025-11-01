@@ -32,11 +32,9 @@ COPY --from=builder /opt/conda/envs/stock-analysis /opt/conda/envs/stock-analysi
 # 複製應用程式碼
 COPY . .
 
-# 複製並設定 crontab (處理 CRLF 和權限)
-COPY docker/crontab /etc/cron.d/stock-cron
-RUN dos2unix /etc/cron.d/stock-cron && \
-    chmod 0644 /etc/cron.d/stock-cron && \
-    crontab /etc/cron.d/stock-cron
+# 註: crontab 會由 docker-compose 的 volume 掛載
+# 在容器啟動後需要手動載入 crontab
+# 註: crontab 檔案必須是 LF 格式 (由 .gitattributes 確保)
 
 # 註: logs/, config/, assets/, data_prod.db 會由 docker-compose 的 volumes 掛載
 

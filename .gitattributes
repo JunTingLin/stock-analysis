@@ -1,0 +1,5 @@
+# Ensure crontab always uses LF line endings (required for Linux cron)
+docker/crontab text eol=lf
+
+# Shell scripts should also use LF
+*.sh text eol=lf

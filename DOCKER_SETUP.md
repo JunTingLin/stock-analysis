@@ -169,8 +169,7 @@ stock-analysis-app   stock-analysis:latest  Up (healthy)  0.0.0.0:5000->5000/tcp
 stock-scheduler      stock-analysis:latest  Up
 ```
 
-✅ **完成!** 現在可以訪問 Dashboard:
-- **主頁**: http://localhost:5000
+- **Dashboard主頁**: http://localhost:5000
 - **回測報告瀏覽**: http://localhost:5000/assets/
 
 ---
@@ -217,10 +216,10 @@ stock-analysis/
 
 ```bash
 # 1. 每天 20:30 - 抓取當日持股和帳戶資訊
-30 20 * * * cd /app && python -m jobs.fetch_account --user_name=junting --broker_name=shioaji
+30 20 * * * cd /app && python -m jobs.scheduler --user_name=junting --broker_name=shioaji
 
 # 2. 每天 20:00 - 執行回測
-0 20 * * * cd /app && python -m jobs.backtest --strategy_class_name=RAndDManagementStrategy
+0 20 * * * cd /app && python -m jobs.backtest_executor --strategy_class_name=RAndDManagementStrategy
 
 # 3. 每天 08:00 - 早盤下單
 0 8 * * * cd /app && python -m jobs.order_executor --user_name=junting --broker_name=shioaji
@@ -231,7 +230,7 @@ stock-analysis/
 
 ### 排程參數說明
 
-#### `jobs.fetch_account` - 抓取帳務資料
+#### `jobs.scheduler` - 抓取帳務資料
 
 | 參數 | 必需 | 預設值 | 說明 |
 |------|------|--------|------|
@@ -240,10 +239,10 @@ stock-analysis/
 
 **範例:**
 ```bash
-python -m jobs.fetch_account --user_name=alan --broker_name=shioaji
+python -m jobs.scheduler --user_name=alan --broker_name=shioaji
 ```
 
-#### `jobs.backtest` - 執行回測
+#### `jobs.backtest_executor` - 執行回測
 
 | 參數 | 必需 | 預設值 | 說明 |
 |------|------|--------|------|
@@ -251,7 +250,7 @@ python -m jobs.fetch_account --user_name=alan --broker_name=shioaji
 
 **範例:**
 ```bash
-python -m jobs.backtest --strategy_class_name=PrisonRabbitStrategy
+python -m jobs.backtest_executor --strategy_class_name=PrisonRabbitStrategy
 ```
 
 #### `jobs.order_executor` - 執行下單
@@ -332,11 +331,11 @@ docker exec -it stock-analysis-app python -m jobs.order_executor \
   --view_only
 
 # 手動執行回測
-docker exec -it stock-analysis-app python -m jobs.backtest \
+docker exec -it stock-analysis-app python -m jobs.backtest_executor \
   --strategy_class_name=RAndDManagementStrategy
 
 # 手動抓取帳務資料
-docker exec -it stock-analysis-app python -m jobs.fetch_account \
+docker exec -it stock-analysis-app python -m jobs.scheduler \
   --user_name=junting \
   --broker_name=shioaji
 ```
@@ -370,175 +369,6 @@ docker system prune -a
 
 ---
 
-## 疑難排解
-
-### 問題 1: 容器啟動失敗
-
-**現象:**
-```bash
-$ docker-compose ps
-NAME                 STATUS
-stock-analysis-app   Exited (1)
-```
-
-**排查步驟:**
-
-```bash
-# 1. 查看詳細錯誤
-docker-compose logs stock-analysis
-
-# 2. 常見原因及解決方法:
-```
-
-| 錯誤訊息 | 原因 | 解決方法 |
-|---------|------|---------|
-| `FileNotFoundError: config.yaml` | 配置檔不存在 | 確認 `config/config.yaml` 存在 |
-| `yaml.scanner.ScannerError` | YAML 格式錯誤 | 檢查縮排和語法 (用 [YAML Lint](http://www.yamllint.com/) 驗證) |
-| `No such file: cert.pfx` | 憑證檔案路徑錯誤 | 確認憑證檔案在 `config/` 目錄下 |
-| `Invalid API Token` | API Token 錯誤或過期 | 檢查 `FINLAB_API_TOKEN` 是否正確 |
-
----
-
-### 問題 2: Dashboard 無法訪問
-
-**現象:** 訪問 http://localhost:5000 沒有回應
-
-**排查步驟:**
-
-```bash
-# 1. 確認容器狀態
-docker-compose ps
-# 應顯示: Up (healthy)
-
-# 2. 確認端口是否被佔用
-# Windows
-netstat -ano | findstr 5000
-
-# Linux/Mac
-lsof -i :5000
-
-# 3. 檢查防火牆設定
-# 確保端口 5000 允許連線
-
-# 4. 如果端口被佔用,修改 docker-compose.yml
-ports:
-  - "8080:5000"  # 改用 8080 端口
-```
-
----
-
-### 問題 3: Healthcheck 顯示 unhealthy
-
-**現象:**
-```bash
-$ docker-compose ps
-NAME                 STATUS
-stock-analysis-app   Up (unhealthy)
-```
-
-**排查步驟:**
-
-```bash
-# 1. 查看容器日誌
-docker-compose logs stock-analysis
-
-# 2. 檢查 Gunicorn 是否啟動成功
-docker exec -it stock-analysis-app curl http://localhost:5000
-
-# 3. 如果是啟動慢導致,等待 40 秒後自動恢復
-# (healthcheck 有 start_period: 40s)
-
-# 4. 手動重啟
-docker-compose restart stock-analysis
-```
-
----
-
-### 問題 4: 排程沒有執行
-
-**現象:** 到了排程時間,但沒有看到日誌或下單
-
-**排查步驟:**
-
-```bash
-# 1. 進入 scheduler 容器檢查
-docker exec -it stock-scheduler bash
-
-# 2. 查看 cron 是否運行
-ps aux | grep cron
-# 應該看到: cron -f
-
-# 3. 查看 crontab 列表
-crontab -l
-
-# 4. 檢查 crontab 檔案格式 (CRLF 問題)
-cat -A /etc/cron.d/stock-cron
-# 行尾應該是 $ 而不是 ^M$
-
-# 5. 手動執行排程指令測試
-cd /app
-python -m jobs.order_executor --user_name=junting --broker_name=shioaji --view_only
-
-# 6. 查看排程執行日誌
-tail -f /app/logs/order.log
-```
-
----
-
-### 問題 5: 憑證檔案找不到
-
-**錯誤訊息:**
-```
-FileNotFoundError: [Errno 2] No such file or directory: '/app/config/cert.pfx'
-```
-
-**解決方法:**
-
-```bash
-# 1. 確認憑證檔案確實存在
-ls -la config/
-
-# 2. 確認檔名完全一致 (包含大小寫)
-# config.yaml 中:
-SHIOAJI_CERT_PATH: "/app/config/junting_Sinopac.pfx"
-# 實際檔案:
-config/junting_Sinopac.pfx  # ✅ 正確
-config/Junting_Sinopac.pfx  # ❌ 大小寫不符
-
-# 3. 確認路徑是容器內路徑 (開頭是 /app/config/)
-# ✅ 正確: "/app/config/cert.pfx"
-# ❌ 錯誤: "D:/config/cert.pfx"
-# ❌ 錯誤: "./config/cert.pfx"
-```
-
----
-
-### 問題 6: 資料庫鎖定錯誤
-
-**錯誤訊息:**
-```
-sqlite3.OperationalError: database is locked
-```
-
-**原因:** 多個程序同時存取 SQLite 資料庫
-
-**解決方法:**
-
-```bash
-# 1. 檢查是否有多個程序在運行
-docker exec -it stock-analysis-app ps aux | grep python
-
-# 2. 停止所有服務後重啟
-docker-compose down
-docker-compose up -d --build
-
-# 3. 如果問題持續,備份並重建資料庫
-cp data_prod.db data_prod.db.backup
-rm data_prod.db
-docker-compose restart
-```
-
----
 
 ## 附錄
 
@@ -548,11 +378,10 @@ docker-compose restart
 
 | 策略類別名稱 | 檔案位置 | 說明 | 來源 |
 |-------------|---------|------|------|
-| `AlanTWStrategyC` | [alan_tw_strategy_C.py](strategy_class/alan_tw_strategy_C.py) | Alan 策略 C | 自訂 |
-| `AlanTWStrategyE` | [alan_tw_strategy_E.py](strategy_class/alan_tw_strategy_E.py) | Alan 策略 E | 自訂 |
+| `AlanTWStrategyACE` | [alan_tw_strategy_ACE.py](strategy_class/alan_tw_strategy_ACE.py) | Alan 策略 (A\|C\|E) | 自訂 |
 | `PeterWuStrategy` | [peterwu_tw_strategy.py](strategy_class/peterwu_tw_strategy.py) | Peter Wu 策略 | 自訂 |
-| `RAndDManagementStrategy` | [r_and_d_management_strategy.py](strategy_class/r_and_d_management_strategy.py) | **研發管理大亂鬥** | FinLab 官方 |
-| `RevenuePriceStrategy` | [tibetanmastiff_tw_strategy.py](strategy_class/tibetanmastiff_tw_strategy.py) | **藏敖策略** | FinLab 官方 |
+| `RAndDManagementStrategy` | [r_and_d_management_strategy.py](strategy_class/r_and_d_management_strategy.py) | 研發管理大亂鬥 | FinLab 官方 |
+| `RevenuePriceStrategy` | [tibetanmastiff_tw_strategy.py](strategy_class/tibetanmastiff_tw_strategy.py) | 藏敖策略 | FinLab 官方 |
 
 **範例配置:**
 
@@ -561,191 +390,10 @@ users:
   junting:
     shioaji:
       constant:
-        strategy_class_name: "RAndDManagementStrategy"  # 使用研發管理大亂鬥策略
+        strategy_class_name: "AlanTWStrategyACE"  # 使用 Alan 策略 ACE 組合
 ```
 
 ---
 
-### 附錄 B: 從傳統 Linux 部署遷移
 
-如果你之前使用傳統的 Linux Cron 部署,遷移步驟:
 
-#### 1. 停止舊服務
-
-```bash
-# 停止 Cron Jobs
-crontab -e
-# 註解掉或刪除所有 stock-analysis 相關排程
-
-# 停止 Dashboard systemd 服務
-sudo systemctl stop flask_stock
-sudo systemctl disable flask_stock
-```
-
-#### 2. 備份資料
-
-```bash
-# 備份資料庫
-cp /home/<user>/stock-analysis/data_prod.db ~/backup/
-
-# 備份配置
-cp /home/<user>/stock-analysis/config.yaml ~/backup/
-
-# 備份日誌 (可選)
-cp -r /home/<user>/stock-analysis/logs ~/backup/
-```
-
-#### 3. 啟動 Docker 版本
-
-```bash
-# 下載專案 (如果還沒有)
-cd ~
-git clone https://github.com/your-repo/stock-analysis.git
-cd stock-analysis
-
-# 複製舊配置
-cp ~/backup/config.yaml config/
-cp ~/backup/data_prod.db .
-
-# 啟動
-docker-compose up -d --build
-```
-
-#### 4. 驗證遷移
-
-```bash
-# 檢查服務狀態
-docker-compose ps
-
-# 檢查 Dashboard
-curl http://localhost:5000
-
-# 檢查日誌
-docker-compose logs -f
-```
-
----
-
-### 附錄 C: 效能調校
-
-#### Dashboard 工作程序數調整
-
-如果 Dashboard 訪問量大,可調整 Gunicorn 工作程序數:
-
-```yaml
-# docker-compose.yml
-services:
-  stock-analysis:
-    command: ["gunicorn", "-w", "8", "-b", "0.0.0.0:5000", "dashboard:server"]
-    #                            ↑ 改成 8 個工作程序
-```
-
-**建議值:**
-- CPU 核心數 × 2 + 1
-- 例如: 4 核心 CPU → 4 × 2 + 1 = 9
-
-#### 記憶體限制
-
-```yaml
-# docker-compose.yml
-services:
-  stock-analysis:
-    deploy:
-      resources:
-        limits:
-          memory: 2G  # 限制 2GB RAM
-        reservations:
-          memory: 1G  # 保證 1GB RAM
-```
-
----
-
-### 附錄 D: 安全注意事項
-
-⚠️ **重要提醒:**
-
-1. **配置檔安全**
-   - `config.yaml` 包含敏感資訊,不要上傳到 GitHub
-   - 已在 `.gitignore` 中排除
-   - 如果不小心上傳,立即刪除並更換 API Token
-
-2. **憑證保管**
-   - `.pfx` 憑證檔案妥善保管
-   - 定期更換憑證密碼
-   - 不要分享給他人
-
-3. **API Token**
-   - 定期檢查 API Token 有效期
-   - 不要在日誌中記錄 Token
-   - 發現外洩立即重新生成
-
-4. **容器安全**
-   - 定期更新 Docker image: `docker-compose build --pull`
-   - 不要以 root 身分運行容器
-   - 定期檢查安全更新
-
----
-
-### 附錄 E: 支援與回饋
-
-#### 取得協助
-
-- **GitHub Issues**: [專案 Issues 頁面](https://github.com/your-repo/stock-analysis/issues)
-- **文件**: [完整開發文件](readme.md)
-- **Email**: your-email@example.com
-
-#### 回報問題
-
-回報問題時,請提供:
-
-1. 錯誤訊息截圖或完整日誌
-2. `docker-compose ps` 輸出
-3. `docker-compose logs` 輸出 (遮蔽敏感資訊)
-4. 作業系統和 Docker 版本
-
-```bash
-# 收集診斷資訊
-echo "=== Docker 版本 ===" > debug.log
-docker --version >> debug.log
-docker-compose --version >> debug.log
-
-echo "\n=== 容器狀態 ===" >> debug.log
-docker-compose ps >> debug.log
-
-echo "\n=== 容器日誌 ===" >> debug.log
-docker-compose logs --tail=100 >> debug.log
-```
-
----
-
-### 附錄 F: 與傳統部署的比較
-
-| 項目 | 傳統 Linux 部署 | Docker 部署 |
-|------|----------------|-------------|
-| **環境準備** | ⭐⭐⭐⭐ (困難)<br>安裝 Miniconda、建立環境 | ⭐⭐ (簡單)<br>只需安裝 Docker |
-| **修改套件** | ~~手動改 finlab 原始碼~~<br>(現已用 patcher 解決) | 自動 patch,無需手動 |
-| **配置複雜度** | 高 (systemd + crontab) | 低 (docker-compose.yml) |
-| **排程設定** | crontab + .sh 腳本 | docker/crontab |
-| **Dashboard** | systemd service + Gunicorn | docker-compose |
-| **更新流程** | git pull + 手動重啟 | `git pull && docker-compose up -d --build` |
-| **跨平台** | 只支援 Linux | Windows/Linux/Mac |
-| **資源隔離** | 無 | 完整隔離 |
-| **客戶難度** | ⭐⭐⭐⭐ | ⭐⭐ |
-
----
-
-## 總結
-
-使用 Docker 部署的優勢:
-
-✅ **簡單** - 3 個步驟即可完成部署
-✅ **一致** - 環境完全一致,無版本衝突
-✅ **隔離** - 不影響系統其他套件
-✅ **快速** - 啟動和更新都很快
-✅ **跨平台** - Windows/Linux/Mac 都能用
-
-如有任何問題,請參考 [疑難排解](#疑難排解) 章節或聯繫技術支援。
-
----
-
-**祝交易順利! 📈**

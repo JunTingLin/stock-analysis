@@ -1,6 +1,7 @@
 import os
 import json
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 class ReportSaver:
     def __init__(self, report, output_dir='output'):
@@ -9,7 +10,7 @@ class ReportSaver:
 
     def create_custom_filepath(self, prefix, middle_part=None, extension='xlsx'):
         if middle_part is None:
-            middle_part = datetime.now().strftime('%Y%m%d_%H%M%S')
+            middle_part = datetime.now(ZoneInfo("Asia/Taipei")).strftime('%Y%m%d_%H%M%S')
         filename = f'{prefix}_{middle_part}.{extension}'
         filepath = os.path.join(self.output_dir, filename)
         return filepath

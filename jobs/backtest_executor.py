@@ -4,13 +4,14 @@ import os
 from utils.config_loader import ConfigLoader
 from utils.logger_manager import LoggerManager
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
 class BacktestExecutor:
     def __init__(self, strategy_class_name, config_path="config.yaml", base_log_directory="logs"):
         self.strategy_class_name = strategy_class_name
-        self.backtest_timestamp = datetime.now()
+        self.backtest_timestamp = datetime.now(ZoneInfo("Asia/Taipei"))
         self.logger_manager = LoggerManager(
             base_log_directory=base_log_directory,
             current_datetime=self.backtest_timestamp,

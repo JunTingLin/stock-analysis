@@ -1,6 +1,7 @@
 
 import datetime
 import logging
+from zoneinfo import ZoneInfo
 from jobs.balance_fetcher import BalanceFetcherBase
 from jobs.inventory_fetcher import InventoryFetcher
 from utils.authentication import Authenticator
@@ -22,7 +23,7 @@ class Scheduler:
         self.auth.login_finlab()
         self.account = self.auth.login_broker(broker_name)
 
-        self.fetch_timestamp = datetime.datetime.now()
+        self.fetch_timestamp = datetime.datetime.now(ZoneInfo("Asia/Taipei"))
         self.logger_manager = LoggerManager(
             base_log_directory=base_log_directory,
             current_datetime=self.fetch_timestamp,

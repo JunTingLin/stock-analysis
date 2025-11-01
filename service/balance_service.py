@@ -1,5 +1,6 @@
 from dao.balance_dao import BalanceDAO
 import datetime
+from zoneinfo import ZoneInfo
 
 class BalanceService:
     def __init__(self):
@@ -72,7 +73,7 @@ class BalanceService:
             tuple: (熱力圖數據列表, 年份列表, 最大回報率, 最小回報率)
         """
         # 設置默認年份範圍
-        current_year = datetime.datetime.now().year
+        current_year = datetime.datetime.now(ZoneInfo("Asia/Taipei")).year
         if start_year is None:
             start_year = current_year - 3
         if end_year is None:

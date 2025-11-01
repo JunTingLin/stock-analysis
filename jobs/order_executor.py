@@ -2,6 +2,7 @@ import argparse
 import datetime
 import logging
 import os
+from zoneinfo import ZoneInfo
 from utils.logger_manager import LoggerManager
 from utils.authentication import Authenticator
 from utils.config_loader import ConfigLoader
@@ -31,7 +32,7 @@ class OrderExecutor:
         self.auth.login_finlab()
         self.account = self.auth.login_broker(broker_name)
 
-        self.order_timestamp = datetime.datetime.now()
+        self.order_timestamp = datetime.datetime.now(ZoneInfo("Asia/Taipei"))
         self.logger_manager = LoggerManager(
             base_log_directory=base_log_directory,
             current_datetime=self.order_timestamp

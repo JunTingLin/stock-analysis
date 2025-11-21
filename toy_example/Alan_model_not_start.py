@@ -96,9 +96,9 @@ with data.universe(market='TSE_OTC'):
     adj_low = data.get('etl:adj_low')
     volume = data.get('price:成交股數')
 
-def build_technical_buy_condition(bias_5_range=(0.03, 0.13), bias_10_range=(0.05, 0.16),
-                                  bias_20_range=(0.05, 0.21), bias_60_range=(0.08, 0.20),
-                                  bias_120_range=(0.05, 0.26), bias_240_range=(0.08, 0.26),
+def build_technical_buy_condition(bias_5_range=(-0.03, 0.10), bias_10_range=(-0.03, 0.10),
+                                  bias_20_range=(-0.03, 0.14), bias_60_range=(-0.03, 0.14),
+                                  bias_120_range=(-0.03, 0.25), bias_240_range=(-0.03, 0.25),
                                   new_high_days=120):
 
     # 計算均線
@@ -151,10 +151,10 @@ def build_technical_buy_condition(bias_5_range=(0.03, 0.13), bias_10_range=(0.05
     price_above_12_condition = close > 12
 
     # 成交量大於昨日的2倍
-    volume_doubled_condition = volume > (volume.shift(1) * 2)
+    # volume_doubled_condition = volume > (volume.shift(1) * 2)
 
-    # 今日成交張數 > 500 張
-    volume_above_500_condition = volume > 500 * 1000
+    # 今日成交張數 > 300 張
+    volume_above_300_condition = volume > 300 * 1000
 
     # 成交金額大於 3000 萬
     amount_condition = (close * volume) > 30000000
@@ -198,9 +198,14 @@ def build_technical_buy_condition(bias_5_range=(0.03, 0.13), bias_10_range=(0.05
     # MACD DIF 向上
     macd_dif_buy_condition = dif > dif.shift(1)
 
-    # 創新高 - 根據指定天數計算
-    high_n = adj_close.rolling(window=new_high_days).max()
-    new_high_condition = adj_close >= high_n
+    # 120天新高(盤中最高價) vs 120天收盤新高(收盤價)
+    # 120天新高 = 120天內的最高價(盤中High)
+    high_120 = adj_high.rolling(window=120).max()
+    # 120天收盤新高 = 120天內的最高收盤價(Close)
+    close_high_120 = adj_close.rolling(window=120).max()
+
+    # 買入條件:價格在「120天收盤新高」的91%以上
+    price_above_91pct_close_high_condition = adj_close >= (close_high_120 * 0.91)
 
 
     # 技術面
@@ -209,16 +214,16 @@ def build_technical_buy_condition(bias_5_range=(0.03, 0.13), bias_10_range=(0.05
         # ma5_above_others_condition &
         price_above_ma_buy_condition & 
         bias_buy_condition & 
-        volume_doubled_condition & 
+        # volume_doubled_condition &  # 移除成交量倍增條件
         # positive_close_condition &
-        volume_above_500_condition &
+        volume_above_300_condition &
         price_above_12_condition &
         amount_condition &
 
         dmi_buy_condition & 
         kd_buy_condition & 
         macd_dif_buy_condition &
-        new_high_condition
+        price_above_91pct_close_high_condition  # 價格在120天收盤新高的91%以上
     )
     
     return {
@@ -226,14 +231,14 @@ def build_technical_buy_condition(bias_5_range=(0.03, 0.13), bias_10_range=(0.05
         'ma_up_buy_condition': ma_up_buy_condition,
         'price_above_ma_buy_condition': price_above_ma_buy_condition,
         'bias_buy_condition': bias_buy_condition,
-        'volume_doubled_condition': volume_doubled_condition,
-        'volume_above_500_condition': volume_above_500_condition,
+        # 'volume_doubled_condition': volume_doubled_condition,
+        'volume_above_300_condition': volume_above_300_condition,
         'price_above_12_condition': price_above_12_condition,
         'amount_condition': amount_condition,
         'dmi_buy_condition': dmi_buy_condition,
         'kd_buy_condition': kd_buy_condition,
         'macd_dif_buy_condition': macd_dif_buy_condition,
-        'new_high_condition': new_high_condition,
+        'price_above_91pct_close_high_condition': price_above_91pct_close_high_condition,
 
         'bias_values': {
             'bias_5': bias_5,
@@ -264,7 +269,8 @@ def build_technical_buy_condition(bias_5_range=(0.03, 0.13), bias_10_range=(0.05
         
         'price_data': {
             'adj_close': adj_close,
-            'high_n': high_n,
+            'high_120': high_120,
+            'close_high_120': close_high_120,
         },
 
     }
@@ -285,62 +291,20 @@ def build_fundamental_buy_condition(op_growth_threshold):
     }
 
 
-# 最終的買入訊號 - A|B|C 組合
+# 最終的買入訊號
+# 營益率增12.5%, 乖離率: -3%~10%, -3%~10%, -3%~14%, -3%~14%, -3%~25%, -3%~25%
+# 成交量不限制, 價格>12元, 成交>300張, 成交金額>3000萬, 價格在「120天收盤新高」的91%以上
 buy_signal = (
-    # A: top_n=20, 營益率 0.1%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~26, 8~26
-    (build_chip_buy_condition(top_n=20)['chip_buy_condition'] &
-     build_technical_buy_condition(
-         bias_5_range=(0.03, 0.13),
-         bias_10_range=(0.05, 0.16),
-         bias_20_range=(0.08, 0.19),
-         bias_60_range=(0.08, 0.20),
-         bias_120_range=(0.05, 0.26),
-         bias_240_range=(0.08, 0.26)
-     )['technical_buy_condition'] &
-     build_fundamental_buy_condition(1.001)['fundamental_buy_condition']) 
-     
-    |
-
-    # # B: top_n=40, 營益率 25%, BIAS: 3~13, 5~16, 8~21, 8~20, 8~26, 8~26
-    # (build_chip_buy_condition(top_n=40)['chip_buy_condition'] &
-    #  build_technical_buy_condition(
-    #      bias_5_range=(0.03, 0.13),
-    #      bias_10_range=(0.05, 0.16),
-    #      bias_20_range=(0.08, 0.21),
-    #      bias_60_range=(0.08, 0.20),
-    #      bias_120_range=(0.08, 0.26),
-    #      bias_240_range=(0.08, 0.26)
-    #  )['technical_buy_condition'] &
-    #  build_fundamental_buy_condition(1.25)['fundamental_buy_condition']) 
-     
-    # |
-
-    # C: top_n=25, 營益率 15%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~27, 8~31
-    (build_chip_buy_condition(top_n=25)['chip_buy_condition'] &
-     build_technical_buy_condition(
-         bias_5_range=(0.03, 0.13),
-         bias_10_range=(0.05, 0.16),
-         bias_20_range=(0.08, 0.19),
-         bias_60_range=(0.08, 0.20),
-         bias_120_range=(0.05, 0.27),
-         bias_240_range=(0.08, 0.31)
-     )['technical_buy_condition'] &
-     build_fundamental_buy_condition(1.15)['fundamental_buy_condition'])
-
-    |
-
-    # E: top_n=40, 營益率 15%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~35, 8~35, 創480天新高
-    (build_chip_buy_condition(top_n=40)['chip_buy_condition'] &
-     build_technical_buy_condition(
-         bias_5_range=(0.03, 0.13),
-         bias_10_range=(0.05, 0.16),
-         bias_20_range=(0.08, 0.19),
-         bias_60_range=(0.08, 0.20),
-         bias_120_range=(0.05, 0.35),
-         bias_240_range=(0.08, 0.35),
-         new_high_days=480
-     )['technical_buy_condition'] &
-     build_fundamental_buy_condition(1.15)['fundamental_buy_condition'])
+    build_chip_buy_condition(top_n=200)['chip_buy_condition'] &
+    build_technical_buy_condition(
+        bias_5_range=(-0.03, 0.10),
+        bias_10_range=(-0.03, 0.10),
+        bias_20_range=(-0.03, 0.14),
+        bias_60_range=(-0.03, 0.14),
+        bias_120_range=(-0.03, 0.25),
+        bias_240_range=(-0.03, 0.25)
+    )['technical_buy_condition'] &
+    build_fundamental_buy_condition(1.125)['fundamental_buy_condition']  # 營益率增12.5%
 )
 
 # 設定起始買入日期
@@ -348,11 +312,26 @@ start_buy_date = '2017-12-31'
 buy_signal = buy_signal.loc[start_buy_date:]
 
 def build_sell_condition():
-    ma3 = adj_close.rolling(3).mean()
-    dif, macd , _  = data.indicator('MACD', fastperiod=12, slowperiod=26, signalperiod=9, adjust_price=True)
+    # 計算均線
+    ma5 = adj_close.rolling(5).mean()
+    ma10 = adj_close.rolling(10).mean()
 
-    # 法一: 短線出場
-    sell_condition = (ma3 < ma3.shift(1)) & (dif < dif.shift(1))
+    # 計算乖離率
+    bias_5 = (adj_close - ma5) / ma5
+    bias_10 = (adj_close - ma10) / ma10
+
+    # 計算120天收盤新高(Close)
+    close_high_120 = adj_close.rolling(window=120).max()
+
+    # 賣出條件:
+    # 1. 5日線乖離小於-5% 或
+    # 2. 10日線乖離小於-5% 或
+    # 3. 價格小於「120天收盤新高」的87%
+    sell_condition = (
+        (bias_5 < -0.05) |
+        (bias_10 < -0.05) |
+        (adj_close < (close_high_120 * 0.87))
+    )
 
     return sell_condition
 

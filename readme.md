@@ -15,7 +15,7 @@
     + Cronjob 3 - order.sh 下單流程: FinLab 資料 → 策略回測 → 下單（調整持倉） → 紀錄 → 資料庫
     + Web Dashboard: 展示下單資訊、帳戶資金水位變化圖、每月實際回報率圖以及 FinLab 回測報告。
 
-<img width="1917" height="1075" alt="image" src="https://github.com/user-attachments/assets/b5adbb8c-740b-4269-bd68-f93cf3c5a873" />
+<img width="1915" height="1077" alt="image" src="https://github.com/user-attachments/assets/9bf3fc18-3ab3-4662-b18f-9f3f04259341" />
 
 
 

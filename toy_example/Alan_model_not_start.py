@@ -212,11 +212,11 @@ def build_technical_buy_condition(bias_5_range=(-0.03, 0.10), bias_10_range=(-0.
         # ma_up_buy_condition &
         # ma5_above_others_condition &
         # price_above_ma_buy_condition &
-        bias_buy_condition &  # 加入乖離率限制,篩選盤整很久的股票
+        bias_buy_condition &  # 乖離率限制,篩選盤整很久的股票
         # volume_doubled_condition &
         # positive_close_condition &
-        # volume_above_300_condition &
-        # price_above_12_condition &
+        volume_above_300_condition &  # 成交 > 300張
+        price_above_12_condition &  # 價格 > 12元
         amount_above_15m_condition &  # 成交金額 > 1500萬
 
         # dmi_buy_condition &
@@ -231,8 +231,8 @@ def build_technical_buy_condition(bias_5_range=(-0.03, 0.10), bias_10_range=(-0.
         # 'price_above_ma_buy_condition': price_above_ma_buy_condition,
         'bias_buy_condition': bias_buy_condition,
         # 'volume_doubled_condition': volume_doubled_condition,
-        # 'volume_above_300_condition': volume_above_300_condition,
-        # 'price_above_12_condition': price_above_12_condition,
+        'volume_above_300_condition': volume_above_300_condition,
+        'price_above_12_condition': price_above_12_condition,
         'amount_above_15m_condition': amount_above_15m_condition,
         # 'dmi_buy_condition': dmi_buy_condition,
         # 'kd_buy_condition': kd_buy_condition,
@@ -291,21 +291,22 @@ def build_fundamental_buy_condition(op_growth_threshold):
 
 
 # 最終的買入訊號
-# 1. 買超前50檔
-# 2. 成交金額 > 1500萬
-# 3. 未發動價格: 價格 > 120天收盤新高93%
-# 4. 乖離率: -3.5~10%, -3.5~10%, -3.5~14%, -3.5~14%, -3.5~25%, -3.5~25% (篩選盤整很久的股票)
-# 5. 其他指標不設定
+# 營益率增12.5%
+# 買超前50檔
+# 乖離率: -3~10%, -3~10%, -3~14%, -3~14%, -3~25%, 0~25%
+# 成交量擴增不限, 價格>12元, 成交>300張, 成交金額>1500萬
+# 價格在120天收盤新高的93%以上
 buy_signal = (
-    build_chip_buy_condition(top_n=200)['chip_buy_condition'] &
+    build_chip_buy_condition(top_n=50)['chip_buy_condition'] &
     build_technical_buy_condition(
-        bias_5_range=(-0.035, 0.10),
-        bias_10_range=(-0.035, 0.10),
-        bias_20_range=(-0.035, 0.14),
-        bias_60_range=(-0.035, 0.14),
-        bias_120_range=(-0.035, 0.25),
-        bias_240_range=(-0.035, 0.25)
-    )['technical_buy_condition']
+        bias_5_range=(-0.03, 0.10),
+        bias_10_range=(-0.03, 0.10),
+        bias_20_range=(-0.03, 0.14),
+        bias_60_range=(-0.03, 0.14),
+        bias_120_range=(-0.03, 0.25),
+        bias_240_range=(0.00, 0.35)  # 240日線改為 0~25%
+    )['technical_buy_condition'] &
+    build_fundamental_buy_condition(1.125)['fundamental_buy_condition']  # 營益率增12.5%
 )
 
 # 設定起始買入日期

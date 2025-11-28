@@ -4,8 +4,8 @@ Alan TW Strategy ACE (Combined)
 
 此策略為三個子策略的組合 (A|C|E)：
 - 策略 A: top_n=20, 營益率 0.1%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~26, 8~26, 創120天新高
-- 策略 C: top_n=25, 營益率 15%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~27, 8~31, 創120天新高
-- 策略 E: top_n=40, 營益率 15%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~35, 8~35, 創480天新高
+- 策略 C: top_n=25, 營益率 12.5%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~27, 8~31, 創120天新高
+- 策略 E: top_n=40, 營益率 12.5%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~35, 8~35, 創480天新高
 
 每個策略都結合三大面向：
 - 籌碼面：三大法人與主力買賣超
@@ -285,7 +285,7 @@ class AlanTWStrategyACE:
             fundamental_buy_condition_A
         )
 
-        # 策略 C: top_n=25, 營益率 15%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~27, 8~31
+        # 策略 C: top_n=25, 營益率 12.5%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~27, 8~31
         print("📊 計算策略 C 條件...")
         chip_buy_condition_C = self._build_chip_buy_condition(top_n=25)
         technical_buy_condition_C = self._build_technical_buy_condition(
@@ -297,7 +297,7 @@ class AlanTWStrategyACE:
             bias_240_range=(0.08, 0.31),
             new_high_days=120
         )
-        fundamental_buy_condition_C = self._build_fundamental_buy_condition(1.15)
+        fundamental_buy_condition_C = self._build_fundamental_buy_condition(1.125)
 
         buy_signal_C = (
             chip_buy_condition_C &
@@ -305,7 +305,7 @@ class AlanTWStrategyACE:
             fundamental_buy_condition_C
         )
 
-        # 策略 E: top_n=40, 營益率 15%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~35, 8~35, 創480天新高
+        # 策略 E: top_n=40, 營益率 12.5%, BIAS: 3~13, 5~16, 8~19, 8~20, 5~35, 8~35, 創480天新高
         print("📊 計算策略 E 條件...")
         chip_buy_condition_E = self._build_chip_buy_condition(top_n=40)
         technical_buy_condition_E = self._build_technical_buy_condition(
@@ -317,7 +317,7 @@ class AlanTWStrategyACE:
             bias_240_range=(0.08, 0.35),
             new_high_days=480
         )
-        fundamental_buy_condition_E = self._build_fundamental_buy_condition(1.15)
+        fundamental_buy_condition_E = self._build_fundamental_buy_condition(1.125)
 
         buy_signal_E = (
             chip_buy_condition_E &
@@ -385,8 +385,8 @@ class AlanTWStrategyACE:
         print("=" * 50)
         print("策略組合: A | C | E")
         print("  - 策略 A: top_n=20, 營益率 0.1%, 創120天新高")
-        print("  - 策略 C: top_n=25, 營益率 15%, 創120天新高")
-        print("  - 策略 E: top_n=40, 營益率 15%, 創480天新高")
+        print("  - 策略 C: top_n=25, 營益率 12.5%, 創120天新高")
+        print("  - 策略 E: top_n=40, 營益率 12.5%, 創480天新高")
         print("=" * 50)
 
     def get_report(self):

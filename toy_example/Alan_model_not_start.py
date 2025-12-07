@@ -297,13 +297,13 @@ def build_fundamental_buy_condition(op_growth_threshold):
 # 成交量擴增不限, 價格>12元, 成交>300張, 成交金額>1500萬
 # 價格在120天收盤新高的93%以上
 buy_signal = (
-    build_chip_buy_condition(top_n=50)['chip_buy_condition'] &
+    build_chip_buy_condition(top_n=25)['chip_buy_condition'] &
     build_technical_buy_condition(
-        bias_5_range=(-0.03, 0.10),
-        bias_10_range=(-0.03, 0.10),
-        bias_20_range=(-0.03, 0.14),
-        bias_60_range=(-0.03, 0.14),
-        bias_120_range=(-0.03, 0.25),
+        bias_5_range=(-0.03, 0.13),
+        bias_10_range=(-0.03, 0.16),
+        bias_20_range=(-0.03, 0.19),
+        bias_60_range=(-0.03, 0.20),
+        bias_120_range=(-0.03, 0.35),
         bias_240_range=(0.00, 0.35)  # 240日線改為 0~25%
     )['technical_buy_condition'] &
     build_fundamental_buy_condition(1.125)['fundamental_buy_condition']  # 營益率增12.5%

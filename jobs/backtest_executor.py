@@ -48,6 +48,10 @@ class BacktestExecutor:
             from strategy_class.alan_tw_strategy_ACE import AlanTWStrategyACE as strategy_class
         elif self.strategy_class_name == 'AlanTWStrategyNotStart':
             from strategy_class.alan_tw_strategy_not_start import AlanTWStrategyNotStart as strategy_class
+        elif self.strategy_class_name == 'AlanTWStrategyNotStartA':
+            from strategy_class.alan_tw_strategy_not_start_A import AlanTWStrategyNotStartA as strategy_class
+        elif self.strategy_class_name == 'AlanTWStrategyNotStartB':
+            from strategy_class.alan_tw_strategy_not_start_B import AlanTWStrategyNotStartB as strategy_class
         elif self.strategy_class_name == 'RAndDManagementStrategy':
             from strategy_class.r_and_d_management_strategy import RAndDManagementStrategy as strategy_class
         else:

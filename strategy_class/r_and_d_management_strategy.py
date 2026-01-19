@@ -34,6 +34,7 @@ class RAndDManagementStrategy:
         return self.report if self.report else "report物件為空，請先運行策略"
 
 # Example usage:
-strategy = RAndDManagementStrategy()
-report = strategy.run_strategy()
-print(report)
+if __name__ == "__main__":
+    strategy = RAndDManagementStrategy()
+    report = strategy.run_strategy()
+    print(report)

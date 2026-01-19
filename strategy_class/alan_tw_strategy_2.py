@@ -339,5 +339,5 @@ class AlanTWStrategy2:
 # 使用範例
 if __name__ == "__main__":
 
-    strategy = AlanTwStrategy2()
+    strategy = AlanTWStrategy2()
     report = strategy.run_strategy()

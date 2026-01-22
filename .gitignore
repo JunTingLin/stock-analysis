@@ -27,3 +27,6 @@ config.yaml
 .venv/
 
 finlab_db
+data/
+
+.DS_Store

@@ -218,10 +218,10 @@ stock-scheduler      stock-analysis:latest  Up
 stock-analysis/
 ├── config/
 │   ├── config.yaml          ← 📝 你需要編輯這個
-│   ├── your_cert.pfx        ← 🔐 你的憑證放這裡
-│   └── prompts              ← 🧠 股票推薦清單 parser LLM 提示詞腳本 (Prompts)
-├── data/                    ← 📂 股票推薦清單相關資料
-│   └── google_token.json    ← ☁️ 你的 Google Drive 憑證放這裡
+│   ├── credentials/         ← 🔐 憑證資料夾
+│   │   ├── your_cert.pfx    ← 永豐金憑證
+│   │   └── google_token.json← ☁️ Google Drive 憑證
+│   └── prompts/             ← 🧠 股票推薦清單 parser LLM 提示詞腳本
 ├── logs/                    ← 📊 日誌輸出位置
 │   ├── order.log           # 下單日誌
 │   ├── fetch.log           # 抓取日誌
@@ -246,18 +246,20 @@ stock-analysis/
 | 本地路徑 | 容器路徑 | 用途 | 模式 |
 |---------|---------|------|------|
 | `./.env` | `/app/.env` | 環境變數 (必需) | 只讀 `:ro` |
-| `./config/` | `/app/config/` | 配置檔和憑證 | 只讀 `:ro` |
+| `./config/` | `/app/config/` | 配置檔和憑證 (含 token 更新) | 讀寫 |
 | `./config.yaml` | `/app/config.yaml` | 主配置檔 (模板) | 只讀 `:ro` |
-| `./data/` | `/app/data/` | 股票推薦清單相關資料 | 讀寫 |
 | `./logs/` | `/app/logs/` | 日誌輸出 | 讀寫 |
 | `./data_prod.db` | `/app/data_prod.db` | SQLite 資料庫 | 讀寫 |
-| `./assets/` | `/app/assets/` | 回測報告 HTML | 讀寫 |
+| `./assets/` | `/app/assets/` | 回測報告 HTML 與推薦清單輸出 | 讀寫 |
 | `./finlab_db/` | `/root/finlab_db/` | FinLab 資料快取 | 讀寫 |
+| `./docker/crontab` | `/etc/cron.d/stock-cron` | 排程設定 (僅 scheduler) | 只讀 `:ro` |
 
 **重要說明:**
 - **`.env` 必需**: 包含所有敏感資訊 (API Keys、憑證密碼等)
 - **`config.yaml` 只是模板**: 現在只包含 `${VAR_NAME}` 參考,實際值從 `.env` 讀取
 - **ConfigLoader 自動解析**: 啟動時會自動讀取 `.env` 並解析 YAML 中的 `${VAR_NAME}` 模式
+- **`config/` 現為讀寫**: 允許 Google token 自動更新 (原為只讀)
+- **推薦清單輸出**: 所有推薦清單相關資料現存放於 `assets/` 目錄
 - `finlab_db/` 目錄用於存放 FinLab 的持倉快照和資料快取,會自動建立
 
 ---

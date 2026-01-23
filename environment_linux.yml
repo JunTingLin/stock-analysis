@@ -164,6 +164,7 @@ dependencies:
       - pyrsca==0.1.2
       - pysolace==0.9.40
       - python-dateutil==2.9.0.post0
+      - python-dotenv
       - pytz==2025.2
       - sentry-sdk==1.5.12
       - shioaji==1.2.5

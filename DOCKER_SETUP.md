@@ -72,6 +72,19 @@ cd stock-analysis
 # 全域環境變數
 env:
   FINLAB_API_TOKEN: "你的_FinLab_API_Token"  # 從 FinLab 取得
+  GOOGLE_API_KEY: "你的_GOOGLE_API_KEY"  # 從 Google Cloud Console 取得 (需選取 Generative Language API 及 Google Drive API)
+
+# Google Drive
+google_drive:
+  env:
+    GOOGLE_TOKEN_PATH: "/app/data/你的_Google_Drive_Token.json"  # 容器內路徑
+
+# LLM 配置
+llm_settings:
+  model_name: "gemini-2.0-flash"  # 使用的 LLM 模型
+  api_rate_limit_sleep: 30  # 休眠秒數 (防止 Rate Limit)
+  max_retries: 3  # 最多重試次數
+  prompt_file_path: "/app/config/prompts/LLM_prompt_檔名.txt"  # 容器內路徑
 
 # Telegram
 notification:
@@ -95,6 +108,18 @@ users:
       constant:
         rebalance_safety_weight: 0.3  # 再平衡安全權重 (0.0-1.0)
         strategy_class_name: "AlanTWStrategyACE"  # 策略類別名稱 (見附錄)
+
+# 股票推薦清單配置
+recommendation_tasks:
+  weekly:
+    drive_folder_id: "1I5HSEbERC4R8vtavR9j8lpZXkUK0xVo6"  # 雲端資料夾 ID
+    local_dir: "/app/data/recommendations_w"  # 容器內路徑
+    output_file: "/app/data/recommendations_history_w.json"  # 容器內路徑
+  
+  monthly:
+    drive_folder_id: "1EhHUXpR1yP96tn_IZfOGYwR-V8CCdNo2"  # 雲端資料夾 ID
+    local_dir: "/app/data/recommendations_m"  # 容器內路徑
+    output_file: "/app/data/recommendations_history_m.json"  # 容器內路徑
 ```
 
 **參數說明:**
@@ -188,7 +213,10 @@ stock-scheduler      stock-analysis:latest  Up
 stock-analysis/
 ├── config/
 │   ├── config.yaml          ← 📝 你需要編輯這個
-│   └── your_cert.pfx        ← 🔐 你的憑證放這裡
+│   ├── your_cert.pfx        ← 🔐 你的憑證放這裡
+│   └── prompts              ← 🧠 股票推薦清單 parser LLM 提示詞腳本 (Prompts)
+├── data/                    ← 📂 股票推薦清單相關資料
+│   └── google_token.json    ← ☁️ 你的 Google Drive 憑證放這裡
 ├── logs/                    ← 📊 日誌輸出位置
 │   ├── order.log           # 下單日誌
 │   ├── fetch.log           # 抓取日誌
@@ -214,6 +242,7 @@ stock-analysis/
 |---------|---------|------|------|
 | `./config/` | `/app/config/` | 配置檔和憑證 | 只讀 `:ro` |
 | `./config.yaml` | `/app/config.yaml` | 主配置檔 | 只讀 `:ro` |
+| `./data/` | `/app/data/` | 股票推薦清單相關資料 | 讀寫 |
 | `./logs/` | `/app/logs/` | 日誌輸出 | 讀寫 |
 | `./data_prod.db` | `/app/data_prod.db` | SQLite 資料庫 | 讀寫 |
 | `./assets/` | `/app/assets/` | 回測報告 HTML | 讀寫 |

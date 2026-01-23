@@ -14,6 +14,8 @@ services:
       - ./data_prod.db:/app/data_prod.db
       # 掛載回測報告目錄 (持久化)
       - ./assets:/app/assets
+      # 掛載股票推薦名單資料目錄 (持久化)
+      - ./data:/app/data
       # 掛載 finlab 資料目錄 (pm.to_local 和 finlab.data 快取)
       - ./finlab_db:/root/finlab_db
     environment:
@@ -40,6 +42,7 @@ services:
       - ./logs:/app/logs
       - ./data_prod.db:/app/data_prod.db
       - ./assets:/app/assets
+      - ./data:/app/data
       # 掛載 finlab 資料目錄 (pm.to_local 和 finlab.data 快取)
       - ./finlab_db:/root/finlab_db
       # 掛載 crontab (這樣修改後只需 restart,不用 rebuild)

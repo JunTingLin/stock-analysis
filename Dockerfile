@@ -5,10 +5,10 @@ FROM continuumio/miniconda3:latest AS builder
 WORKDIR /app
 
 # 複製環境配置檔
-COPY environment_linux.yml .
+COPY environment.yml .
 
 # 建立 conda 環境
-RUN conda env create -f environment_linux.yml && \
+RUN conda env create -f environment.yml && \
     conda clean -afy
 
 # 最終 runtime image

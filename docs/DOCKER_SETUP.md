@@ -176,10 +176,10 @@ config/credentials/
 
 3. 憑證檔案必須從 [永豐金證券官網](https://sinopac.com.tw) 申請取得
 
-#### 2.4 验证配置 ✓
+#### 2.4 驗證配置 ✓
 
 ```bash
-# 验证必要的环境变量都已设置
+# 驗證必要的环境变量都已设置
 grep -E "^(FINLAB_API_TOKEN|SHIOAJI_API_KEY|SHIOAJI_SECRET_KEY)=" .env
 
 # 验证 .env 中没有空值

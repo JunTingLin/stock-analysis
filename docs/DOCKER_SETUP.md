@@ -179,10 +179,10 @@ config/credentials/
 #### 2.4 驗證配置 ✓
 
 ```bash
-# 驗證必要的环境变量都已设置
+# 驗證 .env 中的環境變數是否存在
 grep -E "^(FINLAB_API_TOKEN|SHIOAJI_API_KEY|SHIOAJI_SECRET_KEY)=" .env
 
-# 验证 .env 中没有空值
+# 驗證 .env 中是否有空值
 grep "=\s*$" .env
 ```
 

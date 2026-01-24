@@ -31,7 +31,7 @@ Reference these files in your `.env` file:
 
 ```bash
 # Google Drive Token
-GOOGLE_TOKEN_PATH=./data/google_token.json
+GOOGLE_TOKEN_PATH=./config/credentials/google_token.json
 
 # Shioaji Certificate
 SHIOAJI_CERT_PATH=./config/credentials/junting_Sinopac.pfx

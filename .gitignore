@@ -19,14 +19,17 @@ backtest.log
 fetch.log
 order.log
 
-# Configuration files
-/config
-config.yaml
+# env and credential files
+.env
+credentials/
 
 # Environment and setup files
 .venv/
 
 finlab_db
-data/
 
+# MacOS system files
 .DS_Store
+
+# VSCode settings
+.vscode/

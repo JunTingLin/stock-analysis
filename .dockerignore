@@ -34,15 +34,16 @@ toy_example/
 # 文件
 *.md
 !README.md
-!DOCKER_SETUP.md
+docs/
 
 # 暫存檔
 .DS_Store
 Thumbs.db
 
-# 客戶配置 (會用 volume 掛載)
-config/
-config.yaml
+# 環境變數與敏感配置 (會用 volume 掛載)
+.env
+.env.*
+config/credentials/
 *.pfx
 
 # 資料庫 (會用 volume 掛載,本地測試檔案不需要複製到 Docker)
@@ -54,9 +55,6 @@ assets/
 
 # FinLab 資料目錄 (會用 volume 掛載)
 finlab_db/
-
-# Conda 環境 (會在 Dockerfile 中建立)
-environment_window.yml
 
 # Bash scripts (Docker 用 Python 直接執行)
 *.sh

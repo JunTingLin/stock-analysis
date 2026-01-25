@@ -1,22 +1,16 @@
 services:
-  # 應用程式 (Dashboard)
   stock-analysis:
+    platform: linux/amd64
     build: .
     container_name: stock-analysis-app
     restart: unless-stopped
     volumes:
-      # 掛載配置檔 (客戶只需編輯這個)
-      - ./config:/app/config:ro
+      - ./config:/app/config
       - ./config.yaml:/app/config.yaml:ro
-      # 掛載日誌 (持久化)
+      - ./.env:/app/.env:ro
       - ./logs:/app/logs
-      # 掛載資料庫 (持久化)
       - ./data_prod.db:/app/data_prod.db
-      # 掛載回測報告目錄 (持久化)
       - ./assets:/app/assets
-      # 掛載股票推薦名單資料目錄 (持久化)
-      - ./data:/app/data
-      # 掛載 finlab 資料目錄 (pm.to_local 和 finlab.data 快取)
       - ./finlab_db:/root/finlab_db
     environment:
       - TZ=Asia/Taipei
@@ -31,28 +25,24 @@ services:
       retries: 3
       start_period: 40s
 
-  # Cron Job 排程器 (使用相同的 image)
   stock-scheduler:
+    platform: linux/amd64
     build: .
     container_name: stock-scheduler
     restart: unless-stopped
     volumes:
-      - ./config:/app/config:ro
+      - ./config:/app/config
       - ./config.yaml:/app/config.yaml:ro
+      - ./.env:/app/.env:ro
       - ./logs:/app/logs
       - ./data_prod.db:/app/data_prod.db
       - ./assets:/app/assets
-      - ./data:/app/data
-      # 掛載 finlab 資料目錄 (pm.to_local 和 finlab.data 快取)
       - ./finlab_db:/root/finlab_db
-      # 掛載 crontab (這樣修改後只需 restart,不用 rebuild)
       - ./docker/crontab:/etc/cron.d/stock-cron:ro
     environment:
       - TZ=Asia/Taipei
     networks:
       - stock-network
-    # 啟動時載入 crontab 並啟動 cron
-    # 註: crontab 檔案必須是 LF 格式,不能是 CRLF
     command: >
       bash -c "
       crontab /etc/cron.d/stock-cron &&
@@ -64,8 +54,9 @@ networks:
     driver: bridge
 
 # 使用說明:
-# 1. 準備 config.yaml 和憑證檔案放在 ./config/ 目錄
-# 2. 執行: docker-compose up -d --build
-# 3. 查看日誌: docker-compose logs -f
-# 4. 停止: docker-compose down
-# 5. 更新程式碼: git pull && docker-compose up -d --build
+# 1. 複製 .env.example 到 .env 並填入敏感資訊
+# 2. 準備 config.yaml 和憑證檔案放在 ./config/ 目錄
+# 3. 執行: docker-compose up -d --build
+# 4. 查看日誌: docker-compose logs -f
+# 5. 停止: docker-compose down
+# 6. 更新程式碼: git pull && docker-compose up -d --build

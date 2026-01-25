@@ -31,12 +31,10 @@ class DriveFetcher:
         self.config_loader = ConfigLoader(config_path)
         self.config_loader.load_global_env_vars()
 
-        self.drive_env = self.config_loader.config.get('google_drive', {})
-
         self.tasks_config = self.config_loader.config.get('recommendation_tasks', {})
 
         creds = None
-        token_path = self.drive_env.get('env', {}).get('GOOGLE_TOKEN_PATH')
+        token_path = self.config_loader.get_env_var('GOOGLE_TOKEN_PATH')
 
 
         if os.path.exists(token_path):

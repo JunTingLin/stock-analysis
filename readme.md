@@ -43,4 +43,54 @@
     + pyyaml：讀取配置文件
 
 ## 手冊
-[Stock Analysis - Docker 部署指南 (客戶版)](https://hackmd.io/@RPTu-Li-R66a9lr4Fb9qEg/SkQDaPzyWg)
+
+### Docker 部署 (推薦)
+
+> 🚀 最簡單的部署方式,無需安裝 Python 環境,只需 Docker!
+
+#### 前置需求
+
+| 作業系統 | 下載連結 |
+|---------|---------|
+| **Windows/Mac** | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
+| **Linux** | 執行指令: `curl -fsSL https://get.docker.com \| sh` |
+
+#### 快速開始 (3 步)
+
+**1. 下載專案**
+```bash
+git clone https://github.com/JunTingLin/stock-analysis.git
+cd stock-analysis
+```
+
+**2. 準備配置檔**
+```bash
+# 複製 .env 範本並填入你的 API Keys
+cp .env.example .env
+nano .env
+
+# 參考 .env.example 了解所有環境變數
+# 參考 config/config.yaml 了解配置結構
+```
+
+**3. 啟動服務**
+```bash
+docker compose up -d --build
+
+# 查看狀態
+docker compose ps
+
+# 訪問 Dashboard: http://localhost:5000
+```
+
+#### 配置架構 (三層系統)
+
+```
+.env (敏感值) → config.yaml (${VAR_NAME} 引用) → ConfigLoader (解析)
+```
+
+- **Layer 1**: `.env` - 實際敏感值 (在 .gitignore,永不提交)
+- **Layer 2**: `config.yaml` - 模板 (${VAR_NAME} 引用,可安全提交)
+- **Layer 3**: ConfigLoader - 自動解析變數
+
+詳細文件請見 [DOCKER_SETUP.md](./docs/DOCKER_SETUP.md)

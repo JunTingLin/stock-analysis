@@ -15,6 +15,56 @@
 
 ---
 
+## ⚙️ 配置架構說明
+
+### 三層配置系統
+
+本系統採用 **三層配置架構**,確保敏感資訊的安全:
+
+```
+┌─────────────────────────────────────────────┐
+│  第 1 層: .env (敏感資訊 - ⚠️ 不提交到 Git)  │
+│  ├─ FINLAB_API_TOKEN=PG323UEltzZ...        │
+│  ├─ GOOGLE_API_KEY=AIzaSyDGFlM8...         │
+│  └─ SHIOAJI_CERT_PASSWORD=A123456789       │
+└────────────────┬────────────────────────────┘
+                 │ (env vars 載入到 os.environ)
+                 ↓
+┌─────────────────────────────────────────────┐
+│  第 2 層: config.yaml (配置模板)             │
+│  ├─ env:                                    │
+│  │  ├─ FINLAB_API_TOKEN: "${FINLAB_API_TOKEN}" │
+│  │  └─ ...                                  │
+│  └─ users:                                  │
+│     └─ junting:                             │
+│        └─ shioaji:                          │
+│           └─ env:                           │
+│              └─ SHIOAJI_CERT_PASSWORD: "${SHIOAJI_CERT_PASSWORD}" │
+└────────────────┬────────────────────────────┘
+                 │ (解析 ${VAR_NAME} 引用)
+                 ↓
+┌─────────────────────────────────────────────┐
+│  第 3 層: ConfigLoader (變數解析)            │
+│  ├─ 載入 .env 到 os.environ               │
+│  ├─ 解析 config.yaml 中的 ${VAR_NAME}      │
+│  └─ 提供給應用程式實際的配置值              │
+└─────────────────────────────────────────────┘
+```
+
+**流程說明:**
+1. **Docker 啟動** → 掛載 `.env` 檔案
+2. **ConfigLoader 初始化** → 讀取 `.env` 到環境變數
+3. **應用程式啟動** → ConfigLoader 解析 `config.yaml` 中的 `${VAR_NAME}` 引用
+4. **獲得最終配置** → `.env` 優先於 `config.yaml` 中的預設值
+
+**安全優勢:**
+- ✅ `.env` 包含實際敏感值,已在 `.gitignore` 中,永不提交
+- ✅ `config.yaml` 只有 `${VAR_NAME}` 引用,可安全提交
+- ✅ 開發和生產環境共用同一 `config.yaml`,只需調整 `.env`
+- ✅ 易於版本控制和團隊協作
+
+---
+
 ## 前置需求
 
 ### 1. 安裝 Docker Desktop
@@ -66,119 +116,74 @@ cd stock-analysis
 
 ### 步驟 2: 準備配置檔
 
-#### 2.1 編輯 `config/config.yaml`
+#### 2.1 設定環境變數 (.env)
 
-```yaml
-# 全域環境變數
-env:
-  FINLAB_API_TOKEN: "你的_FinLab_API_Token"  # 從 FinLab 取得
-  GOOGLE_API_KEY: "你的_GOOGLE_API_KEY"  # 從 Google Cloud Console 取得 (需選取 Generative Language API 及 Google Drive API)
-
-# Google Drive
-google_drive:
-  env:
-    GOOGLE_TOKEN_PATH: "/app/data/你的_Google_Drive_Token.json"  # 容器內路徑
-
-# LLM 配置
-llm_settings:
-  model_name: "gemini-2.0-flash"  # 使用的 LLM 模型
-  api_rate_limit_sleep: 30  # 休眠秒數 (防止 Rate Limit)
-  max_retries: 3  # 最多重試次數
-  prompt_file_path: "/app/config/prompts/LLM_prompt_檔名.txt"  # 容器內路徑
-
-# Telegram
-notification:
-  enabled: true
-  telegram:
-    bot_token: "0123456789:AAHWqhMEKnw5...."
-    chat_id: "0123456789"
-
-# 使用者配置
-users:
-  你的名字:  # 例如: junting, alan
-    shioaji:  # 券商名稱: shioaji
-      env:
-        # 永豐金證券 (Shioaji) 設定
-        SHIOAJI_API_KEY: "你的_API_Key"
-        SHIOAJI_SECRET_KEY: "你的_Secret_Key"
-        SHIOAJI_CERT_PERSON_ID: "身分證字號"
-        SHIOAJI_CERT_PATH: "/app/config/你的憑證.pfx"  # 容器內路徑
-        SHIOAJI_CERT_PASSWORD: "憑證密碼"
-
-      constant:
-        rebalance_safety_weight: 0.3  # 再平衡安全權重 (0.0-1.0)
-        strategy_class_name: "AlanTWStrategyACE"  # 策略類別名稱 (見附錄)
-
-# 股票推薦清單配置
-recommendation_tasks:
-  weekly:
-    drive_folder_id: "1I5HSEbERC4R8vtavR9j8lpZXkUK0xVo6"  # 雲端資料夾 ID
-    local_dir: "/app/data/recommendations_w"  # 容器內路徑
-    output_file: "/app/data/recommendations_history_w.json"  # 容器內路徑
-  
-  monthly:
-    drive_folder_id: "1EhHUXpR1yP96tn_IZfOGYwR-V8CCdNo2"  # 雲端資料夾 ID
-    local_dir: "/app/data/recommendations_m"  # 容器內路徑
-    output_file: "/app/data/recommendations_history_m.json"  # 容器內路徑
-```
-
-**參數說明:**
-
-| 參數 | 必填 | 說明 | 範例 |
-|------|------|------|------|
-| `FINLAB_API_TOKEN` | ✅ | FinLab API Token | `"PG323UEltzZ..."` |
-| `SHIOAJI_API_KEY` | ✅ | 永豐 API Key | `"4rJhFzsocE..."` |
-| `SHIOAJI_SECRET_KEY` | ✅ | 永豐 Secret Key | `"425iBxJdmR..."` |
-| `SHIOAJI_CERT_PERSON_ID` | ✅ | 身分證字號 | `"A123456789"` |
-| `SHIOAJI_CERT_PATH` | ✅ | 憑證路徑 (容器內) | `"/app/config/junting_Sinopac.pfx"` |
-| `SHIOAJI_CERT_PASSWORD` | ✅ | 憑證密碼 | `"A123456789"` |
-| `rebalance_safety_weight` | ✅ | 安全權重 (0-1) | `0.3` (30%) |
-| `strategy_class_name` | ✅ | 策略類別 | 見 [附錄 A](#附錄-a-可用的策略類別) |
-
-#### 2.2 放入憑證檔案
+**⚠️ 重要:** 所有敏感資訊 (API Keys、憑證密碼等) 應存放在 `.env` 檔案,不應寫在 `config.yaml`!
 
 ```bash
-# 將憑證檔案複製到 config 目錄
-# Windows
-copy C:\path\to\your_cert.pfx config\
+# 複製範本
+cp .env.example .env
 
+# 編輯 .env 填入你的實際值
+nano .env
+```
+
+請參考 `.env.example` 檔案了解所有可用的環境變數及其說明。
+
+#### 2.2 編輯 `config/config.yaml` (非敏感設定)
+
+`config.yaml` 只存放非敏感的配置,所有敏感值都以 `${VAR_NAME}` 格式引用自 `.env`。
+
+請參考 `config/config.yaml` 檔案了解配置結構。主要設定包括:
+- `env`: 全域環境變數參考
+- `users`: 使用者和券商設定
+- `llm_settings`: LLM 模型配置
+- `notification`: 通知設定
+- `recommendation_tasks`: 推薦清單任務設定
+
+**重要:** `.env` 已在 `.gitignore` 中,不會被提交到版本控制。
+
+#### 2.3 放入憑證檔案
+
+在 `config/credentials/` 目錄放入憑證檔案:
+
+```bash
 # Linux/Mac
-cp /path/to/your_cert.pfx config/
+mkdir -p config/credentials
+cp /path/to/your_cert.pfx config/credentials/
+
+# Windows (PowerShell)
+mkdir -Force config/credentials
+copy C:\path\to\your_cert.pfx config\credentials\
 ```
 
-**⚠️ 注意:**
-- 憑證檔名必須與 `config.yaml` 中的 `CERT_PATH` 一致
-- 例如: `SHIOAJI_CERT_PATH: "/app/config/junting_Sinopac.pfx"` → 檔名為 `junting_Sinopac.pfx`
+**目錄結構:**
 
-#### 2.3 調整排程設定 (可選)
+```
+config/credentials/
+├── 你的憑證.pfx          # Shioaji 憑證 (必需)
+├── google_token.json      # Google Drive API Token (可選)
+└── fugle_config.json      # Fugle 設定檔 (可選)
+```
 
-如果要自訂排程時間,編輯 `docker/crontab`:
+**⚠️ 重要提醒:**
+1. 憑證檔名須與 `.env` 中的 `SHIOAJI_CERT_PATH` 一致
+   - 例如: `.env` 設 `SHIOAJI_CERT_PATH=./config/credentials/junting_Sinopac.pfx` 
+   - 則實際檔案應為 `config/credentials/junting_Sinopac.pfx`
+
+2. `.env` 中的路徑使用本地路徑 (`./config/credentials/...`)
+   - Docker 容器內自動轉換為 `/app/config/credentials/...`
+
+3. 憑證檔案必須從 [永豐金證券官網](https://sinopac.com.tw) 申請取得
+
+#### 2.4 驗證配置 ✓
 
 ```bash
-# 預設排程:
-# 20:30 - 抓取帳務資料
-# 20:00 - 執行回測
-# 08:00 - 早盤下單
-# 13:00 - 尾盤下單 (加價 1%)
+# 驗證 .env 中的環境變數是否存在
+grep -E "^(FINLAB_API_TOKEN|SHIOAJI_API_KEY|SHIOAJI_SECRET_KEY)=" .env
 
-# 可修改為:
-# 0 9 * * * ...  # 改成早上 9:00 下單
-```
-
-**Crontab 格式說明:**
-```
-分 時 日 月 週 指令
-│ │ │ │ │
-│ │ │ │ └─── 星期幾 (0-7, 0和7都是星期日)
-│ │ │ └───── 月份 (1-12)
-│ │ └─────── 日期 (1-31)
-│ └───────── 小時 (0-23)
-└─────────── 分鐘 (0-59)
-
-範例:
-0 8 * * *     # 每天 08:00
-30 13 * * 1-5 # 週一到週五 13:30
-0 */2 * * *   # 每 2 小時
+# 驗證 .env 中是否有空值
+grep "=\s*$" .env
 ```
 
 ---
@@ -213,10 +218,10 @@ stock-scheduler      stock-analysis:latest  Up
 stock-analysis/
 ├── config/
 │   ├── config.yaml          ← 📝 你需要編輯這個
-│   ├── your_cert.pfx        ← 🔐 你的憑證放這裡
-│   └── prompts              ← 🧠 股票推薦清單 parser LLM 提示詞腳本 (Prompts)
-├── data/                    ← 📂 股票推薦清單相關資料
-│   └── google_token.json    ← ☁️ 你的 Google Drive 憑證放這裡
+│   ├── credentials/         ← 🔐 憑證資料夾
+│   │   ├── your_cert.pfx    ← 永豐金憑證
+│   │   └── google_token.json← ☁️ Google Drive 憑證
+│   └── prompts/             ← 🧠 股票推薦清單 parser LLM 提示詞腳本
 ├── logs/                    ← 📊 日誌輸出位置
 │   ├── order.log           # 下單日誌
 │   ├── fetch.log           # 抓取日誌
@@ -240,18 +245,22 @@ stock-analysis/
 
 | 本地路徑 | 容器路徑 | 用途 | 模式 |
 |---------|---------|------|------|
-| `./config/` | `/app/config/` | 配置檔和憑證 | 只讀 `:ro` |
-| `./config.yaml` | `/app/config.yaml` | 主配置檔 | 只讀 `:ro` |
-| `./data/` | `/app/data/` | 股票推薦清單相關資料 | 讀寫 |
+| `./.env` | `/app/.env` | 環境變數 (必需) | 只讀 `:ro` |
+| `./config/` | `/app/config/` | 配置檔和憑證 (含 token 更新) | 讀寫 |
+| `./config.yaml` | `/app/config.yaml` | 主配置檔 (模板) | 只讀 `:ro` |
 | `./logs/` | `/app/logs/` | 日誌輸出 | 讀寫 |
 | `./data_prod.db` | `/app/data_prod.db` | SQLite 資料庫 | 讀寫 |
-| `./assets/` | `/app/assets/` | 回測報告 HTML | 讀寫 |
+| `./assets/` | `/app/assets/` | 回測報告 HTML 與推薦清單輸出 | 讀寫 |
 | `./finlab_db/` | `/root/finlab_db/` | FinLab 資料快取 | 讀寫 |
+| `./docker/crontab` | `/etc/cron.d/stock-cron` | 排程設定 (僅 scheduler) | 只讀 `:ro` |
 
 **重要說明:**
-- `finlab_db/` 目錄用於存放 FinLab 的持倉快照 (`pm.to_local`) 和資料快取
-- 此目錄會自動建立,無需手動處理
-- 重啟容器後資料會保留,不會遺失
+- **`.env` 必需**: 包含所有敏感資訊 (API Keys、憑證密碼等)
+- **`config.yaml` 只是模板**: 現在只包含 `${VAR_NAME}` 參考,實際值從 `.env` 讀取
+- **ConfigLoader 自動解析**: 啟動時會自動讀取 `.env` 並解析 YAML 中的 `${VAR_NAME}` 模式
+- **`config/` 現為讀寫**: 允許 Google token 自動更新 (原為只讀)
+- **推薦清單輸出**: 所有推薦清單相關資料現存放於 `assets/` 目錄
+- `finlab_db/` 目錄用於存放 FinLab 的持倉快照和資料快取,會自動建立
 
 ---
 
@@ -272,6 +281,11 @@ stock-analysis/
 # 4. 每天 13:00 - 尾盤下單 (加價 1%)
 0 13 * * * cd /app && python -m jobs.order_executor --user_name=junting --broker_name=shioaji --extra_bid_pct=0.01
 ```
+
+**排程中的參數值來源:**
+- `--user_name`, `--broker_name`: 來自 `config.yaml` 的 `users` 節點
+- `--strategy_class_name`: 來自 `config.yaml` 中使用者的 `constant.strategy_class_name`
+- 所有敏感資訊 (API Key、憑證密碼): 從 `.env` 自動讀取，無需在 crontab 中指定
 
 ### 排程參數說明
 

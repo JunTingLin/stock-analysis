@@ -30,7 +30,7 @@ class OrderExecutor:
         self.config_loader.load_global_env_vars()
         self.config_loader.load_user_config(user_name, broker_name)
 
-        self.auth = Authenticator()
+        self.auth = Authenticator(self.config_loader)
         self.auth.login_finlab()
         self.account = self.auth.login_broker(broker_name)
 

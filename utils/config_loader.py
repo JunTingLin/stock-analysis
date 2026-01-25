@@ -1,16 +1,47 @@
 import os
 import yaml
+import re
+from dotenv import load_dotenv
 
 class ConfigLoader:
-    def __init__(self, config_path="config.yaml"):
+    def __init__(self, config_path="config.yaml", env_path=".env"):
+        load_dotenv(env_path)
+        
         with open(config_path, "r", encoding="utf-8") as file:
-            self.config = yaml.safe_load(file)
+            loaded_config = yaml.safe_load(file)
+
+        # Resolve ${VAR} placeholders across the entire config tree up front
+        self.config = self._resolve_tree(loaded_config)
         self.user_constants = {}
 
+    def _resolve_env_vars(self, value):
+        """Resolve ${VAR_NAME} references to environment variables."""
+        if isinstance(value, str):
+            # Replace ${VAR_NAME} with environment variable values
+            def replace_var(match):
+                var_name = match.group(1)
+                return os.environ.get(var_name, match.group(0))
+            return re.sub(r'\$\{([^}]+)\}', replace_var, value)
+        return value
+
+    def _resolve_tree(self, node):
+        """Recursively resolve env placeholders in nested config structures."""
+        if isinstance(node, dict):
+            return {k: self._resolve_tree(v) for k, v in node.items()}
+        if isinstance(node, list):
+            return [self._resolve_tree(item) for item in node]
+        return self._resolve_env_vars(node)
+
     def load_global_env_vars(self):
+        """Load global environment variables from config.yaml if not already set in .env."""
         env_config = self.config.get("env", {})
         for key, value in env_config.items():
-            os.environ[key] = str(value)
+            if key not in os.environ:
+                resolved_value = self._resolve_env_vars(str(value))
+                # If the value still contains an unresolved placeholder like ${VAR}, skip setting
+                if isinstance(resolved_value, str) and "${" in resolved_value and "}" in resolved_value:
+                    continue
+                os.environ[key] = resolved_value
 
     def load_user_config(self, user: str, broker: str):
         users = self.config.get("users", {})

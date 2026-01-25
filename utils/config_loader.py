@@ -38,6 +38,9 @@ class ConfigLoader:
         for key, value in env_config.items():
             if key not in os.environ:
                 resolved_value = self._resolve_env_vars(str(value))
+                # If the value still contains an unresolved placeholder like ${VAR}, skip setting
+                if isinstance(resolved_value, str) and "${" in resolved_value and "}" in resolved_value:
+                    continue
                 os.environ[key] = resolved_value
 
     def load_user_config(self, user: str, broker: str):

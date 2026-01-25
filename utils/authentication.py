@@ -1,4 +1,5 @@
 import os
+from os import path
 import sys
 import logging
 import traceback
@@ -12,9 +13,13 @@ from utils.config_loader import ConfigLoader
 logger = logging.getLogger(__name__)
 
 class Authenticator:
+    def __init__(self, config_loader: ConfigLoader | None = None):
+        self.config_loader = config_loader
 
     def login_finlab(self):
-        token = os.environ.get("FINLAB_API_TOKEN")
+        if not self.config_loader:
+            raise RuntimeError("ConfigLoader is required for Authenticator. Pass an instance when constructing.")
+        token = self.config_loader.get_env_var("FINLAB_API_TOKEN")
         if not token:
             raise EnvironmentError("Missing environment variable: FINLAB_API_TOKEN")
         
@@ -22,6 +27,8 @@ class Authenticator:
         logger.info("Successfully logged into FinLab")
 
     def _login_fugle(self):
+        if not self.config_loader:
+            raise RuntimeError("ConfigLoader is required for Authenticator. Pass an instance when constructing.")
         required_vars = [
             "FUGLE_CONFIG_PATH", 
             "FUGLE_MARKET_API_KEY", 
@@ -30,7 +37,7 @@ class Authenticator:
             "FUGLE_CERT_PASSWORD"
         ]
         for var in required_vars:
-            if not os.environ.get(var):
+            if not self.config_loader.get_env_var(var):
                 raise EnvironmentError(f"Missing environment variable: {var}")
 
         # 根據作業系統判斷 cryptfile_pass.cfg 的位置
@@ -50,15 +57,18 @@ class Authenticator:
                 logger.error(f"Failed to remove cryptfile_pass.cfg at {cryptfile_path}: {e}")
                 raise
 
-        setup_keyring(os.environ["FUGLE_ACCOUNT"])
-        keyring.set_password("fugle_trade_sdk:account", os.environ["FUGLE_ACCOUNT"], os.environ["FUGLE_ACCOUNT_PASSWORD"])
-        keyring.set_password("fugle_trade_sdk:cert", os.environ["FUGLE_ACCOUNT"], os.environ["FUGLE_CERT_PASSWORD"])
+        fugle_account = self.config_loader.get_env_var("FUGLE_ACCOUNT")
+        setup_keyring(fugle_account)
+        keyring.set_password("fugle_trade_sdk:account", fugle_account, self.config_loader.get_env_var("FUGLE_ACCOUNT_PASSWORD"))
+        keyring.set_password("fugle_trade_sdk:cert", fugle_account, self.config_loader.get_env_var("FUGLE_CERT_PASSWORD"))
 
         account = FugleAccount()
         logger.info("Successfully logged into Fugle")
         return account
 
     def _login_shioaji(self):
+        if not self.config_loader:
+            raise RuntimeError("ConfigLoader is required for Authenticator. Pass an instance when constructing.")
         required_vars = [
             "SHIOAJI_API_KEY", 
             "SHIOAJI_SECRET_KEY", 
@@ -67,8 +77,19 @@ class Authenticator:
             "SHIOAJI_CERT_PASSWORD"
         ]
         for var in required_vars:
-            if not os.environ.get(var):
+            if not self.config_loader.get_env_var(var):
                 raise EnvironmentError(f"Missing environment variable: {var}")
+
+        cert_path = path.expandvars(self.config_loader.get_env_var("SHIOAJI_CERT_PATH"))
+        if not path.isabs(cert_path):
+            # Resolve relative to app root (jobs set cwd to repo root)
+            cert_path = path.join(os.getcwd(), cert_path)
+        if not path.exists(cert_path):
+            raise FileNotFoundError(
+                f"SHIOAJI_CERT_PATH points to a non-existent file: {cert_path}. "
+                f"Ensure your .env sets a valid path (e.g., ./config/credentials/your_cert.pfx) "
+                f"and that the file is present inside the container at /app/config/credentials/."
+            )
 
         account = SinopacAccount()
         logger.info("Successfully logged into Shioaji")
@@ -85,7 +106,7 @@ class Authenticator:
 
 if __name__ == "__main__":
 
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    root_dir = path.dirname(path.dirname(path.abspath(__file__)))
     os.chdir(root_dir)
 
     try:
@@ -94,7 +115,7 @@ if __name__ == "__main__":
         config_loader = ConfigLoader(os.path.join(root_dir, "config.yaml"))
         config_loader.load_global_env_vars()
         config_loader.load_user_config(user_name, broker_name)
-        auth = Authenticator()
+        auth = Authenticator(config_loader)
         auth.login_finlab()
         account = auth.login_broker(broker_name)
         print("Account:", account)

@@ -1,9 +1,8 @@
-import json
-import os
 import pandas as pd
 from finlab import data
 from finlab.backtest import sim
 from utils.config_loader import ConfigLoader
+from dao.recommendation_dao import RecommendationDAO
 
 class RogerTWStrategyBase:
     def __init__(self, task_name, config_path="config.yaml"):
@@ -14,24 +13,27 @@ class RogerTWStrategyBase:
 
     def _create_position_df(self, universe):
         """
-        讀取 JSON 並轉換為 Finlab 可用的 Position DataFrame
+        讀取推薦 DAO 並轉換為 Finlab 可用的 Position DataFrame
+        支援 stocks 為物件列表，從 stock.id 取代號
         """  
-        with open(self.json_path, 'r', encoding='utf-8') as f:
-                history_data = json.load(f)
-            
+        dao = RecommendationDAO(self.json_path)
+        recommendation_records = dao.load()
+
         records = []
-        for entry in history_data:
-            date = entry.get('date')
-            stocks = entry.get('stocks', [])
-            
+        for record in recommendation_records:
+            date = record.date
+            stocks = record.stocks
             if not date or not stocks:
                 continue
 
             dt = pd.to_datetime(date)
-            for stock_id in stocks:
+            for stock in stocks:
+                stock_id = getattr(stock, 'id', None)
+                if not stock_id:
+                    continue
                 records.append({
                     'date': dt,
-                    'stock_id': stock_id,
+                    'stock_id': str(stock_id),
                     'signal': 1
                 })
 

@@ -13,7 +13,7 @@ llm_settings:
   model_name: "gemini-2.0-flash"
   api_rate_limit_sleep: 30
   max_retries: 3
-  prompt_file_path: "./config/prompts/golden_ai_top5_prompt.txt"
+  prompt_file_path: "./config/prompts/golden_ai_parsing_prompt.txt"
 
 # Telegram 通知 
 notification:

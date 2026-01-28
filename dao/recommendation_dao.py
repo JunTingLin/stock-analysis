@@ -1,11 +1,13 @@
 """
 Data Access Object (DAO) for stock recommendations.
-Handles storage and retrieval of stock recommendation data with enriched schema.
+Handles storage and retrieval of stock recommendation data using SQLite database.
 """
 
-import os
-import json
+import sqlite3
+import logging
 from typing import List, Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class Stock:
@@ -73,79 +75,152 @@ class RecommendationRecord:
 
 
 class RecommendationDAO:
-    """Data Access Object for managing stock recommendations"""
+    """Data Access Object for managing stock recommendations using SQLite"""
     
-    def __init__(self, file_path: str):
+    def __init__(self, db_path="data_prod.db"):
         """
-        Initialize DAO with file path
+        Initialize DAO with database path
         
         Args:
-            file_path: Path to the JSON file storing recommendations
+            db_path: Path to the SQLite database file
         """
-        self.file_path = file_path
-        self._ensure_directory()
+        self.db_path = db_path
+        self._create_table()
     
-    def _ensure_directory(self):
-        """Ensure the directory for the file exists"""
-        directory = os.path.dirname(self.file_path)
-        if directory and not os.path.exists(directory):
-            os.makedirs(directory, exist_ok=True)
+    def _create_table(self):
+        """建立 recommendation_stocks 資料表"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Single table design: recommendation_stocks
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS recommendation_stocks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                stock_id TEXT NOT NULL,
+                stock_name TEXT,
+                sentiment TEXT NOT NULL,
+                target_price REAL,
+                stop_loss REAL,
+                created_timestamp TEXT DEFAULT (datetime('now','localtime')),
+                updated_timestamp TEXT DEFAULT (datetime('now','localtime'))
+            );
+        """)
+        
+        # Create indexes for better query performance
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_recommendation_stocks_date 
+            ON recommendation_stocks(date DESC);
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_recommendation_stocks_stock_id 
+            ON recommendation_stocks(stock_id);
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_recommendation_stocks_date_stock 
+            ON recommendation_stocks(date, stock_id);
+        """)
+        
+        conn.commit()
+        conn.close()
     
     def load(self) -> List[RecommendationRecord]:
         """
-        Load all recommendation records from file
+        Load all recommendation records from database
         
         Returns:
             List of RecommendationRecord objects sorted by date
         """
-        if not os.path.exists(self.file_path):
-            return []
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
         
-        try:
-            with open(self.file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+        # Get all unique dates
+        cursor.execute("""
+            SELECT DISTINCT date FROM recommendation_stocks 
+            ORDER BY date ASC
+        """)
+        
+        records = []
+        for row in cursor.fetchall():
+            date = row['date']
             
-            records = [RecommendationRecord.from_dict(item) for item in data]
-            records.sort(key=lambda r: r.date)
-            return records
-        except Exception as e:
-            raise IOError(f"Failed to load recommendations from {self.file_path}: {e}")
+            # Get stocks for this date
+            cursor.execute("""
+                SELECT stock_id, stock_name, sentiment, target_price, stop_loss
+                FROM recommendation_stocks
+                WHERE date = ?
+            """, (date,))
+            
+            stocks = [
+                Stock(
+                    id=stock_row['stock_id'],
+                    name=stock_row['stock_name'],
+                    sentiment=stock_row['sentiment'],
+                    TP=stock_row['target_price'],
+                    SL=stock_row['stop_loss']
+                )
+                for stock_row in cursor.fetchall()
+            ]
+            
+            records.append(RecommendationRecord(date=date, stocks=stocks))
+        
+        conn.close()
+        return records
     
     def save(self, records: List[RecommendationRecord]) -> None:
         """
-        Save recommendation records to file
+        Save recommendation records to database (full replacement)
         
         Args:
             records: List of RecommendationRecord objects to save
         """
-        self._ensure_directory()
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
         
-        try:
-            # Sort by date before saving
-            sorted_records = sorted(records, key=lambda r: r.date)
-            data = [record.to_dict() for record in sorted_records]
-            
-            with open(self.file_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            raise IOError(f"Failed to save recommendations to {self.file_path}: {e}")
+        # Clear existing data
+        cursor.execute("DELETE FROM recommendation_stocks")
+        
+        # Insert new records
+        sorted_records = sorted(records, key=lambda r: r.date)
+        for record in sorted_records:
+            for stock in record.stocks:
+                cursor.execute("""
+                    INSERT INTO recommendation_stocks 
+                    (date, stock_id, stock_name, sentiment, target_price, stop_loss)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (record.date, stock.id, stock.name, stock.sentiment, stock.TP, stock.SL))
+        
+        conn.commit()
+        conn.close()
+        logger.info(f"Saved {len(records)} recommendation records to database")
     
     def add_record(self, record: RecommendationRecord) -> None:
         """
-        Add a single recommendation record
+        Add or update a single recommendation record
         
         Args:
             record: RecommendationRecord to add
         """
-        records = self.load()
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
         
-        # Remove existing record for the same date if present
-        records = [r for r in records if r.date != record.date]
+        # Delete existing stocks for this date
+        cursor.execute("DELETE FROM recommendation_stocks WHERE date = ?", (record.date,))
         
-        # Add new record
-        records.append(record)
+        # Insert stocks
+        for stock in record.stocks:
+            cursor.execute("""
+                INSERT INTO recommendation_stocks 
+                (date, stock_id, stock_name, sentiment, target_price, stop_loss)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (record.date, stock.id, stock.name, stock.sentiment, stock.TP, stock.SL))
         
-        self.save(records)
+        conn.commit()
+        conn.close()
+        logger.info(f"Added/updated recommendation for {record.date} with {len(record.stocks)} stocks")
     
     def get_by_date(self, date: str) -> Optional[RecommendationRecord]:
         """
@@ -157,11 +232,35 @@ class RecommendationDAO:
         Returns:
             RecommendationRecord or None if not found
         """
-        records = self.load()
-        for record in records:
-            if record.date == date:
-                return record
-        return None
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT stock_id, stock_name, sentiment, target_price, stop_loss
+            FROM recommendation_stocks
+            WHERE date = ?
+        """, (date,))
+        
+        rows = cursor.fetchall()
+        
+        if not rows:
+            conn.close()
+            return None
+        
+        stocks = [
+            Stock(
+                id=row['stock_id'],
+                name=row['stock_name'],
+                sentiment=row['sentiment'],
+                TP=row['target_price'],
+                SL=row['stop_loss']
+            )
+            for row in rows
+        ]
+        
+        conn.close()
+        return RecommendationRecord(date=date, stocks=stocks)
     
     def get_latest(self) -> Optional[RecommendationRecord]:
         """
@@ -170,8 +269,42 @@ class RecommendationDAO:
         Returns:
             Latest RecommendationRecord or None if empty
         """
-        records = self.load()
-        return records[-1] if records else None
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get latest date
+        cursor.execute("""
+            SELECT DISTINCT date FROM recommendation_stocks 
+            ORDER BY date DESC LIMIT 1
+        """)
+        
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return None
+        
+        date = row['date']
+        
+        cursor.execute("""
+            SELECT stock_id, stock_name, sentiment, target_price, stop_loss
+            FROM recommendation_stocks
+            WHERE date = ?
+        """, (date,))
+        
+        stocks = [
+            Stock(
+                id=stock_row['stock_id'],
+                name=stock_row['stock_name'],
+                sentiment=stock_row['sentiment'],
+                TP=stock_row['target_price'],
+                SL=stock_row['stop_loss']
+            )
+            for stock_row in cursor.fetchall()
+        ]
+        
+        conn.close()
+        return RecommendationRecord(date=date, stocks=stocks)
     
     def get_stock_ids(self, date: str) -> List[str]:
         """
@@ -193,6 +326,11 @@ class RecommendationDAO:
         Args:
             date: Date string in YYYY-MM-DD format
         """
-        records = self.load()
-        records = [r for r in records if r.date != date]
-        self.save(records)
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM recommendation_stocks WHERE date = ?", (date,))
+        
+        conn.commit()
+        conn.close()
+        logger.info(f"Deleted recommendation for {date}")

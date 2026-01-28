@@ -8,15 +8,13 @@ class RogerTWStrategyBase:
     def __init__(self, task_name, config_path="config.yaml"):
         self.report = None
         self.config_loader = ConfigLoader(config_path)
-        task_config = self.config_loader.config.get('recommendation_tasks', {}).get(task_name, {})
-        self.json_path = task_config.get('output_file')
 
     def _create_position_df(self, universe):
         """
         讀取推薦 DAO 並轉換為 Finlab 可用的 Position DataFrame
         支援 stocks 為物件列表，從 stock.id 取代號
         """  
-        dao = RecommendationDAO(self.json_path)
+        dao = RecommendationDAO()
         recommendation_records = dao.load()
 
         records = []

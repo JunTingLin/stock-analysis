@@ -50,10 +50,9 @@ class RecommendationsParser:
             raise ValueError(f"Task '{task_name}' not found in config.yaml under 'recommendation_tasks'")
 
         self.input_folder = task_config.get('local_dir')
-        self.output_file = task_config.get('output_file')
 
-        if not self.input_folder or not self.output_file:
-             raise ValueError(f"Missing local_dir or output_file for task '{task_name}'")
+        if not self.input_folder:
+             raise ValueError(f"Missing local_dir for task '{task_name}'")
 
         self.api_key = os.environ.get("GOOGLE_API_KEY")
         if not self.api_key:
@@ -129,7 +128,7 @@ class RecommendationsParser:
             return
 
         # Use DAO to load existing data
-        dao = RecommendationDAO(self.output_file)
+        dao = RecommendationDAO()
         existing_records = dao.load()
         existing_dates = {record.date for record in existing_records}
         
@@ -173,7 +172,7 @@ class RecommendationsParser:
                         logger.info(f"Saved {len(record.stocks)} stocks for {f_date}")
                         time.sleep(self.api_rate_sleep)  # 避免 Rate Limit
             
-            logger.info(f"Updated {len(sorted_dates)} new records to {self.output_file}")
+            logger.info(f"Updated {len(sorted_dates)} new records to database")
 
 if __name__ == "__main__":
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

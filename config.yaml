@@ -46,9 +46,7 @@ recommendation_tasks:
   weekly:
     drive_folder_id: "${WEEKLY_DRIVE_FOLDER_ID}"
     local_dir: "./assets/recommendations_w"
-    output_file: "./assets/recommendations_history_w.json"
   
   monthly:
     drive_folder_id: "${MONTHLY_DRIVE_FOLDER_ID}"
     local_dir: "./assets/recommendations_m"
-    output_file: "./assets/recommendations_history_m.json"

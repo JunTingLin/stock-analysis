@@ -9,6 +9,7 @@ import google.genai as genai
 from google.genai import types
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from dao.recommendation_dao import RecommendationDAO, RecommendationRecord, Stock
 from utils.config_loader import ConfigLoader
 from utils.logger_manager import LoggerManager
 from utils.notifier import create_notification_manager
@@ -49,10 +50,9 @@ class RecommendationsParser:
             raise ValueError(f"Task '{task_name}' not found in config.yaml under 'recommendation_tasks'")
 
         self.input_folder = task_config.get('local_dir')
-        self.output_file = task_config.get('output_file')
 
-        if not self.input_folder or not self.output_file:
-             raise ValueError(f"Missing local_dir or output_file for task '{task_name}'")
+        if not self.input_folder:
+             raise ValueError(f"Missing local_dir for task '{task_name}'")
 
         self.api_key = os.environ.get("GOOGLE_API_KEY")
         if not self.api_key:
@@ -80,7 +80,6 @@ class RecommendationsParser:
             return None
             
         prompt = self.prompt_template.format(date_str=date_str, content=content)
-        
         for attempt in range(self.max_retries):
             try:
                 response = self.client.models.generate_content(
@@ -92,15 +91,22 @@ class RecommendationsParser:
                     )
                 )
                 
-                data = json.loads(response.text)
+                # Parse JSON response
+                parsed_json = json.loads(response.text)
                 
-                if 'stocks' not in data:
+                # Validate stocks field exists
+                if 'stocks' not in parsed_json:
                     logger.warning(f"JSON missing 'stocks' field in {date_str}")
                     return None
-
-                logger.info(f"[{date_str}] Parsed Stocks: {data.get('stocks')}")
-                data['date'] = date_str
-                return data
+                
+                # Convert raw dicts to Stock objects
+                stocks = [Stock(**stock_dict) for stock_dict in parsed_json.get('stocks', [])]
+                
+                # Create RecommendationRecord with Stock objects
+                record = RecommendationRecord(date=date_str, stocks=stocks)
+                
+                logger.info(f"[{date_str}] Parsed {len(stocks)} stocks: {[s.id for s in stocks]}")
+                return record
 
             except Exception as e:
                 error_msg = str(e)
@@ -109,6 +115,7 @@ class RecommendationsParser:
                     time.sleep(self.api_rate_sleep)
                 else:
                     logger.error(f"Gemini Error processing {date_str}: {e}")
+                    logger.error(f"Response text: {response.text if 'response' in locals() else 'N/A'}")
                     return None
 
         logger.error(f"Failed to process {date_str} after {self.max_retries} attempts.")
@@ -120,17 +127,17 @@ class RecommendationsParser:
             logger.info(f"Created input folder: {self.input_folder}")
             return
 
-        existing_data = []
-        if os.path.exists(self.output_file):
-            with open(self.output_file, 'r', encoding='utf-8') as f:
-                existing_data = json.load(f)
+        # Use DAO to load existing data (filtered by task frequency)
+        dao = RecommendationDAO(frequency=self.task_name)
+        existing_records = dao.load()
+        existing_dates = {record.date for record in existing_records}
         
-        existing_dates = {entry['date'] for entry in existing_data}
         candidates = {}
         
         files = os.listdir(self.input_folder)
         for f in files:
-            if not f.endswith(".md"): continue
+            if not f.endswith(".md"): 
+                continue
 
             f_date = self._extract_date(f)
             
@@ -145,7 +152,6 @@ class RecommendationsParser:
                 if f > current_best:
                     candidates[f_date] = f
 
-        new_entries = []
         sorted_dates = sorted(candidates.keys())
         
         if not sorted_dates:
@@ -159,18 +165,14 @@ class RecommendationsParser:
                 
                 file_path = os.path.join(self.input_folder, f_name)
                 with open(file_path, 'r', encoding='utf-8') as file:
-                    result = self._call_gemini(file.read(), f_date)
+                    record = self._call_gemini(file.read(), f_date)
                     
-                    if result:
-                        new_entries.append(result)
-                        time.sleep(self.api_rate_sleep) # 避免 Rate Limit
-
-        if new_entries:
-            existing_data.extend(new_entries)
-            existing_data.sort(key=lambda x: x['date'])
-            with open(self.output_file, 'w', encoding='utf-8') as f:
-                json.dump(existing_data, f, indent=4, ensure_ascii=False)
-            logger.info(f"Updated {len(new_entries)} new records.")
+                    if record:
+                        dao.add_record(record)
+                        logger.info(f"Saved {len(record.stocks)} stocks for {f_date}")
+                        time.sleep(self.api_rate_sleep)  # 避免 Rate Limit
+            
+            logger.info(f"Updated {len(sorted_dates)} new records to database")
 
 if __name__ == "__main__":
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

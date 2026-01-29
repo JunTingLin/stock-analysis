@@ -127,8 +127,8 @@ class RecommendationsParser:
             logger.info(f"Created input folder: {self.input_folder}")
             return
 
-        # Use DAO to load existing data
-        dao = RecommendationDAO()
+        # Use DAO to load existing data (filtered by task frequency)
+        dao = RecommendationDAO(frequency=self.task_name)
         existing_records = dao.load()
         existing_dates = {record.date for record in existing_records}
         

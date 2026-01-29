@@ -6,6 +6,7 @@ from dao.recommendation_dao import RecommendationDAO
 
 class RogerTWStrategyBase:
     def __init__(self, task_name, config_path="config.yaml"):
+        self.task_name = task_name  # 'weekly' or 'monthly'
         self.report = None
         self.config_loader = ConfigLoader(config_path)
 
@@ -14,7 +15,7 @@ class RogerTWStrategyBase:
         讀取推薦 DAO 並轉換為 Finlab 可用的 Position DataFrame
         支援 stocks 為物件列表，從 stock.id 取代號
         """  
-        dao = RecommendationDAO()
+        dao = RecommendationDAO(frequency=self.task_name)
         recommendation_records = dao.load()
 
         records = []

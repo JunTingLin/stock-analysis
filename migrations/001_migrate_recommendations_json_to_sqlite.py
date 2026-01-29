@@ -43,7 +43,6 @@ class RecommendationMigration:
                 - "merge": Merge stocks from both sources
         """
         self.db_path = db_path
-        self.dao = RecommendationDAO(db_path)
         self.merge_strategy = merge_strategy
         self.migration_stats = {
             'total_records': 0,
@@ -53,6 +52,24 @@ class RecommendationMigration:
             'merged_records': 0,
             'files_processed': 0
         }
+    
+    def _infer_frequency(self, json_path: str) -> str:
+        """
+        Infer frequency from JSON filename
+        
+        Args:
+            json_path: Path to JSON file
+            
+        Returns:
+            'weekly' or 'monthly'
+        """
+        filename = os.path.basename(json_path).lower()
+        if '_w.json' in filename or 'weekly' in filename:
+            return 'weekly'
+        elif '_m.json' in filename or 'monthly' in filename:
+            return 'monthly'
+        else:
+            raise ValueError(f"Cannot infer frequency from filename: {json_path}")
     
     def migrate_json_file(self, json_path: str) -> int:
         """
@@ -68,7 +85,12 @@ class RecommendationMigration:
             logger.warning(f"JSON file not found: {json_path}")
             return 0
         
-        logger.info(f"Processing: {json_path}")
+        # Infer frequency from filename
+        frequency = self._infer_frequency(json_path)
+        logger.info(f"Processing: {json_path} (frequency={frequency})")
+        
+        # Create DAO with frequency filter
+        dao = RecommendationDAO(db_path=self.db_path, frequency=frequency)
         
         try:
             with open(json_path, 'r', encoding='utf-8') as f:
@@ -100,7 +122,7 @@ class RecommendationMigration:
                         continue
                 
                 # Check if record already exists
-                existing_record = self.dao.get_by_date(date)
+                existing_record = dao.get_by_date(date)
                 if existing_record:
                     if self.merge_strategy == "skip":
                         logger.info(f"Record for {date} already exists, skipping")
@@ -119,7 +141,7 @@ class RecommendationMigration:
                 
                 # Create and save record
                 record = RecommendationRecord(date=date, stocks=stocks)
-                self.dao.add_record(record)
+                dao.add_record(record)
                 
                 records_migrated += 1
                 self.migration_stats['total_stocks'] += len(stocks)
@@ -156,6 +178,10 @@ class RecommendationMigration:
             if not os.path.exists(json_path):
                 continue
             
+            # Create frequency-specific DAO for validation
+            frequency = self._infer_frequency(json_path)
+            dao = RecommendationDAO(db_path=self.db_path, frequency=frequency)
+            
             with open(json_path, 'r', encoding='utf-8') as f:
                 json_data = json.load(f)
             
@@ -164,10 +190,10 @@ class RecommendationMigration:
                 if not date:
                     continue
                 
-                db_record = self.dao.get_by_date(date)
+                db_record = dao.get_by_date(date)
                 
                 if not db_record:
-                    logger.error(f"✗ Missing in DB: {date}")
+                    logger.error(f"✗ Missing in DB: {date} (frequency={frequency})")
                     all_valid = False
                     continue
                 

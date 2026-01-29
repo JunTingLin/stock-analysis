@@ -77,14 +77,16 @@ class RecommendationRecord:
 class RecommendationDAO:
     """Data Access Object for managing stock recommendations using SQLite"""
     
-    def __init__(self, db_path="data_prod.db"):
+    def __init__(self, db_path="data_prod.db", frequency: Optional[str] = None):
         """
-        Initialize DAO with database path
+        Initialize DAO with database path and frequency filter
         
         Args:
             db_path: Path to the SQLite database file
+            frequency: Filter by frequency ('weekly' or 'monthly'). If None, returns all.
         """
         self.db_path = db_path
+        self.frequency = frequency
         self._create_table()
     
     def _create_table(self):
@@ -97,6 +99,8 @@ class RecommendationDAO:
             CREATE TABLE IF NOT EXISTS recommendation_stocks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 date TEXT NOT NULL,
+                frequency TEXT NOT NULL,
+                priority INTEGER NOT NULL,
                 stock_id TEXT NOT NULL,
                 stock_name TEXT,
                 sentiment TEXT NOT NULL,
@@ -123,6 +127,21 @@ class RecommendationDAO:
             ON recommendation_stocks(date, stock_id);
         """)
         
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_recommendation_stocks_frequency 
+            ON recommendation_stocks(frequency);
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_recommendation_stocks_freq_date 
+            ON recommendation_stocks(frequency, date DESC);
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_recommendation_stocks_date_priority 
+            ON recommendation_stocks(date, priority);
+        """)
+        
         conn.commit()
         conn.close()
     
@@ -137,22 +156,38 @@ class RecommendationDAO:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Get all unique dates
-        cursor.execute("""
-            SELECT DISTINCT date FROM recommendation_stocks 
-            ORDER BY date ASC
-        """)
+        # Get all unique dates (filtered by frequency if set)
+        if self.frequency:
+            cursor.execute("""
+                SELECT DISTINCT date FROM recommendation_stocks 
+                WHERE frequency = ?
+                ORDER BY date ASC
+            """, (self.frequency,))
+        else:
+            cursor.execute("""
+                SELECT DISTINCT date FROM recommendation_stocks 
+                ORDER BY date ASC
+            """)
         
         records = []
         for row in cursor.fetchall():
             date = row['date']
             
-            # Get stocks for this date
-            cursor.execute("""
-                SELECT stock_id, stock_name, sentiment, target_price, stop_loss
-                FROM recommendation_stocks
-                WHERE date = ?
-            """, (date,))
+            # Get stocks for this date (filtered by frequency if set)
+            if self.frequency:
+                cursor.execute("""
+                    SELECT stock_id, stock_name, sentiment, target_price, stop_loss
+                    FROM recommendation_stocks
+                    WHERE date = ? AND frequency = ?
+                    ORDER BY priority ASC
+                """, (date, self.frequency))
+            else:
+                cursor.execute("""
+                    SELECT stock_id, stock_name, sentiment, target_price, stop_loss
+                    FROM recommendation_stocks
+                    WHERE date = ?
+                    ORDER BY priority ASC
+                """, (date,))
             
             stocks = [
                 Stock(
@@ -172,26 +207,29 @@ class RecommendationDAO:
     
     def save(self, records: List[RecommendationRecord]) -> None:
         """
-        Save recommendation records to database (full replacement)
+        Save recommendation records to database (full replacement for this frequency)
         
         Args:
             records: List of RecommendationRecord objects to save
         """
+        if not self.frequency:
+            raise ValueError("frequency must be set when calling save()")
+        
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Clear existing data
-        cursor.execute("DELETE FROM recommendation_stocks")
+        # Clear existing data for this frequency only
+        cursor.execute("DELETE FROM recommendation_stocks WHERE frequency = ?", (self.frequency,))
         
         # Insert new records
         sorted_records = sorted(records, key=lambda r: r.date)
         for record in sorted_records:
-            for stock in record.stocks:
+            for idx, stock in enumerate(record.stocks):
                 cursor.execute("""
                     INSERT INTO recommendation_stocks 
-                    (date, stock_id, stock_name, sentiment, target_price, stop_loss)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (record.date, stock.id, stock.name, stock.sentiment, stock.TP, stock.SL))
+                    (date, frequency, priority, stock_id, stock_name, sentiment, target_price, stop_loss)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (record.date, self.frequency, idx, stock.id, stock.name, stock.sentiment, stock.TP, stock.SL))
         
         conn.commit()
         conn.close()
@@ -204,23 +242,26 @@ class RecommendationDAO:
         Args:
             record: RecommendationRecord to add
         """
+        if not self.frequency:
+            raise ValueError("frequency must be set when calling add_record()")
+        
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Delete existing stocks for this date
-        cursor.execute("DELETE FROM recommendation_stocks WHERE date = ?", (record.date,))
+        # Delete existing stocks for this date and frequency
+        cursor.execute("DELETE FROM recommendation_stocks WHERE date = ? AND frequency = ?", (record.date, self.frequency))
         
         # Insert stocks
-        for stock in record.stocks:
+        for idx, stock in enumerate(record.stocks):
             cursor.execute("""
                 INSERT INTO recommendation_stocks 
-                (date, stock_id, stock_name, sentiment, target_price, stop_loss)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (record.date, stock.id, stock.name, stock.sentiment, stock.TP, stock.SL))
+                (date, frequency, priority, stock_id, stock_name, sentiment, target_price, stop_loss)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (record.date, self.frequency, idx, stock.id, stock.name, stock.sentiment, stock.TP, stock.SL))
         
         conn.commit()
         conn.close()
-        logger.info(f"Added/updated recommendation for {record.date} with {len(record.stocks)} stocks")
+        logger.info(f"Added/updated {self.frequency} recommendation for {record.date} with {len(record.stocks)} stocks")
     
     def get_by_date(self, date: str) -> Optional[RecommendationRecord]:
         """
@@ -236,11 +277,20 @@ class RecommendationDAO:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        cursor.execute("""
-            SELECT stock_id, stock_name, sentiment, target_price, stop_loss
-            FROM recommendation_stocks
-            WHERE date = ?
-        """, (date,))
+        if self.frequency:
+            cursor.execute("""
+                SELECT stock_id, stock_name, sentiment, target_price, stop_loss
+                FROM recommendation_stocks
+                WHERE date = ? AND frequency = ?
+                ORDER BY priority ASC
+            """, (date, self.frequency))
+        else:
+            cursor.execute("""
+                SELECT stock_id, stock_name, sentiment, target_price, stop_loss
+                FROM recommendation_stocks
+                WHERE date = ?
+                ORDER BY priority ASC
+            """, (date,))
         
         rows = cursor.fetchall()
         
@@ -273,11 +323,18 @@ class RecommendationDAO:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Get latest date
-        cursor.execute("""
-            SELECT DISTINCT date FROM recommendation_stocks 
-            ORDER BY date DESC LIMIT 1
-        """)
+        # Get latest date (filtered by frequency if set)
+        if self.frequency:
+            cursor.execute("""
+                SELECT DISTINCT date FROM recommendation_stocks 
+                WHERE frequency = ?
+                ORDER BY date DESC LIMIT 1
+            """, (self.frequency,))
+        else:
+            cursor.execute("""
+                SELECT DISTINCT date FROM recommendation_stocks 
+                ORDER BY date DESC LIMIT 1
+            """)
         
         row = cursor.fetchone()
         if not row:
@@ -286,11 +343,20 @@ class RecommendationDAO:
         
         date = row['date']
         
-        cursor.execute("""
-            SELECT stock_id, stock_name, sentiment, target_price, stop_loss
-            FROM recommendation_stocks
-            WHERE date = ?
-        """, (date,))
+        if self.frequency:
+            cursor.execute("""
+                SELECT stock_id, stock_name, sentiment, target_price, stop_loss
+                FROM recommendation_stocks
+                WHERE date = ? AND frequency = ?
+                ORDER BY priority ASC
+            """, (date, self.frequency))
+        else:
+            cursor.execute("""
+                SELECT stock_id, stock_name, sentiment, target_price, stop_loss
+                FROM recommendation_stocks
+                WHERE date = ?
+                ORDER BY priority ASC
+            """, (date,))
         
         stocks = [
             Stock(
@@ -329,8 +395,12 @@ class RecommendationDAO:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute("DELETE FROM recommendation_stocks WHERE date = ?", (date,))
+        if self.frequency:
+            cursor.execute("DELETE FROM recommendation_stocks WHERE date = ? AND frequency = ?", (date, self.frequency))
+            logger.info(f"Deleted {self.frequency} recommendation for {date}")
+        else:
+            cursor.execute("DELETE FROM recommendation_stocks WHERE date = ?", (date,))
+            logger.info(f"Deleted recommendation for {date}")
         
         conn.commit()
         conn.close()
-        logger.info(f"Deleted recommendation for {date}")

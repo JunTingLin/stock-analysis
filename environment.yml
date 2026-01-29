@@ -8,6 +8,8 @@ dependencies:
   - numpy=1.26.4
   - flask=3.1.1
   - dash=3.0.4
+  - dash-bootstrap-components=2.0.3
+  - gunicorn=23.0.0
   - plotly=6.1.2
   - ta-lib
   - openpyxl
@@ -27,3 +29,5 @@ dependencies:
       - google-auth-oauthlib==1.2.4
       - google-auth-httplib2==0.3.0
       - google.genai==1.59.0
+      - flask-autoindex==0.6.6
+      - keyring==23.5.0

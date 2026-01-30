@@ -17,7 +17,7 @@ llm_settings:
 
 # Telegram 通知 
 notification:
-  enabled: false
+  enabled: true
 
 users:
   junting:

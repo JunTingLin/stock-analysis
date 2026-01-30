@@ -3,26 +3,21 @@ env:
   FINLAB_API_TOKEN: "${FINLAB_API_TOKEN}"
   GOOGLE_API_KEY: "${GOOGLE_API_KEY}"
   GOOGLE_TOKEN_PATH: "${GOOGLE_TOKEN_PATH}"
-  WEEKLY_DRIVE_FOLDER_ID: "${WEEKLY_DRIVE_FOLDER_ID}"
-  MONTHLY_DRIVE_FOLDER_ID: "${MONTHLY_DRIVE_FOLDER_ID}"
-  TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN}"
-  TELEGRAM_CHAT_ID: "${TELEGRAM_CHAT_ID}"
 
 # LLM 配置
 llm_settings:
   model_name: "gemini-2.0-flash"
   api_rate_limit_sleep: 30
   max_retries: 3
-  prompt_file_path: "/app/config/prompts/golden_ai_top5_prompt.txt"
+  prompt_file_path: "./config/prompts/golden_ai_parsing_prompt.txt"
 
-# Telegram 通知 (暫時禁用)
+# Telegram 通知 
 notification:
-  enabled: false
+  enabled: true
   telegram:
-    bot_token: ""
-    chat_id: ""
+    bot_token: "${TELEGRAM_BOT_TOKEN}"
+    chat_id: "${TELEGRAM_CHAT_ID}"
 
-# 使用者配置
 users:
   junting:
     shioaji:
@@ -46,12 +41,11 @@ users:
         rebalance_safety_weight: 0.3
         strategy_class_name: "AlanTWStrategyACE"
 
-# 股票推薦清單配置 (drive_folder_id 設定在 .env)
 recommendation_tasks:
   weekly:
     drive_folder_id: "${WEEKLY_DRIVE_FOLDER_ID}"
-    local_dir: "/app/assets/recommendations_w"
+    local_dir: "./assets/recommendations_w"
   
   monthly:
     drive_folder_id: "${MONTHLY_DRIVE_FOLDER_ID}"
-    local_dir: "/app/assets/recommendations_m"
+    local_dir: "./assets/recommendations_m"

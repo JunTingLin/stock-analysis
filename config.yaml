@@ -3,10 +3,6 @@ env:
   FINLAB_API_TOKEN: "${FINLAB_API_TOKEN}"
   GOOGLE_API_KEY: "${GOOGLE_API_KEY}"
   GOOGLE_TOKEN_PATH: "${GOOGLE_TOKEN_PATH}"
-  WEEKLY_DRIVE_FOLDER_ID: "${WEEKLY_DRIVE_FOLDER_ID}"
-  MONTHLY_DRIVE_FOLDER_ID: "${MONTHLY_DRIVE_FOLDER_ID}"
-  TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN}"
-  TELEGRAM_CHAT_ID: "${TELEGRAM_CHAT_ID}"
 
 # LLM 配置
 llm_settings:
@@ -17,7 +13,10 @@ llm_settings:
 
 # Telegram 通知 
 notification:
-  enabled: false
+  enabled: true
+  telegram:
+    bot_token: "${TELEGRAM_BOT_TOKEN}"
+    chat_id: "${TELEGRAM_CHAT_ID}"
 
 users:
   junting:
